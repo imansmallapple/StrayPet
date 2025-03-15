@@ -33,6 +33,8 @@ class Category(BaseModel):
 
 class Article(BaseModel):
     title = models.CharField("title", max_length=100)
+    description = models.CharField('description', max_length=200, blank=True, default="")
+    content = models.TextField('content')
     category = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,
@@ -61,5 +63,5 @@ class Tag(BaseModel):
         verbose_name_plural = "Tags"
         ordering = ["-add_date"]
 
-    def __str__(self) -> CharField:
-        return self.name
+    def __str__(self) -> str:
+        return f"{self.id}:{self.name}"
