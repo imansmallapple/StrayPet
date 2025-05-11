@@ -16,21 +16,44 @@ def get_token_for_user(user):
     }
 
 
-class RegisterSerializer(serializers.ModelSerializer):
+class VerifyEmailCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, label='Email')
+    code = serializers.CharField(
+        required=True,
+        label='Verification Code',
+        max_length=4,
+        min_length=4,
+        write_only=True
+    )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        from django.core.cache import cache
+        item_code = cache.get(attrs['email'])
+        if item_code != attrs['code']:
+            raise serializers.ValidationError('Code wrong!')
+        return attrs
+
+
+class RegisterSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer):
     # password = serializers.CharField(write_only=True)
-    # password1 = serializers.CharField(write_only=True)
+    password1 = serializers.CharField(write_only=True, style={'input_type': 'password'})
     # get user object
     tokens = serializers.SerializerMethodField()
+    email = serializers.EmailField(required=True, label='email',
+                                   validators=[UniqueValidator(queryset=User.objects.all(),
+                                                               message='Email already exists!')
+                                               ])
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'password1', 'email', 'tokens')
+        fields = ('username', 'password', 'password1', 'email', 'tokens', 'code')
         extra_kwargs = {
-            'email': {
-                'validators': [
-                    UniqueValidator(queryset=User.objects.all(), message='Email already exists!')
-                ]
-            },
+            # 'email': {
+            #     'validators': [
+            #         UniqueValidator(queryset=User.objects.all(), message='Email already exists!')
+            #     ]
+            # },
             'password': {
                 'write_only': True,
                 'style': {'input_type': 'password'}
@@ -48,6 +71,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         attrs = super().validate(attrs)
         attrs['password'] = make_password(attrs['password'])
         del attrs['password1']
+        del attrs['code']
         return attrs
 
     def validate_password(self, password):
@@ -60,16 +84,3 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class SendEmailCodeSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, label='Email')
-
-
-class VerifyEmailCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True, label='Email')
-    code = serializers.CharField(required=True, label='Verification Code', max_length=4, min_length=4)
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        from django.core.cache import cache
-        item_code = cache.get(attrs['email'])
-        if item_code != attrs['code']:
-            raise serializers.ValidationError('Code wrong!')
-        return attrs
