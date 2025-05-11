@@ -154,3 +154,8 @@ urlpatterns = [
     path('goods/', views.goods_list),
     path('goods/<int:id>', views.goods_detail)
 ]
+
+
+## 用户注册的接口，注册成功之后返回token给前端（前端直接登录成功，不需要跳转到登陆页面）
+![image1.png](images%2Fimage1.png)
+
