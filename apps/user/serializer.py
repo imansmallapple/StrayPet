@@ -60,3 +60,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class SendEmailCodeSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, label='Email')
+
+
+class VerifyEmailCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, label='Email')
+    code = serializers.CharField(required=True, label='Verification Code', max_length=4, min_length=4)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        from django.core.cache import cache
+        item_code = cache.get(attrs['email'])
+        if item_code != attrs['code']:
+            raise serializers.ValidationError('Code wrong!')
+        return attrs

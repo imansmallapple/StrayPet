@@ -1,12 +1,13 @@
 import random
-
+import string
+from django.core.cache import cache
 from django.contrib.auth import get_user_model
 
 from rest_framework import viewsets, mixins, filters, permissions
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer
+from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer
 
 User = get_user_model()
 
@@ -23,9 +24,6 @@ class SendEmailCodeGenericAPIView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        import string
-        from django.core.cache import cache
-
         code = ''.join(random.sample(string.ascii_letters + string.digits, 4))
         email = serializer.validated_data['email']
         cache.get_or_set(email, code, 60 * 5)
@@ -39,3 +37,13 @@ class SendEmailCodeGenericAPIView(GenericAPIView):
             fail_silently=False,
         )
         return Response({'msg': 'Sent success!'})
+
+
+class VerifyEmailCodeGenericAPIView(GenericAPIView):
+    serializer_class = VerifyEmailCodeSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        cache.delete(serializer.data['email'])
+        return Response({'msg': 'Verification success!'})

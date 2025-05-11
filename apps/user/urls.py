@@ -18,7 +18,12 @@ urlpatterns = [
     path(
         'send_email_code/',
         views.SendEmailCodeGenericAPIView.as_view(),
-        name='send_email.code'
+        name='send_email_code'
+    ),
+    path(
+        'verify_email_code/',
+        views.VerifyEmailCodeGenericAPIView.as_view(),
+        name='verify_email_code'
     ),
     * router.urls,
 ]
