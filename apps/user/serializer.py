@@ -56,3 +56,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def get_tokens(self, obj):
         return get_token_for_user(obj)
+
+
+class SendEmailCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, label='Email')
