@@ -10,6 +10,7 @@ from . import views
 
 router = DefaultRouter()
 router.register('register', views.RegisterViewSet, basename='category')
+router.register('userinfo', views.UserInfoViewSet, basename='userinfo')
 
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

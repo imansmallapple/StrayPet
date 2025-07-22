@@ -84,3 +84,9 @@ class RegisterSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer)
 
 class SendEmailCodeSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, label='Email')
+
+class UserInfoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email')
