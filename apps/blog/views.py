@@ -9,6 +9,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
 from django_filters import rest_framework as filters
+from apps.user.models import ViewStatistics
 
 
 class CategoryViewSet(mixins.ListModelMixin,
@@ -25,6 +26,7 @@ class CategoryViewSet(mixins.ListModelMixin,
 
 
 class ArticleViewSet(mixins.ListModelMixin,
+                     mixins.RetrieveModelMixin,
                      viewsets.GenericViewSet):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
@@ -35,6 +37,11 @@ class ArticleViewSet(mixins.ListModelMixin,
     search_fields = ['title']
     ordering_fields = ['add_date']
     filterset_fields = ['category']
+
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        ViewStatistics.increase(request, obj)
+        return super().retrieve(request, *args, **kwargs)
 
     @action(methods=['get'], detail=False)
     def archive(self, request, *args, **kwargs):
