@@ -85,8 +85,23 @@ class RegisterSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer)
 class SendEmailCodeSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, label='Email')
 
-class UserInfoSerializer(serializers.ModelSerializer):
 
+class UserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email')
+
+
+class UpdateEmailSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer):
+    email = serializers.EmailField(required=True, label='Email', validators=[
+        UniqueValidator(queryset=User.objects.all(), message='Email already exists!')
+    ])
+
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'code')
+
+        def validate(self, attrs):
+            attrs = super().validate(attrs)
+            del attrs['code']
+            return attrs

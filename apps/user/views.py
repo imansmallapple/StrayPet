@@ -6,9 +6,9 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets, mixins, filters, permissions, authentication
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-
+from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
-    UserInfoSerializer
+    UserInfoSerializer, UpdateEmailSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 User = get_user_model()
@@ -50,9 +50,9 @@ class VerifyEmailCodeGenericAPIView(GenericAPIView):
         cache.delete(serializer.data['email'])
         return Response({'msg': 'Verification success!'})
 
+
 class UserInfoViewSet(mixins.RetrieveModelMixin,
                       viewsets.GenericViewSet):
-
     queryset = User.objects.all()
     serializer_class = UserInfoSerializer
     authentication_classes = [authentication.SessionAuthentication, JWTAuthentication]
@@ -60,3 +60,16 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
 
     def get_queryset(self):
         return super().get_queryset().filter(id=self.request.user.id)
+
+    def get_serializer_class(self):
+        if self.action == 'update_email':
+            return UpdateEmailSerializer
+        return super().get_serializer_class()
+
+    @action(methods=['post'], detail=True)
+    def update_email(self, request, pk=None):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_expection=True)
+        instance.email = serializer.validated_data['email']
+        instance.save()
