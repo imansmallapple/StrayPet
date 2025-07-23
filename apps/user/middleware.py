@@ -14,7 +14,7 @@ class UserUidMiddleware:
         request.uid = uid
         response = self.get_response(request)
         response.set_cookie('uid', uid, max_age=MAX_AGE, httponly=True)
-        print(response.cookies['uid'])
+        # print(response.cookies['uid'])
         return response
 
     def generate_uid(self, request):

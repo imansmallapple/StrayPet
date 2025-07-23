@@ -24,7 +24,7 @@ class ViewStatistics(models.Model):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=['content_type', 'object_id'],
+                fields=['content_type', 'object_id', 'date'],
                 name='user_views_content_type_idx'
             )
         ]
@@ -72,4 +72,7 @@ class ViewStatistics(models.Model):
         except cls.DoesNotExist:
             return 0
         else:
-            return view_statistics.count
+            return cls.objects.filter(
+                content_type=ct,
+                object_id=obj_id
+            ).aggregate(models.Sum('count'))['count__sum']
