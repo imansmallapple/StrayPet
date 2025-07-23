@@ -70,6 +70,7 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
     def update_email(self, request, pk=None):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_expection=True)
+        serializer.is_valid(raise_exception=True)
         instance.email = serializer.validated_data['email']
         instance.save()
+        return Response({'msg': 'Email update succeed!'})
