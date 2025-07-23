@@ -1,14 +1,14 @@
 import random
 import string
 from django.core.cache import cache
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, logout
 
 from rest_framework import viewsets, mixins, filters, permissions, authentication
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
-    UserInfoSerializer, UpdateEmailSerializer
+    UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 User = get_user_model()
@@ -64,6 +64,8 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
     def get_serializer_class(self):
         if self.action == 'update_email':
             return UpdateEmailSerializer
+        elif self.action == 'change_password':
+            return ChangePasswordSerializer
         return super().get_serializer_class()
 
     @action(methods=['post'], detail=True)
@@ -74,3 +76,15 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
         instance.email = serializer.validated_data['email']
         instance.save()
         return Response({'msg': 'Email update succeed!'})
+
+    @action(methods=['post'], detail=True)
+    def change_password(self, request, pk=None):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance.set_password(serializer.validated_data['password'])
+        instance.save()
+
+        if authentication.SessionAuthentication in self.authentication_classes:
+            logout(request)
+        return Response({'msg': 'Change password succeed!'})

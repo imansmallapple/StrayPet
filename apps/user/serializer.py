@@ -105,3 +105,32 @@ class UpdateEmailSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializ
             attrs = super().validate(attrs)
             del attrs['code']
             return attrs
+
+
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(
+        required=True,
+        label='Old Password',
+        write_only=True,
+        style={'input_type': 'password'}
+    )
+
+    class Meta:
+        model = User
+        fields = ('id', 'old_password', 'password')
+        extra_kwargs = {
+            'password': {
+                'write_only': True,
+                'style': {'input_type': 'password'}
+            },
+        }
+
+    def validate_old_password(self, old_password):
+        if not self.instance.check_password(old_password):
+            raise serializers.ValidationError('Old password incorrect!')
+        return old_password
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        del attrs['old_password']
+        return attrs
