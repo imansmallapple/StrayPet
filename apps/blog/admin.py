@@ -11,6 +11,16 @@ class CategoryTable(admin.TabularInline):
     extra = 1  # 多级分类
 
 
+class ArticleTable(admin.TabularInline):
+    model = Article
+    extra = 1
+
+
+class TagTable(admin.TabularInline):
+    model = Article
+    extra = 1
+
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'parent', 'sort', 'add_date', 'pub_date')
@@ -18,9 +28,22 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     search_help_text = "Search by category name"
     list_filter = ('name',)
-    exclude = ('parent',)
-    inlines = [
-        CategoryTable
-    ]
+
+
+@admin.register(Article)
+class ArticleAdmin(admin.ModelAdmin):
+    list_display = ('title', 'category', 'add_date', 'pub_date')
+    search_fields = ('title',)
+    list_editable = ('category',)
+    search_help_text = "Search by article title"
+    list_filter = ('category',)
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name', 'add_date', 'pub_date')
+    search_fields = ('name',)
+    search_help_text = "Search by tag name"
+    list_filter = ('name',)
 
 # admin.site.register(Category, CategoryAdmin)
