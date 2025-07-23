@@ -54,6 +54,24 @@ class Article(BaseModel):
     def __str__(self) -> CharField:
         return self.title
 
+    def get_markdown(self):
+        markdown = self._get_markdown_obj()
+        return markdown.convert(self.content)
+
+    def get_toc(self):
+        markdown = self._get_markdown_obj()
+        markdown.convert(self.content)
+        return markdown.toc
+
+    def _get_markdown_obj(self):
+        import markdown
+        markdown = markdown.Markdown(extensions=[
+            'markdown.extensions.extra',
+            'markdown.extensions.codehilite',
+            'markdown.extensions.toc',
+        ])
+        return markdown
+
 
 class Tag(BaseModel):
     name = models.CharField(max_length=30, verbose_name='Tag name')

@@ -26,6 +26,8 @@ class ArticleSerializer(serializers.ModelSerializer):
     # tags = TagSerializer(many=True, read_only=True)
     tags = serializers.StringRelatedField(many=True)  # 返回Tag关联的数据
     count = serializers.SerializerMethodField()
+    content = serializers.CharField(source='get_markdown', read_only=True)
+    toc = serializers.CharField(source='get_toc', read_only=True)
 
     class Meta:
         model = Article
