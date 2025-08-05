@@ -2,6 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from apps.blog.models import Category, Article, Tag
+from .forms import ArticleAdminForm
 
 
 # admin.site.register([Category, Article, Tag])
@@ -32,6 +33,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
+    form = ArticleAdminForm
     list_display = ('title', 'category', 'add_date', 'pub_date')
     search_fields = ('title',)
     list_editable = ('category',)
