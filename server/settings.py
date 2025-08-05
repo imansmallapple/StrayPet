@@ -40,9 +40,11 @@ INSTALLED_APPS = [
     'apps.user',
     'rest_framework_simplejwt',
     'django_filters',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -141,3 +143,6 @@ EMAIL_PORT = 465
 EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = 'xxxxxxxxxxxxxxxxxxx'
 EMAIL_USER_SSL = True
+
+# Cross-origin operation, not good for online request
+CORS_ALLOW_ALL_ORIGINS = True
