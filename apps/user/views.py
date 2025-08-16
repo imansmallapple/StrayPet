@@ -11,6 +11,11 @@ from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, Ve
     UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+import io
+import base64
+import uuid
+from common.utils import generate_catcha_image
+
 User = get_user_model()
 
 
@@ -88,3 +93,17 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
         if authentication.SessionAuthentication in self.authentication_classes:
             logout(request)
         return Response({'msg': 'Change password succeed!'})
+
+
+class CaptchaGenericAPIView(GenericAPIView):
+    def get(self, request, *args, **kwargs):
+        image, text = generate_catcha_image()
+        uid = uuid.uuid4().hex
+        cache.set(uid, text, 60 * 5)
+        image_byte = io.BytesIO()
+        image.save(image_byte, format='png')
+        image_base64 = base64.b64encode(image_byte.getvalue()).decode().encode('utf-8')
+        return Response({
+            'uid': uid,
+            'image': image_base64
+        })

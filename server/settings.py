@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',      # ✅ 这里
+    'corsheaders.middleware.CorsMiddleware',  # ✅ 这里
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',  # ✅ 这是 Django 自带的 CommonMiddleware
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -54,7 +54,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.user.middleware.UserUidMiddleware',
 ]
-
 
 ROOT_URLCONF = 'server.urls'
 
@@ -147,3 +146,7 @@ EMAIL_USER_SSL = True
 
 # Cross-origin operation, not good for online request
 CORS_ALLOW_ALL_ORIGINS = True
+
+SIMPLE_JWT = {
+    "TOKEN_OBTAIN_SERIALIZER": "apps.user.serializer.LoginSerializer"
+}

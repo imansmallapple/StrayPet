@@ -4,6 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
 
@@ -134,3 +135,33 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
         attrs = super().validate(attrs)
         del attrs['old_password']
         return attrs
+
+
+class CaptchaSerializer(serializers.Serializer):
+    captcha = serializers.CharField(
+        label="Verification code",
+        max_length=4,
+        min_length=4,
+        write_only=True
+    )
+    uid = serializers.CharField(
+        label='Verification code id',
+        max_length=100,
+        min_length=10,
+        write_only=True
+    )
+
+    def validate(self, attrs):
+        from django.core.cache import cache
+
+        if not cache.get(attrs['uid']):
+            raise serializers.ValidationError("Verification code expired!")
+
+        if cache.get(attrs['uid']).lower() != attrs['captcha'].lower():
+            raise serializers.ValidationError("Verification code wrong!")
+        cache.delete(attrs['uid'])
+        return super().validate(attrs)
+
+
+class LoginSerializer(TokenObtainPairSerializer, CaptchaSerializer):
+    pass

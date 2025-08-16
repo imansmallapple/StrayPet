@@ -33,9 +33,7 @@ def generate_catcha_image(width=80, height=30, font_size=27, font_path='', lengt
         draw.line(
             (random.randint(0, width), random.randint(0, height), random.randint(0, width), random.randint(0, height)),
             fill=color)
-
-    image.save('test.png')
-    image.show()
+    print(random_str)
     return image, random_str
 
 

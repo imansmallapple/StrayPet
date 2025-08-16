@@ -26,5 +26,11 @@ urlpatterns = [
         views.VerifyEmailCodeGenericAPIView.as_view(),
         name='verify_email_code'
     ),
+    path(
+        'captcha/',
+        views.CaptchaGenericAPIView.as_view(),
+        name='captcha'
+    ),
+
     * router.urls,
 ]
