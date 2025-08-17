@@ -1,15 +1,16 @@
+from django.db import models
+from django.db.models.functions import ExtractYear, ExtractMonth
+from django_filters import rest_framework as filters
 from rest_framework import viewsets, mixins, permissions
 from rest_framework.decorators import action
-from django.db.models.functions import ExtractYear, ExtractMonth
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from django.db import models
+from apps.user.models import ViewStatistics
+from common import pagination
 from .models import Article, Tag, Category
 from .serializers import ArticleSerializer, TagSerializer, CategorySerializer
-from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.response import Response
-from django_filters import rest_framework as filters
-from apps.user.models import ViewStatistics
 
 
 class CategoryViewSet(mixins.ListModelMixin,
@@ -68,7 +69,10 @@ class ArticleViewSet(mixins.ListModelMixin,
             queryset,
             many=True,
         )
-        return Response(serializer.data)
+        paginator = pagination.PageNumberPagination()
+        page = paginator.paginate_queryset(serializer.data, request)
+        response = paginator.get_paginated_response(page)
+        return response
 
 
 class TagViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):

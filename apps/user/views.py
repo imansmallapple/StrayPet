@@ -1,8 +1,10 @@
 import random
 import string
+import io
+import base64
+import uuid
 from django.core.cache import cache
 from django.contrib.auth import get_user_model, logout
-
 from rest_framework import viewsets, mixins, filters, permissions, authentication
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -10,10 +12,6 @@ from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
     UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
-import io
-import base64
-import uuid
 from common.utils import generate_catcha_image
 
 User = get_user_model()
