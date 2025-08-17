@@ -31,6 +31,10 @@ urlpatterns = [
         views.CaptchaGenericAPIView.as_view(),
         name='captcha'
     ),
-
+    path(
+        'upload_image/',
+        views.UploadImageGenericAPIView.as_view(),
+        name='upload_image'
+    ),
     * router.urls,
 ]

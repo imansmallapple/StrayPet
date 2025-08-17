@@ -165,3 +165,12 @@ class CaptchaSerializer(serializers.Serializer):
 
 class LoginSerializer(TokenObtainPairSerializer, CaptchaSerializer):
     pass
+
+
+class UploadImageSerializer(serializers.Serializer):
+    image = serializers.ImageField(label="Image", required=True)
+
+    def validate(self, attrs):
+        if attrs['image'].size > 2 * 1024 * 1024:
+            raise serializers.ValidationError("Image size can't bigger than 2M")
+        return super().validate(attrs)

@@ -10,9 +10,10 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
-    UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer
+    UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.utils import generate_catcha_image
+from django.core.files.storage import default_storage
 
 User = get_user_model()
 
@@ -104,4 +105,26 @@ class CaptchaGenericAPIView(GenericAPIView):
         return Response({
             'uid': uid,
             'image': image_base64
+        })
+
+
+class UploadImageGenericAPIView(GenericAPIView):
+    serializer_class = UploadImageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [
+        authentication.SessionAuthentication,
+        JWTAuthentication
+    ]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        file = serializer.validated_data['image']
+        name = default_storage.save(file.name, file)
+        url = request.build_absolute_uri(default_storage.url(name))
+
+        return Response({
+            'code': 'ok',
+            'url': url,
+            'text': file.name
         })
