@@ -25,7 +25,8 @@ class ArticleSerializer(serializers.ModelSerializer):
     # tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, required=False, allow_null=True)
     # tags = TagSerializer(many=True, read_only=True)
     tags = serializers.StringRelatedField(many=True)  # 返回Tag关联的数据
-    count = serializers.SerializerMethodField()
+    # count = serializers.SerializerMethodField()
+    count = serializers.IntegerField(read_only=True, default=0)
     content = serializers.CharField(source='get_markdown', read_only=True)
     toc = serializers.CharField(source='get_toc', read_only=True)
 
@@ -33,5 +34,5 @@ class ArticleSerializer(serializers.ModelSerializer):
         model = Article
         fields = '__all__'
 
-    def get_count(self, obj):
-        return ViewStatistics.get_view_count(obj)
+    # def get_count(self, obj):
+    #     return ViewStatistics.get_view_count(obj)

@@ -6,11 +6,11 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from apps.user.models import ViewStatistics
 from common import pagination
 from .models import Article, Tag, Category
 from .serializers import ArticleSerializer, TagSerializer, CategorySerializer
+from django.db.models import Sum, F
 
 
 class CategoryViewSet(mixins.ListModelMixin,
@@ -36,8 +36,13 @@ class ArticleViewSet(mixins.ListModelMixin,
         SearchFilter, OrderingFilter
     ]
     search_fields = ['title']
-    ordering_fields = ['add_date']
-    filterset_fields = ['category']
+    ordering_fields = ['add_date', 'pub_date', 'count']
+    filterset_fields = ['category', 'tags']
+
+    def get_queryset(self):
+        return super().get_queryset().alias(
+            count=Sum('view_count__count')
+        ).annotate(count=F('count')).order_by('-add_date')
 
     def retrieve(self, request, *args, **kwargs):
         obj = self.get_object()

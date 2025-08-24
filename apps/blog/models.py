@@ -2,6 +2,8 @@ from django.db import models
 from django.db.models import CharField
 from django.utils.text import Truncator
 from django.utils.html import strip_tags
+from django.contrib.contenttypes.fields import GenericRelation
+from apps.user.models import ViewStatistics
 
 
 # Create your models here.
@@ -47,6 +49,7 @@ class Article(BaseModel):
         verbose_name='Tags',
         blank=True
     )
+    view_count = GenericRelation(ViewStatistics, verbose_name="View Statistics")
 
     class Meta:
         verbose_name = 'Article'
