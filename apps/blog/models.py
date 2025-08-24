@@ -4,7 +4,7 @@ from django.utils.text import Truncator
 from django.utils.html import strip_tags
 from django.contrib.contenttypes.fields import GenericRelation
 from apps.user.models import ViewStatistics
-
+from apps.comment.models import Comment
 
 # Create your models here.
 class BaseModel(models.Model):
@@ -50,6 +50,7 @@ class Article(BaseModel):
         blank=True
     )
     view_count = GenericRelation(ViewStatistics, verbose_name="View Statistics")
+    comments = GenericRelation(Comment, verbose_name="comment")
 
     class Meta:
         verbose_name = 'Article'

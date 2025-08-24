@@ -16,3 +16,23 @@ class CommentSerializer(CaptchaSerializer, serializers.ModelSerializer):
         del attrs['captcha']
         del attrs['uid']
         return attrs
+
+
+class CommentListSerializer(serializers.ModelSerializer):
+    owner = serializers.StringRelatedField(many=False)
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ('id',
+                  'owner',
+                  'children',
+                  'object_id',
+                  'content',
+                  'add_date',
+                  'pub_date',
+                  'content_type',
+                  'children')
+
+    def get_children(self, obj):
+        return CommentListSerializer(obj.comment_set.all(), many=True).data

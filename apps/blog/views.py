@@ -12,7 +12,7 @@ from common import pagination
 from .models import Article, Tag, Category
 from .serializers import ArticleSerializer, TagSerializer, CategorySerializer
 from django.db.models import Sum, F
-from apps.comment.serializers import CommentSerializer
+from apps.comment.serializers import CommentSerializer, CommentListSerializer
 
 
 class CategoryViewSet(mixins.ListModelMixin,
@@ -95,6 +95,16 @@ class ArticleViewSet(mixins.ListModelMixin,
             content_object = serializer.validated_data['parent'].content_object
         serializer.save(content_object=content_object)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def comments(self, request, pk=None):
+        article = self.get_object()
+        comments = article.comments.filter(parent__isnull=True)
+        serializer = CommentListSerializer(comments, many=True)
+        paginator = pagination.PageNumberPagination()
+        page = paginator.paginate_queryset(serializer.data, request)
+        response = paginator.get_paginated_response(page)
+        return response
 
 
 class TagViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
