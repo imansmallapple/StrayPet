@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'apps.blog',
     'apps.user',
+    'apps.comment',
     'rest_framework_simplejwt',
     'django_filters',
     'corsheaders',

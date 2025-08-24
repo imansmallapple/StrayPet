@@ -4,6 +4,7 @@ from django_filters import rest_framework as filters
 from rest_framework import viewsets, mixins, permissions
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from apps.user.models import ViewStatistics
@@ -11,6 +12,7 @@ from common import pagination
 from .models import Article, Tag, Category
 from .serializers import ArticleSerializer, TagSerializer, CategorySerializer
 from django.db.models import Sum, F
+from apps.comment.serializers import CommentSerializer
 
 
 class CategoryViewSet(mixins.ListModelMixin,
@@ -38,6 +40,11 @@ class ArticleViewSet(mixins.ListModelMixin,
     search_fields = ['title']
     ordering_fields = ['add_date', 'pub_date', 'count']
     filterset_fields = ['category', 'tags']
+
+    def get_serializer_class(self):
+        if self.action == 'add_comment':
+            return CommentSerializer
+        return super().get_serializer_class()
 
     def get_queryset(self):
         return super().get_queryset().alias(
@@ -78,6 +85,16 @@ class ArticleViewSet(mixins.ListModelMixin,
         page = paginator.paginate_queryset(serializer.data, request)
         response = paginator.get_paginated_response(page)
         return response
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def add_comment(self, request, pk=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        content_object = self.get_object()
+        if serializer.validated_data['parent']:
+            content_object = serializer.validated_data['parent'].content_object
+        serializer.save(content_object=content_object)
+        return Response(serializer.data)
 
 
 class TagViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
