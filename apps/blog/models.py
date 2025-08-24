@@ -1,5 +1,7 @@
 from django.db import models
 from django.db.models import CharField
+from django.utils.text import Truncator
+from django.utils.html import strip_tags
 
 
 # Create your models here.
@@ -53,6 +55,13 @@ class Article(BaseModel):
 
     def __str__(self) -> CharField:
         return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.description:
+            self.description = strip_tags(
+                Truncator(self.get_markdown()).chars(190)
+            ).replace("\n", "").replace("\r", "").replace(" ", "")
+        super().save(*args, **kwargs)
 
     def get_markdown(self):
         markdown = self._get_markdown_obj()
