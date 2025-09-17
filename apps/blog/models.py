@@ -6,6 +6,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from apps.user.models import ViewStatistics
 from apps.comment.models import Comment
 
+
 # Create your models here.
 class BaseModel(models.Model):
     add_date = models.DateTimeField('add time', auto_now_add=True)
