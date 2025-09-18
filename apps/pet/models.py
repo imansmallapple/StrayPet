@@ -59,3 +59,34 @@ class Pet(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.species})"
+
+
+# todo: simple use case:
+# when user submit application, if pet available, status change into pending
+# when application approved, pet status change into adopted and close all other unclosed applications from this pet
+# when application close or refused, if there is no other application, pet status change back to available
+class Adoption(models.Model):
+    STATUS_CHOICES = (
+        ("submitted", "Submitted"),
+        ("processing", "Processing"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+        ("closed", "Closed"),
+    )
+
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="applications")
+    applicant = models.ForeignKey(User, on_delete=models.CASCADE, related_name="pet_adoption")
+    message = models.TextField("Message to Owner", blank=True, default="")
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default="submitted", db_index=True)
+
+    add_date = models.DateTimeField("Created At", auto_now_add=True)
+    pub_date = models.DateTimeField("Updated At", auto_now=True)
+
+    class Meta:
+        verbose_name = "Adoption"
+        verbose_name_plural = "Adoption"
+        ordering = ["-pub_date"]
+        indexes = [models.Index(fields=["pet", "status"]), models.Index(fields=["applicant", "status"])]
+
+    def __str__(self):
+        return f"{self.applicant} -> {self.pet} ({self.status})"

@@ -1,7 +1,7 @@
 # apps/pet/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Pet
+from .models import Pet, Adoption
 
 
 @admin.register(Pet)
@@ -40,3 +40,11 @@ class PetAdmin(admin.ModelAdmin):
     class Media:
         # 静态文件路径相对于 STATIC_URL
         js = ("pet/preview.js",)
+
+
+@admin.register(Adoption)
+class AdoptionApplicationAdmin(admin.ModelAdmin):
+    list_display = ("id", "pet", "applicant", "status", "add_date")
+    list_filter = ("status", "add_date")
+    search_fields = ("message", "pet__name", "applicant__username")
+    autocomplete_fields = ("pet", "applicant")
