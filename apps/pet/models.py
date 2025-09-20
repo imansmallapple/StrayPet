@@ -5,6 +5,7 @@ from django.core.files.storage import default_storage
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.safestring import mark_safe
+from smart_selects.db_fields import ChainedForeignKey
 
 User = get_user_model()
 
@@ -36,8 +37,9 @@ class Pet(models.Model):
     age_years = models.PositiveIntegerField("Age (years)", default=0)
     age_months = models.PositiveIntegerField("Age (months)", default=0)
     description = models.TextField("Description", blank=True, default="")
-    location = models.CharField("Location", max_length=120, blank=True, default="")
-
+    address = models.ForeignKey(
+        "pet.Address", on_delete=models.SET_NULL, null=True, blank=True, related_name="pets", verbose_name="Address"
+    )
     cover = models.ImageField("Cover", upload_to="pets/", blank=True, null=True)
 
     status = models.CharField(
@@ -116,8 +118,10 @@ class Donation(models.Model):
     age_years = models.PositiveIntegerField("Age (years)", default=0)
     age_months = models.PositiveIntegerField("Age (months)", default=0)
     description = models.TextField("Description", blank=True, default="")
-    location = models.CharField("Location", max_length=120, blank=True, default="")
-
+    address = models.ForeignKey(
+        "pet.Address", on_delete=models.SET_NULL, null=True, blank=True, related_name="donations",
+        verbose_name="Address"
+    )
     # 健康与背景（可选）
     dewormed = models.BooleanField("Dewormed", default=False)
     vaccinated = models.BooleanField("Vaccinated", default=False)
@@ -163,7 +167,8 @@ class Donation(models.Model):
             pet = Pet.objects.create(
                 name=self.name, species=self.species, breed=self.breed, sex=self.sex,
                 age_years=self.age_years, age_months=self.age_months,
-                description=self.description, location=self.location,
+                description=self.description,
+                address=self.address,
                 status=Pet.Status.AVAILABLE,
                 created_by=self.donor,  # 或 reviewer/机构账号
             )
@@ -211,3 +216,88 @@ class DonationPhoto(models.Model):
         return "(no image)"
 
     preview.short_description = "Preview"
+
+
+# Address related models
+class Country(models.Model):
+    code = models.CharField(max_length=2, unique=True)  # ISO 3166-1 alpha-2, 如 "PL"
+    name = models.CharField(max_length=64)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Country"
+        verbose_name_plural = "Countries"
+
+    def __str__(self): return self.name
+
+
+class Region(models.Model):  # 省/州
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name="regions")
+    code = models.CharField(max_length=10)  # ISO 3166-2 (可选)
+    name = models.CharField(max_length=64)
+
+    class Meta:
+        unique_together = ("country", "name")
+        ordering = ["name"]
+        verbose_name = "Region"
+        verbose_name_plural = "Regions"
+        indexes = [models.Index(fields=["country", "name"])]
+
+    def __str__(self): return self.name
+
+
+class City(models.Model):
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="cities")
+    name = models.CharField(max_length=64)
+
+    class Meta:
+        unique_together = ("region", "name")
+        ordering = ["name"]
+        verbose_name = "City"
+        verbose_name_plural = "Cities"
+        indexes = [models.Index(fields=["region", "name"])]
+
+    def __str__(self): return self.name
+
+
+class Address(models.Model):
+    country = models.ForeignKey(
+        Country, on_delete=models.PROTECT, verbose_name="Country",
+        null=True, blank=True  # ← 允许空（第一次迁移更顺滑）
+    )
+    region = ChainedForeignKey(
+        Region, on_delete=models.PROTECT, verbose_name="Region",
+        chained_field="country", chained_model_field="country",
+        show_all=False, auto_choose=True, sort=True,
+        null=True, blank=True  # ← 允许空
+    )
+    city = ChainedForeignKey(
+        City, on_delete=models.PROTECT, verbose_name="City",
+        chained_field="region", chained_model_field="region",
+        show_all=False, auto_choose=False, sort=True,
+        null=True, blank=True  # ← 允许空
+    )
+    street = models.CharField("Street", max_length=128, blank=True, default="")
+    building_number = models.CharField("Building No.", max_length=16, blank=True, default="")
+    postal_code = models.CharField("Postal Code", max_length=20, blank=True, default="")
+    latitude = models.DecimalField("Lat", max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField("Lng", max_digits=9, decimal_places=6, null=True, blank=True)
+
+    class Meta:
+        ordering = ["country", "region", "city", "street"]
+        verbose_name = "Address"
+        verbose_name_plural = "Addresses"
+        indexes = [
+            models.Index(fields=["country", "region", "city"]),
+            models.Index(fields=["postal_code"]),
+        ]
+
+    def __str__(self):
+        parts = [
+            self.street, self.building_number,
+            self.city.name if self.city_id else "",
+            self.region.name if self.region_id else "",
+            self.country.name if self.country_id else "",
+            self.postal_code,
+        ]
+        return ", ".join([p for p in parts if p]) or "Address"

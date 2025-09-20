@@ -26,7 +26,7 @@ urlpatterns = [
     path('user/', include('apps.user.urls')),
     path("pet/", include("apps.pet.urls")),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-
+    path("chaining/", include("smart_selects.urls")),
     *static(settings.STATIC_URL, document_root=settings.STATIC_ROOT),
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ]

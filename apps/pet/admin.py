@@ -1,20 +1,29 @@
 # apps/pet/admin.py
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Pet, Adoption, DonationPhoto, Donation
+from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address
 
 
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
-    list_display = ("id", "thumb", "name", "species", "breed", "status", "location", "created_by", "add_date")
+    list_display = ("id", "thumb", "name", "species", "breed", "status", "address", "created_by", "add_date")
     readonly_fields = ("preview",)
     list_filter = ("status", "species", "add_date")
-    search_fields = ("name", "species", "breed", "description", "location")
+    search_fields = ("name", "species", "breed", "description", "address")
     autocomplete_fields = ("created_by",)
     fields = (
         "name", "species", "breed", "sex", "age_years", "age_months", "description",
-        "location", "cover", "status", "created_by"
+        "address", "cover", "status", "created_by"
     )
+
+    def addr(self, obj):
+        # 若你引入了 Address 外键
+        if hasattr(obj, "address") and obj.address:
+            return str(obj.address)
+        # 兼容老数据
+        return getattr(obj, "location", "") or "—"
+
+    addr.short_description = "Location / Address"
 
     def thumb(self, obj):
         if obj.cover:
@@ -25,6 +34,16 @@ class PetAdmin(admin.ModelAdmin):
         return "—"
 
     thumb.short_description = "Photo"
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name in ("country", "region", "city"):
+            w = formfield.widget
+            w.can_add_related = False
+            w.can_change_related = False
+            w.can_delete_related = False
+            w.can_view_related = False
+        return formfield
 
     def preview(self, obj):
         url = obj.cover.url if obj and obj.cover else ""
@@ -66,6 +85,13 @@ class DonationAdmin(admin.ModelAdmin):
     readonly_fields = ("created_pet",)  # Create temp pet to avoid polluting pet pool
     exclude = ("reviewer",)
     actions = ["approve_and_create_pet", "close_donation"]
+    autocomplete_fields = ()
+    fields = (
+        # 你的 Donation 基本字段...
+        "name", "species", "breed", "sex", "age_years", "age_months", "description",
+        "address",  # ← 新增：结构化地址（点击进入地址创建/选择页）
+        "status", "created_pet", "donor"
+    )
 
     def save_model(self, request, obj, form, change):
         # 如果当前用户是管理员（is_staff），并且 reviewer 还没填，则写入
@@ -105,3 +131,11 @@ def approve_and_create_pet(modeladmin, request, queryset):
 def close_donation(modeladmin, request, queryset):
     updated = queryset.exclude(status="closed").update(status="closed")
     messages.info(request, f"Closed {updated} item(s).")
+
+
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "country", "region", "city", "street", "building_number", "postal_code")
+    list_filter = ("country", "region", "city")
+    search_fields = ("country__name", "region__name", "city__name", "street", "building_number", "postal_code")
+    fields = ("country", "region", "city", "street", "building_number", "postal_code", "latitude", "longitude")
