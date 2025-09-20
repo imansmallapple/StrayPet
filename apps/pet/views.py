@@ -1,6 +1,8 @@
 # apps/pet/views.py
 from django.db import transaction
 from rest_framework import viewsets, permissions, decorators
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from .models import Pet, Adoption
@@ -105,7 +107,7 @@ class AdoptionViewSet(viewsets.ModelViewSet):
             if pet_id:
                 qs = qs.filter(pet__created_by=u, pet_id=pet_id)  # 发布者看某只宠物
             else:
-                qs = qs.filter(applicant=u)                       # 普通用户看自己的
+                qs = qs.filter(applicant=u)  # 普通用户看自己的
         page = self.paginate_queryset(qs)
         ser = AdoptionDetailSerializer(page, many=True, context={"request": request})
         return self.get_paginated_response(ser.data)
@@ -156,3 +158,9 @@ class AdoptionViewSet(viewsets.ModelViewSet):
 
         ser = AdoptionDetailSerializer(obj, context={"request": request})
         return Response(ser.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminUser])
+    def approve(self, request, pk=None):
+        donation = self.get_object()
+        pet = donation.approve(reviewer=request.user, note=request.data.get("note", ""))
+        return Response({"detail": "approved", "pet_id": pet.id})

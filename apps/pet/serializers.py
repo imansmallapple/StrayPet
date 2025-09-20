@@ -1,6 +1,6 @@
 # apps/pet/serializers.py
 from rest_framework import serializers
-from .models import Pet, Adoption
+from .models import Pet, Adoption, DonationPhoto, Donation
 
 
 class PetListSerializer(serializers.ModelSerializer):
@@ -55,3 +55,39 @@ class AdoptionReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Adoption
         fields = ("status",)
+
+
+class DonationPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DonationPhoto
+        fields = ["id", "image"]
+
+
+class DonationCreateSerializer(serializers.ModelSerializer):
+    photos = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
+
+    class Meta:
+        model = Donation
+        fields = ["name", "species", "breed", "sex", "age_years", "age_months",
+                  "description", "location", "dewormed", "vaccinated", "microchipped",
+                  "is_stray", "contact_phone", "photos"]
+
+    def create(self, validated_data):
+        photos = validated_data.pop("photos", [])
+        donation = Donation.objects.create(donor=self.context["request"].user, **validated_data)
+        for img in photos[:8]:
+            DonationPhoto.objects.create(donation=donation, image=img)
+        return donation
+
+
+class DonationDetailSerializer(serializers.ModelSerializer):
+    photos = DonationPhotoSerializer(many=True, read_only=True)
+    donor_name = serializers.CharField(source="donor.username", read_only=True)
+    created_pet_id = serializers.IntegerField(source="created_pet.id", read_only=True)
+
+    class Meta:
+        model = Donation
+        fields = ["id", "donor", "donor_name", "name", "species", "breed", "sex", "age_years", "age_months",
+                  "description", "location", "dewormed", "vaccinated", "microchipped", "is_stray", "contact_phone",
+                  "status", "reviewer", "review_note", "created_pet_id", "photos", "add_date", "pub_date"]
+        read_only_fields = ["status", "reviewer", "review_note", "created_pet_id", "add_date", "pub_date"]
