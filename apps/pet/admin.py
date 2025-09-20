@@ -6,8 +6,8 @@ from .models import Pet, Adoption, DonationPhoto, Donation
 
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
-    list_display = ("id", "thumb", "name", "species", "breed", "status", "created_by", "add_date")
-    readonly_fields = ("preview",)  # 让预览出现在详情页
+    list_display = ("id", "thumb", "name", "species", "breed", "status", "location", "created_by", "add_date")
+    readonly_fields = ("preview",)
     list_filter = ("status", "species", "add_date")
     search_fields = ("name", "species", "breed", "description", "location")
     autocomplete_fields = ("created_by",)
