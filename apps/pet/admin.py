@@ -1,12 +1,12 @@
 # apps/pet/admin.py
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address
+from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost
 
 
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
-    list_display = ("id", "thumb", "name", "species", "breed", "status", "address", "created_by", "add_date")
+    list_display = ("id", "thumb", "name", "species", "breed", "status", "formatted_address", "created_by", "add_date")
     readonly_fields = ("preview",)
     list_filter = ("status", "species", "add_date")
     search_fields = ("name", "species", "breed", "description", "address")
@@ -34,6 +34,23 @@ class PetAdmin(admin.ModelAdmin):
         return "—"
 
     thumb.short_description = "Photo"
+
+    def formatted_address(self, obj):
+        if not obj.address:
+            return "-"
+        parts = [
+            obj.address.street,
+            obj.address.building_number,
+            obj.address.city.name if obj.address.city_id else "",
+            obj.address.region.name if obj.address.region_id else "",
+            obj.address.country.name if obj.address.country_id else "",
+            obj.address.postal_code,
+        ]
+        # 用 <br> 换行
+        lines = [p for p in parts if p]
+        return format_html("<br>".join(lines))
+
+    formatted_address.short_description = "Address"
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
@@ -139,3 +156,44 @@ class AddressAdmin(admin.ModelAdmin):
     list_filter = ("country", "region", "city")
     search_fields = ("country__name", "region__name", "city__name", "street", "building_number", "postal_code")
     fields = ("country", "region", "city", "street", "building_number", "postal_code", "latitude", "longitude")
+
+
+@admin.register(Lost)
+class LostAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'thumb', 'pet_name', 'species', 'breed', 'color', 'status',
+        'city_name', 'region_name', 'country_name',
+        'reporter', 'created_at'
+    )
+    list_filter = ('status', 'species', 'address__region', 'address__country', 'created_at')
+    search_fields = (
+        'pet_name', 'breed', 'color',
+        'address__city__name', 'address__region__name', 'address__country__name',
+        'reporter__username', 'reporter__email'
+    )
+    exclude = ('pet',)
+    autocomplete_fields = ('address', 'reporter')
+    readonly_fields = ('created_at', 'updated_at')
+    date_hierarchy = 'created_at'
+
+    def thumb(self, obj):
+        if obj.photo:
+            return format_html('<img src="{}" style="height:45px;border-radius:6px;" />', obj.photo.url)
+        return '—'
+
+    thumb.short_description = "Photo"
+
+    def country_name(self, obj):
+        return obj.address.country.name if obj.address_id and obj.address.country_id else ""
+
+    country_name.short_description = "Country"
+
+    def region_name(self, obj):
+        return obj.address.region.name if obj.address_id and obj.address.region_id else ""
+
+    region_name.short_description = "Region"
+
+    def city_name(self, obj):
+        return obj.address.city.name if obj.address_id and obj.address.city_id else ""
+
+    city_name.short_description = "City"

@@ -1,6 +1,6 @@
 # apps/pet/serializers.py
 from rest_framework import serializers
-from .models import Pet, Adoption, DonationPhoto, Donation
+from .models import Pet, Adoption, DonationPhoto, Donation, Lost
 
 
 class PetListSerializer(serializers.ModelSerializer):
@@ -91,3 +91,25 @@ class DonationDetailSerializer(serializers.ModelSerializer):
                   "description", "location", "dewormed", "vaccinated", "microchipped", "is_stray", "contact_phone",
                   "status", "reviewer", "review_note", "created_pet_id", "photos", "add_date", "pub_date"]
         read_only_fields = ["status", "reviewer", "review_note", "created_pet_id", "add_date", "pub_date"]
+
+
+class LostSerializer(serializers.ModelSerializer):
+    reporter_username = serializers.ReadOnlyField(source='reporter.username')
+
+    # 只读派生出的地点字段，便于前端展示/过滤
+    country = serializers.IntegerField(source='address.country_id', read_only=True)
+    region = serializers.IntegerField(source='address.region_id', read_only=True)
+    city = serializers.CharField(source='address.city.name', read_only=True)
+
+    class Meta:
+        model = Lost
+        fields = [
+            'id',
+            'pet_name',  # ✅ 改为名字字符串
+            'species', 'breed', 'color', 'sex', 'size',
+            'address', 'country', 'region', 'city',
+            'lost_time', 'description', 'reward', 'photo',
+            'status', 'reporter', 'reporter_username',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ('reporter', 'created_at', 'updated_at')

@@ -3,8 +3,7 @@ from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from .models import Pet, Adoption
-
+from .models import Pet, Adoption, LostStatus, Lost
 
 OPEN_STATUSES = {"submitted", "processing"}  # 未结案申请的状态集合
 
@@ -69,3 +68,61 @@ def handle_status_transitions(sender, instance: Adoption, **kwargs):
         if not open_exists and pet.status in (Pet.Status.PENDING, Pet.Status.AVAILABLE):
             pet.status = Pet.Status.AVAILABLE
             pet.save(update_fields=["status", "pub_date"])
+
+
+def _safe_sex(value: str) -> str:
+    choices = {c[0] for c in Pet.SEX_CHOICES}
+    return value if value in choices else 'male'
+
+
+@receiver(post_save, sender=Lost)
+def sync_pet_with_lost(sender, instance: Lost, created, **kwargs):
+    # 1) 确保有 Pet 记录
+    pet = instance.pet
+    if not pet:
+        # 优先用“同名 + 同 reporter”的现有 Pet
+        pet = Pet.objects.filter(name=instance.pet_name, created_by=instance.reporter).first()
+    if not pet:
+        # 没有就创建一个最小档案
+        pet = Pet.objects.create(
+            name=instance.pet_name or f"{instance.species} ({instance.color})",
+            species=instance.species or "unknown",
+            breed=instance.breed or "",
+            sex=_safe_sex(instance.sex or "male"),
+            description=instance.description or "",
+            address=instance.address,
+            status=Pet.Status.LOST,  # 立即标记为 LOST
+            created_by=instance.reporter,
+        )
+        # 设置封面（可选）
+        if instance.photo:
+            pet.cover = instance.photo
+            pet.save(update_fields=["cover", "pub_date"])
+    else:
+        # 同步基础信息并标记 LOST
+        fields_to_update = []
+        if pet.status != Pet.Status.LOST:
+            pet.status = Pet.Status.LOST
+            fields_to_update.append("status")
+        for f in ("species", "breed", "description"):
+            val = getattr(instance, f) or getattr(pet, f)
+            if getattr(pet, f) != val:
+                setattr(pet, f, val)
+                fields_to_update.append(f)
+        if instance.address_id and pet.address_id != instance.address_id:
+            pet.address = instance.address
+            fields_to_update.append("address")
+        if instance.photo and not pet.cover:
+            pet.cover = instance.photo
+            fields_to_update.append("cover")
+        if fields_to_update:
+            pet.save(update_fields=list(set(fields_to_update)) + ["pub_date"])
+
+    # 绑定回 Lost（表单里隐藏，不影响你的“只填名字”体验）
+    if instance.pet_id != pet.id:
+        Lost.objects.filter(pk=instance.pk).update(pet=pet)
+
+    # 2) 若 Lost 已被标记为 FOUND/CLOSED，把 Pet 恢复为 AVAILABLE
+    if instance.status in (LostStatus.FOUND, LostStatus.CLOSED) and pet.status == Pet.Status.LOST:
+        pet.status = Pet.Status.AVAILABLE
+        pet.save(update_fields=["status", "pub_date"])

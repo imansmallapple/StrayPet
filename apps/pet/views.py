@@ -1,15 +1,17 @@
 # apps/pet/views.py
 from django.db import transaction
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, decorators
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from .models import Pet, Adoption
+from .models import Pet, Adoption, Lost
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
-    AdoptionDetailSerializer, AdoptionReviewSerializer
+    AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer
 from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
-from .filters import PetFilter
+from .filters import PetFilter, LostFilter
 
 
 class PetViewSet(viewsets.ModelViewSet):
@@ -164,3 +166,22 @@ class AdoptionViewSet(viewsets.ModelViewSet):
         donation = self.get_object()
         pet = donation.approve(reviewer=request.user, note=request.data.get("note", ""))
         return Response({"detail": "approved", "pet_id": pet.id})
+
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.reporter_id == request.user.id or request.user.is_staff
+
+class LostViewSet(viewsets.ModelViewSet):
+    queryset = Lost.objects.select_related('pet', 'country', 'region', 'reporter').all()
+    serializer_class = LostSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = LostFilter
+    ordering_fields = ['created_at', 'lost_time']
+    ordering = ['-created_at']
+
+    def perform_create(self, serializer):
+        serializer.save(reporter=self.request.user)

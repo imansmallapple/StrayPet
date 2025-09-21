@@ -1,5 +1,6 @@
 # apps/pet/models.py
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import models
@@ -22,6 +23,7 @@ class Pet(models.Model):
         PENDING = "pending", "Pending"  # 处理中（比如有申请）
         ADOPTED = "adopted", "Adopted"  # 已被领养/转让
         ARCHIVED = "archived", "Archived"  # 下架/归档
+        LOST = "lost", "Lost"
 
     name = models.CharField("Pet Name", max_length=80)
     species = models.CharField("Species", max_length=40)  # cat/dog/…
@@ -87,6 +89,11 @@ class Adoption(models.Model):
 
     add_date = models.DateTimeField("Created At", auto_now_add=True)
     pub_date = models.DateTimeField("Updated At", auto_now=True)
+
+    def clean(self):
+        super().clean()
+        if self.pet and self.pet.status == Pet.Status.LOST:
+            raise ValidationError({"pet": "This pet is reported LOST and cannot be adopted."})
 
     class Meta:
         verbose_name = "Adoption"
@@ -301,3 +308,64 @@ class Address(models.Model):
             self.postal_code,
         ]
         return ", ".join([p for p in parts if p]) or "Address"
+
+
+class LostStatus(models.TextChoices):
+    OPEN = "open", "Open"  # 待寻找
+    FOUND = "found", "Found"  # 已找到
+    CLOSED = "closed", "Closed"  # 关闭/无效
+
+
+def lost_upload_to(instance, filename):
+    return f"lost/{instance.id or 'new'}/{filename}"
+
+
+# todo: 需要新增宠物状态 Lost
+# Lost的宠物不可以收养
+class Lost(models.Model):
+    pet = models.ForeignKey('Pet', null=True, blank=True,
+                            on_delete=models.SET_NULL, related_name='lost_reports')
+    pet_name = models.CharField("Pet Name", max_length=80, blank=True, default="")
+
+    species = models.CharField(max_length=50, help_text="cat/dog/…")
+    breed = models.CharField(max_length=100, blank=True, default="")
+    color = models.CharField(max_length=100, blank=True, default="")
+    sex = models.CharField("Sex", max_length=10, choices=(("male", "Male"), ("female", "Female")), default="male")
+    size = models.CharField(max_length=20, blank=True, default="")  # small/medium/large
+
+    # 与 Donation 一致，使用 Address 外键（Country→Region→City 级联在 Address 中完成）
+    address = models.ForeignKey(
+        "pet.Address", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="losts", verbose_name="Address"
+    )
+
+    lost_time = models.DateTimeField(help_text="Lost time (local)")
+    description = models.TextField(blank=True, default="")
+    reward = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    photo = models.ImageField(upload_to=lost_upload_to, null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=LostStatus.choices, default=LostStatus.OPEN)
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='lost_reports')
+    contact_phone = models.CharField(max_length=50, blank=True, default="")
+    contact_email = models.EmailField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Lost"
+        verbose_name_plural = "Losts"
+
+    def __str__(self):
+        base = self.pet_name or f"{self.species} ({self.color})"
+        if self.address_id:
+            parts = [
+                self.address.city.name if self.address and self.address.city_id else "",
+                self.address.region.name if self.address and self.address.region_id else "",
+                self.address.country.name if self.address and self.address.country_id else "",
+            ]
+            loc = ", ".join([p for p in parts if p])
+            return f"[{self.get_status_display()}] {base}" + (f" @ {loc}" if loc else "")
+        return f"[{self.get_status_display()}] {base}"
