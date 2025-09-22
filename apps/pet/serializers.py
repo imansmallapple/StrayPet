@@ -6,17 +6,44 @@ from .models import Pet, Adoption, DonationPhoto, Donation, Lost
 class PetListSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
     applications_count = serializers.IntegerField(read_only=True, default=0)  # 预留统计字段
+    age_display = serializers.SerializerMethodField()
+    address_display = serializers.SerializerMethodField()
+    photo = serializers.ImageField(source='cover', read_only=True)
 
     class Meta:
         model = Pet
         fields = (
             "id", "name", "species", "breed", "sex",
             "age_years", "age_months", "age_display",
-            "description", "location", "cover",
+            "description", "address_display", "cover", 'photo',
             "status", "created_by", "applications_count",
             "add_date", "pub_date"
         )
         read_only_fields = ("status", "created_by", "applications_count", "add_date", "pub_date")
+
+    def get_age_display(self, obj: Pet) -> str:
+        y = obj.age_years or 0
+        m = obj.age_months or 0
+        if y and m:
+            return f"{y}y {m}m"
+        if y:
+            return f"{y}y"
+        if m:
+            return f"{m}m"
+        return "0m"
+
+    def get_address_display(self, obj: Pet) -> str:
+        if not obj.address_id:
+            return "-"
+        a = obj.address
+        parts = [
+            a.street, a.building_number,
+            a.city.name if a.city_id else "",
+            a.region.name if a.region_id else "",
+            a.country.name if a.country_id else "",
+            a.postal_code,
+        ]
+        return ", ".join([p for p in parts if p])
 
 
 class PetCreateUpdateSerializer(serializers.ModelSerializer):
@@ -24,7 +51,7 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
         model = Pet
         fields = (
             "id", "name", "species", "breed", "sex", "age_months",
-            "description", "location", "cover", "status"
+            "description", "address", "cover", "status"
         )
         read_only_fields = ("status",)  # 创建默认 AVAILABLE；如需修改在视图层控制
 
@@ -69,7 +96,7 @@ class DonationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Donation
         fields = ["name", "species", "breed", "sex", "age_years", "age_months",
-                  "description", "location", "dewormed", "vaccinated", "microchipped",
+                  "description", "address", "dewormed", "vaccinated", "microchipped",
                   "is_stray", "contact_phone", "photos"]
 
     def create(self, validated_data):
@@ -88,7 +115,7 @@ class DonationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Donation
         fields = ["id", "donor", "donor_name", "name", "species", "breed", "sex", "age_years", "age_months",
-                  "description", "location", "dewormed", "vaccinated", "microchipped", "is_stray", "contact_phone",
+                  "description", "address", "dewormed", "vaccinated", "microchipped", "is_stray", "contact_phone",
                   "status", "reviewer", "review_note", "created_pet_id", "photos", "add_date", "pub_date"]
         read_only_fields = ["status", "reviewer", "review_note", "created_pet_id", "add_date", "pub_date"]
 

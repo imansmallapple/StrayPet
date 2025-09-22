@@ -1,15 +1,15 @@
 # apps/pet/views.py
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, permissions, decorators
+from rest_framework import viewsets, permissions, decorators, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from .models import Pet, Adoption, Lost
+from .models import Pet, Adoption, Lost, Donation
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
-    AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer
+    AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer
 from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 
@@ -17,9 +17,16 @@ from .filters import PetFilter, LostFilter
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.select_related("created_by").order_by("-pub_date")
     filterset_class = PetFilter
-    search_fields = ["name", "species", "breed", "description", "location"]
+    search_fields = ["name", "species", "breed", "description", "address"]
     ordering_fields = ["add_date", "pub_date", "age_months", "name"]
     permission_classes = [IsOwnerOrAdmin]
+
+    @action(detail=True, methods=['post'])
+    def mark_lost(self, request, pk=None):
+        pet = self.get_object()
+        pet.status = Pet.Status.LOST
+        pet.save(update_fields=['status', 'pub_date'])
+        return Response({'status': 'lost'}, status=status.HTTP_200_OK)
 
     def get_serializer_class(self):
         return PetListSerializer if self.action in ("list", "retrieve") else PetCreateUpdateSerializer
@@ -174,8 +181,8 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             return True
         return obj.reporter_id == request.user.id or request.user.is_staff
 
+
 class LostViewSet(viewsets.ModelViewSet):
-    queryset = Lost.objects.select_related('pet', 'country', 'region', 'reporter').all()
     serializer_class = LostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -185,3 +192,33 @@ class LostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(reporter=self.request.user)
+
+    def get_queryset(self):
+        return (
+            Lost.objects
+            .select_related(
+                'address',  # Lost -> Address
+                'address__country',  # Address -> Country
+                'address__region',  # Address -> Region
+                'address__city',  # Address -> City
+                'reporter',  # Lost -> User
+                'pet',  # 若保留了内部 pet 外键
+            )
+            .all()
+        )
+
+
+class DonationViewSet(viewsets.ModelViewSet):
+    queryset = (
+        Donation.objects
+        .select_related(
+            'address', 'address__country', 'address__region', 'address__city',
+            'donor', 'created_pet'
+        )
+        .all()
+    )
+    serializer_class = DonationCreateSerializer
+    permission_classes = [permissions.AllowAny]  # 按需改
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    ordering_fields = ['add_date', 'pub_date']
+    ordering = ['-pub_date']
