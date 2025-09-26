@@ -167,3 +167,9 @@ run the following script:
 ```bash
 pip install -r requirements.txt
 ```
+
+Frontend install pnpm
+```
+npm install -g pnpm
+pnpm -v
+```
