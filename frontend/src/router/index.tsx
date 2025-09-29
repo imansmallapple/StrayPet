@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Navigate, RouteObject, createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 
 import ErrorBoundary from '../error-boundary';
 import { LazyLoad, routes } from './utils';
@@ -29,6 +29,22 @@ const router: RouteObject[] = [
       {
         path: '/404',
         element: LazyLoad(lazy(() => import('@/components/not-fount'))),
+      },
+      {
+        path: '/auth/login',
+        element: LazyLoad(lazy(() => import('@/views/auth/login'))),
+      },
+      {
+        path: '/auth/register',
+        element: LazyLoad(lazy(() => import('@/views/auth/register'))),
+      },
+      {
+        path: '/auth/forget',
+        element: LazyLoad(lazy(() => import('@/views/auth/forget'))),
+      },
+      {
+        path: '/auth/reset',
+        element: LazyLoad(lazy(() => import('@/views/auth/reset'))),
       },
       ...routes, // modules 路由
     ],
