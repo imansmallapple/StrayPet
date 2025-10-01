@@ -16,7 +16,10 @@ export const ENDPOINTS = {
   
   resetConfirm: baseURL + 'auth/users/reset_password_confirm/',       // POST { uid, token, new_password, re_new_password }
 
-   sendEmailCode: baseURL + 'send_email_code/'
+   sendEmailCode: baseURL + 'send_email_code/',
+
+   captcha: baseURL + 'captcha/',
+   
 }
 
 export const authApi = {
@@ -35,9 +38,15 @@ export const authApi = {
     http.post(ENDPOINTS.resetConfirm, body),
 
   sendEmailCode: (email: string) => http.post(ENDPOINTS.sendEmailCode, { email }),
+  getCaptcha: () => http.get<CaptchaResp>(ENDPOINTS.captcha),
 }
 
-export type LoginBody = { username: string; password: string }
+export type LoginBody = {
+  username: string
+  password: string
+  captcha: string  
+  uid: string      
+}
 export type LoginResp = { access: string; refresh?: string }
 export type RegisterBody = {
   username: string
@@ -47,6 +56,6 @@ export type RegisterBody = {
   code: string
 }
 export type RegisterResp = { tokens?: { access: string; refresh?: string } }
-
+export type CaptchaResp = { uid: string; image: string }
 
 

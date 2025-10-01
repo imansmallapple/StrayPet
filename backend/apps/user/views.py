@@ -99,12 +99,14 @@ class CaptchaGenericAPIView(GenericAPIView):
         image, text = generate_catcha_image()
         uid = uuid.uuid4().hex
         cache.set(uid, text, 60 * 5)
-        image_byte = io.BytesIO()
-        image.save(image_byte, format='png')
-        image_base64 = base64.b64encode(image_byte.getvalue()).decode().encode('utf-8')
+
+        buf = io.BytesIO()
+        image.save(buf, format='PNG')  # 大写也行
+        b64 = base64.b64encode(buf.getvalue()).decode('ascii')  # ← 只 decode，不要再 encode
+
         return Response({
-            'uid': uid,
-            'image': image_base64
+            "uid": uid,
+            "image": f"data:image/png;base64,{b64}"  # ← 关键：加 data URL 前缀
         })
 
 

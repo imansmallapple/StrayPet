@@ -163,7 +163,7 @@ class CaptchaSerializer(serializers.Serializer):
         return super().validate(attrs)
 
 
-class LoginSerializer(TokenObtainPairSerializer, CaptchaSerializer):
+class LoginSerializer(CaptchaSerializer, TokenObtainPairSerializer):
     pass
 
 
