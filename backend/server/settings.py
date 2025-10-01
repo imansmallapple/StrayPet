@@ -25,7 +25,6 @@ SECRET_KEY = 'django-insecure-)9q8fz7r2z8g%9rjqo=or%ld!-3w!%sgbhp)6d!f33fyg9b1g%
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -102,7 +101,14 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": BASE_DIR / "django_cache",   # 确保这个目录存在/可写
+        "TIMEOUT": 300,                          # 可选：默认 300s
+        "OPTIONS": {"MAX_ENTRIES": 10000},       # 可选
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 

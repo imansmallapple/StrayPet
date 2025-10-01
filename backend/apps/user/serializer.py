@@ -5,6 +5,8 @@ from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.permissions import AllowAny
+from django.core.cache import cache
 
 User = get_user_model()
 
@@ -107,6 +109,41 @@ class UpdateEmailSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializ
             del attrs['code']
             return attrs
 
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    permission_classes = [AllowAny]
+    authentication_classes = []  
+    def validate(self, attrs):
+        # 不暴露用户是否存在；如果要提示不存在，可在此查表并返回 ValidationError
+        attrs["user_exists"] = User.objects.filter(email=attrs["email"]).exists()
+        return attrs
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=4, min_length=4, write_only=True)
+    new_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    re_new_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    permission_classes = [AllowAny]
+    authentication_classes = [] 
+    
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["re_new_password"]:
+            raise serializers.ValidationError("Repeat password incorrect!")
+        validate_password(attrs["new_password"])  # 走 Django 密码强度校验
+
+        real = cache.get(attrs["email"])
+        if not real:
+            raise serializers.ValidationError("Verification code expired!")
+        if real != attrs["code"]:
+            raise serializers.ValidationError("Code wrong!")
+
+        try:
+            attrs["user"] = User.objects.get(email=attrs["email"])
+        except User.DoesNotExist:
+            # 保持一致性：不暴露是否存在
+            raise serializers.ValidationError("Invalid email or code.")
+        return attrs
 
 class ChangePasswordSerializer(serializers.ModelSerializer):
     old_password = serializers.CharField(

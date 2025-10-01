@@ -92,7 +92,7 @@ function Login() {
 
       <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
         <Link to="/auth/register">去注册</Link>
-        <Link to="/auth/forgot">忘记密码</Link>
+        <Link to="/auth/forget">忘记密码</Link>
       </div>
     </div>
   )

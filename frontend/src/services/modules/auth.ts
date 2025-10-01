@@ -12,9 +12,9 @@ export const ENDPOINTS = {
   register: baseURL + 'register/',
   // 如果没有 Djoser，用你的 DRF 路径（示例）：
   // register: 'users/register/',
-  resetRequest: baseURL + 'auth/users/reset_password/',               // POST { email }
-  
-  resetConfirm: baseURL + 'auth/users/reset_password_confirm/',       // POST { uid, token, new_password, re_new_password }
+  resetRequest: baseURL + 'password/reset/request/',     
+
+  resetConfirm: baseURL + 'password/reset/confirm/',        
 
    sendEmailCode: baseURL + 'send_email_code/',
 
@@ -29,12 +29,10 @@ export const authApi = {
   
  register: (body: RegisterBody) => http.post<RegisterResp>(ENDPOINTS.register, body),
   
-  // ← 新增：申请重置邮件
-  requestReset: (body: { email: string }) =>
-    http.post(ENDPOINTS.resetRequest, body),
-
-  // ← 新增：确认重置（带 uid/token）
-  confirmReset: (body: { uid: string; token: string; new_password: string; re_new_password: string }) =>
+  // 忘记密码：发码
+  requestReset: (body: { email: string }) => http.post(ENDPOINTS.resetRequest, body),
+  // 忘记密码：确认
+  confirmReset: (body: { email: string; code: string; new_password: string; re_new_password: string }) =>
     http.post(ENDPOINTS.resetConfirm, body),
 
   sendEmailCode: (email: string) => http.post(ENDPOINTS.sendEmailCode, { email }),

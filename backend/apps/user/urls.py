@@ -36,5 +36,15 @@ urlpatterns = [
         views.UploadImageGenericAPIView.as_view(),
         name='upload_image'
     ),
+    path(
+        'password/reset/confirm/',
+        views.PasswordResetConfirmAPIView.as_view(),
+        name='pwd_reset_confirm'
+    ),
+    path(
+        'password/reset/request/',
+        views.PasswordResetRequestAPIView.as_view(),
+        name='pwd_reset_request'
+    ),
     * router.urls,
 ]

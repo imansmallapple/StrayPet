@@ -10,10 +10,16 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
-    UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer
+    UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer, \
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.utils import generate_catcha_image
 from django.core.files.storage import default_storage
+from django.core.cache import cache
+from django.core.mail import send_mail
+from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 User = get_user_model()
 
@@ -130,3 +136,31 @@ class UploadImageGenericAPIView(GenericAPIView):
             'url': url,
             'text': file.name
         })
+
+class PasswordResetRequestAPIView(GenericAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []      # ← important: no SessionAuth (no CSRF)
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request):
+        s = self.get_serializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        email = s.validated_data["email"]
+        code = ''.join(random.sample(string.ascii_letters + string.digits, 4))
+        cache.set(email, code, 300)
+        send_mail("Password reset code", f"Your code is {code}", "admin@gmail.com", [email])
+        return Response({"msg": "If the email exists, a reset code has been sent."})
+
+class PasswordResetConfirmAPIView(GenericAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        s = self.get_serializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        user = s.validated_data["user"]
+        user.set_password(s.validated_data["new_password"])
+        user.save()
+        cache.delete(s.validated_data["email"])
+        return Response({"msg": "Password has been reset."})
