@@ -46,6 +46,16 @@ const router: RouteObject[] = [
         path: '/auth/reset',
         element: LazyLoad(lazy(() => import('@/views/auth/reset'))),
       },
+      // src/router/index.tsx
+      {
+        path: '/adopt',
+        element: LazyLoad(lazy(() => import('@/views/adoption/adopt'))),
+      },
+      // 详情页（可选）
+      // {
+      //   path: '/adopt/:id',
+      //   element: LazyLoad(lazy(() => import('@/views/adoption/pet_detail'))), // 以后做详情时用
+      // },
       ...routes, // modules 路由
     ],
   },
