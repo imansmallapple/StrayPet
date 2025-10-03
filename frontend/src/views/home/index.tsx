@@ -1,41 +1,33 @@
-import { useState } from 'react';
+import { NavLink } from 'react-router-dom'
+import './index.scss'
 
-import { useRouter } from '@/hooks';
-
-import reactLogo from '@/assets/react.svg';
-
-import './index.scss';
-import viteLogo from '/vite.svg';
-
-function Home() {
-  const [count, setCount] = useState(0);
-  const router = useRouter();
+export default function Home() {
   return (
-    <div className="pg-home">
-      <div>
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button type="button" onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
-      <br />
-      <button type="button" onClick={() => router.push('/test/count')} style={{ fontSize: '15px' }}>
-        跳转测试页面
-      </button>
-    </div>
-  );
-}
+    <div className="home">
+      <header className="site-header">
+        <div className="brand">Stray Pet</div>
+        <nav className="site-nav">
+          <NavLink to="/adopt">Adopt</NavLink>
+          <NavLink to="/post">Post</NavLink>
+          <NavLink to="/shelters">Shelters</NavLink>
+          <NavLink to="/home" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            home
+          </NavLink>
+        </nav>
+      </header>
 
-export default Home;
+      <main className="hero-title">
+        <h1>Help pet finding a loving home</h1>
+        <p>
+          Open your doors and hearts to pets in need of a home and it will be thankful to you for
+          the rest of their lives.
+        </p>
+      </main>
+
+      <div className="hero-image">
+          <img src="images/hero-cat.jpg" alt="A rescued cat in a shelter" />
+      </div>
+    
+    </div>
+  )
+}
