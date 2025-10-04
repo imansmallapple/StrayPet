@@ -6,14 +6,18 @@ const baseURL = 'http://localhost:8000/' // 和你 auth.ts 一致；若你改回
 export type Pet = {
   id: number
   name: string
-  species?: string   // dog/cat/...
-  age?: number
-  sex?: string       // male/female
+  species?: string
+  breed?: string
+  sex?: string
+  age_years?: number
+  age_months?: number
   city?: string
-  photo?: string     // 图片完整 URL（后端字段名按你实际改）
+  address?: string
   description?: string
-  status?: string    // available/adopted 等
-  created_at?: string
+  status?: 'AVAILABLE' | 'PENDING' | 'ADOPTED' | 'LOST' | 'DRAFT' | 'ARCHIVED' | string
+  photo?: string | null
+  pub_date?: string
+  created_by?: { id?: number; username?: string } | number
 }
 
 export type PetListParams = {
@@ -49,4 +53,9 @@ export const adoptApi = {
     http.patch<Pet>(`${ENDPOINTS.pets}${id}/`, body),
   remove: (id: number) =>
     http.delete(`${ENDPOINTS.pets}${id}/`),
+  // 领养申请：POST /pet/:id/apply/  body: { message?: string }
+  apply: (id: number, message?: string) => {
+    const body = message ? { message } : {} // exactOptionalPropertyTypes 下不要传 undefined
+    return http.post<{ ok: boolean; application_id: number }>(`${ENDPOINTS.pets}${id}/apply/`, body)
+  },
 }

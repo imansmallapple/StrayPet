@@ -15,7 +15,7 @@ from .filters import PetFilter, LostFilter
 
 
 class PetViewSet(viewsets.ModelViewSet):
-    queryset = Pet.objects.select_related("created_by").order_by("-pub_date")
+    queryset = Pet.objects.select_related("created_by", "address", "address__city", "address__region", "address__country").order_by("-pub_date")
     filterset_class = PetFilter
     search_fields = ["name", "species", "breed", "description", "address"]
     ordering_fields = ["add_date", "pub_date", "age_months", "name"]

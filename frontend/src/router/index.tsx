@@ -49,13 +49,13 @@ const router: RouteObject[] = [
       // src/router/index.tsx
       {
         path: '/adopt',
-        element: LazyLoad(lazy(() => import('@/views/adoption/adopt'))),
+        element: LazyLoad(lazy(() => import('@/views/adoption/index'))),
       },
       // 详情页（可选）
-      // {
-      //   path: '/adopt/:id',
-      //   element: LazyLoad(lazy(() => import('@/views/adoption/pet_detail'))), // 以后做详情时用
-      // },
+      {
+        path: '/adopt/:id',
+        element: LazyLoad(lazy(() => import('@/views/adoption/detail'))), // 以后做详情时用
+      },
       ...routes, // modules 路由
     ],
   },

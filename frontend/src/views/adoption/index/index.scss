@@ -1,103 +1,238 @@
-.adopt-page {
-    max-width: 1120px;
+$purple: #6d28d9;
+
+.adopt-layout {
+    max-width: 1200px;
     margin: 0 auto;
     padding: 24px;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
 }
 
-.adopt-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
+@media (max-width: 960px) {
+    .adopt-layout {
+        grid-template-columns: 1fr;
+    }
 }
 
-.filters select {
-    padding: 6px 10px;
-    border-radius: 8px;
+.filters {
+    display: grid;
+    gap: 14px;
+
+    .card {
+        border: 1px solid #eee;
+        border-radius: 14px;
+        padding: 16px;
+        background: #fff;
+
+        h3 {
+            margin: 0 0 4px;
+        }
+
+        p {
+            margin: 0 0 12px;
+            color: #666;
+        }
+
+        .primary {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: $purple;
+            color: #fff;
+            border: 0;
+        }
+    }
+
+    .group {
+        display: grid;
+        gap: 6px;
+
+        label {
+            font-size: 12px;
+            color: #555;
+            font-weight: 600;
+            letter-spacing: .3px;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fff;
+        }
+    }
+
+    .link {
+        background: none;
+        border: 0;
+        color: $purple;
+        text-align: left;
+        padding: 6px 0;
+    }
 }
 
-.hint {
-    padding: 24px 0;
-    color: #666;
+.content {
+    .save-banner {
+        border-radius: 12px;
+        background: #f3e8ff;
+        color: #2e1065;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        margin-bottom: 12px;
+        gap: 12px;
+        flex-wrap: wrap;
+
+        .text {
+            font-weight: 600;
+        }
+
+        .primary {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: $purple;
+            color: #fff;
+            border: 0;
+        }
+    }
+
+    .title {
+        text-align: center;
+        color: #5b21b6;
+        font-size: 32px;
+        margin: 12px 0 18px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 16px;
+    }
+
+    .pet-card {
+        border: 1px solid #eee;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+
+        .thumb {
+            position: relative;
+            aspect-ratio: 4/3;
+            background: #f6f7f8;
+            overflow: hidden;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+
+            .fav {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                width: 36px;
+                height: 36px;
+                border-radius: 999px;
+                border: 0;
+                background: #fff;
+                display: grid;
+                place-items: center;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+
+                &.on {
+                    outline: 2px solid rgba(109, 40, 217, .25);
+                }
+            }
+        }
+
+        .body {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        h3 {
+            margin: 0;
+            font-size: 18px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .muted {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+            min-height: 18px;
+        }
+
+        .actions {
+            margin-top: auto;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: #111;
+            color: #fff;
+            text-decoration: none;
+        }
+    }
+
+    .pager {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+        margin: 16px 0;
+    }
+
+    .pager button {
+        padding: 8px 12px;
+        border-radius: 10px;
+    }
+
+    .empty {
+        text-align: center;
+        color: #666;
+        padding: 40px 0;
+    }
+
+    .hint {
+        color: #666;
+    }
 }
 
-.grid {
+/* 骨架屏 */
+.skeleton-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
-    align-items: stretch;
 }
 
-.card {
-    border: 1px solid #eee;
-    border-radius: 14px;
-    overflow: hidden;
-    background: #fff;
-    display: flex;
-    flex-direction: column;
+.sk-card {
+    height: 240px;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #eee, #f6f6f6, #eee);
+    animation: shine 1.2s infinite;
 }
 
-.thumb {
-    aspect-ratio: 4/3;
-    background: #f6f7f8;
-    overflow: hidden;
-}
+@keyframes shine {
+    from {
+        background-position: -200px 0
+    }
 
-.thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.meta {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.meta h3 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.muted {
-    color: #666;
-    margin: 0;
-    font-size: 13px;
-}
-
-.desc {
-    color: #444;
-    font-size: 14px;
-    line-height: 1.4;
-    height: 3.8em;
-    overflow: hidden;
-}
-
-.actions {
-    margin-top: auto;
-}
-
-.actions a {
-    display: inline-block;
-    padding: 6px 10px;
-    border-radius: 10px;
-    background: #111;
-    color: #fff;
-    text-decoration: none;
-}
-
-.pager {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: center;
-    margin: 16px 0;
-}
-
-.pager button {
-    padding: 6px 10px;
-    border-radius: 8px;
+    to {
+        background-position: 200px 0
+    }
 }

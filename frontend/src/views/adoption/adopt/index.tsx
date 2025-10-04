@@ -64,7 +64,7 @@ export default function Adopt() {
                 <div className="meta">
                   <h3>{pet.name}</h3>
                   <p className="muted">
-                    {pet.species || 'Pet'} • {pet.sex || 'Unknown'} {pet.age ? `• ${pet.age}y` : ''}
+                    {pet.species || 'Pet'} • {pet.sex || 'Unknown'} {pet.age_years ? `• ${pet.age_months}y` : ''}
                     {pet.city ? ` • ${pet.city}` : ''}
                   </p>
                   <p className="desc">{pet.description || '—'}</p>

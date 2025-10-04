@@ -8,9 +8,22 @@ from django.db.models import Q
 
 class PetFilter(df.FilterSet):
     species = df.CharFilter(field_name="species", lookup_expr="icontains")
-    breed = df.CharFilter(field_name="breed", lookup_expr="icontains")
-    status = df.CharFilter(field_name="status", lookup_expr="iexact")
+    breed   = df.CharFilter(field_name="breed", lookup_expr="icontains")
+    status  = df.CharFilter(field_name="status", lookup_expr="iexact")
+    sex     = df.CharFilter(field_name="sex",     lookup_expr="iexact")
+    city    = df.CharFilter(field_name="address__city__name", lookup_expr="icontains")
+        # 年龄段：用总月数范围过滤（前端映射成 age_min/age_max）
+    age_min = df.NumberFilter(method="filter_age_min")
+    age_max = df.NumberFilter(method="filter_age_max")
 
+    def filter_age_min(self, qs, name, v):
+        v = int(v); y, m = v // 12, v % 12
+        return qs.filter(Q(age_years__gt=y) | (Q(age_years=y) & Q(age_months__gte=m)))
+
+    def filter_age_max(self, qs, name, v):
+        v = int(v); y, m = v // 12, v % 12
+        return qs.filter(Q(age_years__lt=y) | (Q(age_years=y) & Q(age_months__lte=m)))
+    
     class Meta:
         model = Pet
         fields = ["species", "breed", "status"]
