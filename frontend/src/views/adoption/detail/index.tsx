@@ -1,36 +1,46 @@
 import { useMemo, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import axios from 'axios'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
-// 如果你把占位图放在 public/images 下，改成：const placeholder = '/images/pet-placeholder.jpg'
-import placeholder from '/images/pet-placeholder.jpg'
 import './index.scss'
 
+// 占位图（放在 public/images 下）
+const placeholder = '/images/pet-placeholder.jpg'
+
+// 把相对路径补成绝对（后端返回 /media/... 时生效）
 const API_ORIGIN = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000'
 const toAbs = (url?: string | null) => {
   if (!url) return placeholder
   if (/^https?:\/\//i.test(url)) return url
   try { return new URL(url, API_ORIGIN).toString() } catch { return placeholder }
 }
+
 const ageLabel = (y?: number, m?: number) => {
   const Y = y ?? 0, M = m ?? 0
   if (!Y && !M) return '—'
   return `${Y ? `${Y}y` : ''}${Y && M ? ' ' : ''}${M ? `${M}m` : ''}`
 }
 
+const statusMeta = (raw?: string) => {
+  const v = String(raw || '').toLowerCase()
+  if (v === 'available') return { text: 'Available', cls: 'ok' }
+  if (v === 'pending')   return { text: 'Pending',   cls: 'warn' }
+  if (v === 'adopted')   return { text: 'Adopted',   cls: 'muted' }
+  if (v === 'lost')      return { text: 'Lost',      cls: 'danger' }
+  return { text: raw || '—', cls: 'muted' }
+}
+
 export default function PetDetail() {
   const { id: idStr } = useParams<{ id: string }>()
   const id = Number(idStr)
-  const nav = useNavigate()
 
-  // ✅ 保留 loading，用于骨架屏，同时避免未加载即取字段
-  const { data: pet, loading, error, refresh } = useRequest<Pet, []>(
+  const { data: pet, loading, error } = useRequest<Pet, []>(
     () => adoptApi.detail(id).then(r => r.data),
     { ready: Number.isFinite(id) }
   )
 
-  // ✅ 所有地方读取 pet 字段时都用 ?. 可选链
+  // 画廊图片（如果只有封面也能正常显示）
   const photos = useMemo<string[]>(() => {
     if (!pet) return [null as any]
     const any = pet as any
@@ -43,67 +53,48 @@ export default function PetDetail() {
   const [idx, setIdx] = useState(0)
   const go = (d: number) => setIdx(i => (i + d + photos.length) % photos.length)
 
-  const canApply = (pet?.status === 'available' || pet?.status === 'AVAILABLE')
-  const [submitting, setSubmitting] = useState(false)
+  const addrCity = (pet as any)?.address_city || (pet as any)?.address?.city?.name
+  const years = (pet as any)?.age_years
+  const months = (pet as any)?.age_months
+  const st = statusMeta(pet?.status)
+  const canApply = st.cls === 'ok' // 仅 available 可申请
 
-  async function onApply() {
-    if (!pet) return
-    if (!localStorage.getItem('accessToken')) {
-      nav(`/auth/login?next=/adopt/${pet.id}`)
-      return
-    }
-    setSubmitting(true)
-    try {
-      await adoptApi.apply(pet.id, '')
-      alert('申请已提交！')
-      await refresh()
-    } catch (e) {
-      const msg = axios.isAxiosError(e)
-        ? ((e.response?.data as any)?.detail ?? '提交失败，请稍后再试')
-        : (e as Error).message
-      alert(msg)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // ✅ 错误兜底：不抛异常、不跳首页
+  // 错误态
   if (error) {
     const status = axios.isAxiosError(error) ? error.response?.status : undefined
     return (
       <div className="detail-layout">
-        {status === 404 ? <p className="hint">未找到该宠物。</p> :
-         status === 403 ? <p className="hint">该宠物未公开，无法查看。</p> :
-         <p className="hint">加载失败，请稍后再试。</p>}
-        <div style={{ marginTop: 8 }}><Link to="/adopt">← 返回列表</Link></div>
+        <div className="card empty">
+          {status === 404 ? '未找到该宠物。' :
+           status === 403 ? '该宠物未公开，无法查看。' :
+           '加载失败，请稍后再试。'}
+          <div className="back"><Link to="/adopt">← 返回列表</Link></div>
+        </div>
       </div>
     )
   }
 
-  // ✅ 加载态与 pet 为空时的骨架屏，避免读取 undefined
+  // 加载骨架
   if (loading || !pet) {
     return (
       <div className="detail-layout">
         <div className="left">
-          <div className="card" style={{ height: 360, background: '#f6f7f8' }} />
-          <div className="card" style={{ height: 140, background: '#f6f7f8', marginTop: 12 }} />
-          <div className="card" style={{ height: 220, background: '#f6f7f8', marginTop: 12 }} />
+          <div className="card sk" style={{height: 360}} />
+          <div className="card sk" style={{height: 120}} />
+          <div className="card sk" style={{height: 220}} />
         </div>
         <aside className="right">
-          <div className="card" style={{ height: 220, background: '#f6f7f8' }} />
+          <div className="card sk" style={{height: 240}} />
         </aside>
       </div>
     )
   }
 
-  // 这里开始可以安全使用 pet 的字段（上面已保证不为 undefined）
-  const addrCity = (pet as any)?.address_city || (pet as any)?.address?.city?.name
-  const years = (pet as any)?.age_years
-  const months = (pet as any)?.age_months
-
   return (
     <div className="detail-layout">
+      {/* 左侧 */}
       <div className="left">
+        {/* 画廊 */}
         <div className="gallery card">
           <div className="stage">
             <img
@@ -129,31 +120,35 @@ export default function PetDetail() {
           </div>
         </div>
 
-        <div className="card header-card">
-          <h1 className="pet-name">{pet?.name || '—'}</h1>
-          <div className="meta-line">
+        {/* 标题 + 关键信息 */}
+        <div className="card head">
+          <div className="title-row">
+            <h1 className="name">{pet?.name || '—'}</h1>
+            <span className={`badge ${st.cls}`}>{st.text}</span>
+          </div>
+          <div className="sub">
             <span>{pet?.breed || 'Unknown breed'}</span>
             {addrCity && <span> • {addrCity}</span>}
           </div>
-          <div className="chips">
-            {pet?.species && <span className="chip">{pet.species}</span>}
-            {pet?.sex && <span className="chip">{pet.sex}</span>}
-            <span className="chip">{ageLabel(years, months)}</span>
-            {pet?.status && <span className="chip outline">{String(pet.status)}</span>}
+          <div className="facts">
+            {pet?.species && <span className="pill">{pet.species}</span>}
+            {pet?.sex &&     <span className="pill">{pet.sex}</span>}
+            <span className="pill">{ageLabel(years, months)}</span>
           </div>
         </div>
 
+        {/* About */}
         <section className="card section">
           <h2>About</h2>
-          <dl className="about-grid">
+          <dl className="about">
             <div><dt>Breed</dt><dd>{pet?.breed || '—'}</dd></div>
             <div><dt>Sex</dt><dd>{pet?.sex || '—'}</dd></div>
             <div><dt>Age</dt><dd>{ageLabel(years, months)}</dd></div>
             <div><dt>City</dt><dd>{addrCity || '—'}</dd></div>
-            <div><dt>Status</dt><dd>{pet?.status || '—'}</dd></div>
           </dl>
         </section>
 
+        {/* 描述 */}
         <section className="card section">
           <h2>Meet {pet?.name}</h2>
           <p className="desc">{pet?.description || '暂无更多介绍。'}</p>
@@ -162,29 +157,31 @@ export default function PetDetail() {
         <div className="back-link"><Link to="/adopt">← 返回列表</Link></div>
       </div>
 
+      {/* 右侧侧栏 */}
       <aside className="right">
         <div className="card cta">
           <h3>Considering {pet?.name} for adoption?</h3>
-          <button
-            type="button"
-            className="primary"
-            disabled={!canApply || submitting}
-            onClick={onApply}
-            title={canApply ? '' : '当前不可申请'}
+          <Link
+            to={canApply ? `/adopt/${id}/apply` : '#'}
+            className={`btn primary ${canApply ? '' : 'disabled'}`}
+            aria-disabled={!canApply}
+            onClick={(e) => { if (!canApply) e.preventDefault() }}
           >
-            {submitting ? '提交中…' : 'START YOUR INQUIRY'}
+            START YOUR INQUIRY
+          </Link>
+          <button type="button" className="btn ghost" onClick={() => alert('FAQs 敬请期待')}>
+            READ FAQs
           </button>
-          <button type="button" className="ghost" onClick={() => alert('FAQs 敬请期待')}>READ FAQs</button>
           <div className="split">
-            <button type="button" className="outline" onClick={() => alert('Sponsor 敬请期待')}>SPONSOR</button>
-            <button type="button" className="outline" onClick={() => alert('收藏成功（本地示例）')}>FAVORITE</button>
+            <button type="button" className="btn outline" onClick={() => alert('Sponsor 敬请期待')}>SPONSOR</button>
+            <button type="button" className="btn outline" onClick={() => alert('收藏成功（本地示例）')}>FAVORITE</button>
           </div>
-          {!canApply && <p className="hint">仅 “available” 的宠物可以申请。</p>}
+          {!canApply && <p className="hint">仅 “Available” 的宠物可以提交申请。</p>}
         </div>
 
         <div className="card ad">Shelters are full! [Ad]</div>
 
-        <div className="card shelter">
+        <div className="card org">
           <h3>Contact</h3>
           <ul>
             <li><strong>Organization:</strong> {(pet as any)?.created_by?.username ?? 'Owner / Shelter'}</li>
@@ -192,7 +189,7 @@ export default function PetDetail() {
             <li><strong>Email:</strong> —</li>
             <li><strong>Phone:</strong> —</li>
           </ul>
-          <button type="button" className="outline">MORE ABOUT US</button>
+          <button type="button" className="btn outline">MORE ABOUT US</button>
         </div>
       </aside>
     </div>

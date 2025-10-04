@@ -56,6 +56,10 @@ const router: RouteObject[] = [
         path: '/adopt/:id',
         element: LazyLoad(lazy(() => import('@/views/adoption/detail'))), // 以后做详情时用
       },
+            {
+        path: '/adopt/:id/apply',
+        element: LazyLoad(lazy(() => import('@/views/adoption/apply'))), // 以后做详情时用
+      },
       ...routes, // modules 路由
     ],
   },
