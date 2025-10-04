@@ -1,11 +1,15 @@
 import { NavLink } from 'react-router-dom'
 import './index.scss'
+import { AuthProvider } from '@/hooks/useAuth'
+import SignInWidget from '@/components/sign-in-widget'
 
 export default function Home() {
   return (
+      <AuthProvider>
     <div className="home">
       <header className="site-header">
         <div className="brand">Stray Pet</div>
+
         <nav className="site-nav">
           <NavLink to="/adopt">Adopt</NavLink>
           <NavLink to="/post">Post</NavLink>
@@ -14,6 +18,11 @@ export default function Home() {
             home
           </NavLink>
         </nav>
+
+        {/* 放在 header 的最右侧 */}
+        <div className="header-right">
+          <SignInWidget />
+        </div>
       </header>
 
       <main className="hero-title">
@@ -29,5 +38,7 @@ export default function Home() {
       </div>
     
     </div>
+  </AuthProvider>
+
   )
 }

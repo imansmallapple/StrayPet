@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
     UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer, \
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer, UserMeSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.utils import generate_catcha_image
 from django.core.files.storage import default_storage
@@ -20,6 +20,8 @@ from django.core.mail import send_mail
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 
 User = get_user_model()
 
@@ -164,3 +166,11 @@ class PasswordResetConfirmAPIView(GenericAPIView):
         user.save()
         cache.delete(s.validated_data["email"])
         return Response({"msg": "Password has been reset."})
+    
+class UserMeView(APIView):
+    # ★ 明确只用 JWT 认证（避免默认 SessionAuth 导致匿名 -> 403）
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(UserMeSerializer(request.user).data)

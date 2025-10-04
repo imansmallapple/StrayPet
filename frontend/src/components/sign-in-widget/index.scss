@@ -1,0 +1,83 @@
+.siw {
+    position: relative;
+}
+
+.siw-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    height: 36px;
+    padding: 0 .9rem;
+    max-width: 240px;
+    border-radius: 9999px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.siw-primary {
+    background: #6d28d9;
+    color: #fff;
+    border-color: transparent;
+}
+
+.siw-skeleton {
+    width: 120px;
+    background: #f3f4f6;
+    border-color: #eee;
+}
+
+.siw-avatar {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.siw-username {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.siw-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .12);
+    z-index: 1000;
+}
+
+.siw-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.siw-item:hover {
+    background: #f5f3ff;
+}
+
+.siw-item.danger:hover {
+    background: #fee2e2;
+}
+
+@media (max-width:640px) {
+    .siw-username {
+        display: none;
+    }
+}

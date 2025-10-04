@@ -46,5 +46,10 @@ urlpatterns = [
         views.PasswordResetRequestAPIView.as_view(),
         name='pwd_reset_request'
     ),
+    path(
+        'user/me/',
+        views.UserMeView.as_view(),
+        name='user-me'
+    ),
     * router.urls,
 ]

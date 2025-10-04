@@ -36,7 +36,11 @@ class VerifyEmailCodeSerializer(serializers.Serializer):
         if item_code != attrs['code']:
             raise serializers.ValidationError('Code wrong!')
         return attrs
-
+    
+class UserMeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("id", "username", "email", "first_name", "last_name")
 
 class RegisterSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer):
     # password = serializers.CharField(write_only=True)

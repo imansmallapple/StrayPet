@@ -50,6 +50,11 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
           changeOrigin: true,
           rewrite: (path: string) => path.replace(new RegExp('^' + env.VITE_API_BASE_URL), ''),
         },
+          '/dev-api': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          rewrite: p => p.replace(/^\/dev-api/, ''), // 前缀去掉，最终到后端是 /user
+        },
       },
     },
     build: {
