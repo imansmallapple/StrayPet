@@ -3,7 +3,20 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.cache import cache
 from django.utils import timezone
+from django.conf import settings
+from django.core.validators import RegexValidator
 
+phone_validator = RegexValidator(
+    regex=r'^\+?[0-9\- ]{6,20}$',
+    message='Phone format incorrect（e.g.：+48 123-456-789 or 13800138000）'
+)
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    phone = models.CharField(max_length=32, blank=True, validators=[phone_validator])
+
+    def __str__(self):
+        return f'Profile<{self.user.username}>'
 
 class ViewStatistics(models.Model):
     object_id = models.PositiveIntegerField()

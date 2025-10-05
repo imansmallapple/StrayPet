@@ -1,11 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import './index.scss'
-import { AuthProvider } from '@/hooks/useAuth'
 import SignInWidget from '@/components/sign-in-widget'
 
 export default function Home() {
   return (
-      <AuthProvider>
     <div className="home">
       <header className="site-header">
         <div className="brand">Stray Pet</div>
@@ -38,7 +36,6 @@ export default function Home() {
       </div>
     
     </div>
-  </AuthProvider>
 
   )
 }

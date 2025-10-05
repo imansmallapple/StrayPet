@@ -47,7 +47,7 @@ urlpatterns = [
         name='pwd_reset_request'
     ),
     path(
-        'user/me/',
+        'me/',
         views.UserMeView.as_view(),
         name='user-me'
     ),

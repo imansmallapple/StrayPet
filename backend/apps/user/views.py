@@ -21,7 +21,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
+from rest_framework import generics, permissions
 
 User = get_user_model()
 
@@ -167,10 +167,10 @@ class PasswordResetConfirmAPIView(GenericAPIView):
         cache.delete(s.validated_data["email"])
         return Response({"msg": "Password has been reset."})
     
-class UserMeView(APIView):
+class UserMeView(generics.RetrieveUpdateAPIView):
     # ★ 明确只用 JWT 认证（避免默认 SessionAuth 导致匿名 -> 403）
+    serializer_class = UserMeSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response(UserMeSerializer(request.user).data)
+    permission_classes = [permissions.IsAuthenticated]
+    def get_object(self):
+        return self.request.user

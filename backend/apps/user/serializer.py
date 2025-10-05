@@ -38,9 +38,33 @@ class VerifyEmailCodeSerializer(serializers.Serializer):
         return attrs
     
 class UserMeSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name")
+        fields = ("id", "username", "email", "first_name", "last_name", "phone")
+        extra_kwargs = {
+            "username": {"required": False},
+            "email": {"required": False},
+            "first_name": {"required": False},
+            "last_name": {"required": False},
+        }
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('profile', {})
+        phone = profile_data.get('phone')
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if phone is not None:
+            profile = getattr(instance, 'profile', None)
+            if profile:
+                profile.phone = phone
+                profile.save()
+
+        return instance
 
 class RegisterSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer):
     # password = serializers.CharField(write_only=True)
