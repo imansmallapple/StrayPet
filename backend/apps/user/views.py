@@ -11,7 +11,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
     UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer, \
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer, UserMeSerializer
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer, UserMeSerializer, UserListSerializer, \
+        UserDetailSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.utils import generate_catcha_image
 from django.core.files.storage import default_storage
@@ -22,14 +23,20 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, permissions
-
+from rest_framework.views import APIView
+from rest_framework import status
 User = get_user_model()
 
-
+    
 class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
-
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    http_method_names = ['get', 'post', 'head', 'options']  # 允许 GET
+    
+    def list(self, request, *args, **kwargs):
+        return Response({"detail": "Use POST to register a new user."})
 
 class SendEmailCodeGenericAPIView(GenericAPIView):
     serializer_class = SendEmailCodeSerializer
@@ -61,6 +68,99 @@ class VerifyEmailCodeGenericAPIView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         cache.delete(serializer.data['email'])
         return Response({'msg': 'Verification success!'})
+
+
+class UserViewSet(mixins.ListModelMixin,
+                  mixins.RetrieveModelMixin,
+                  viewsets.GenericViewSet):
+    """
+    /user/
+      ├── /user/register/     注册
+      ├── /user/me/           当前用户信息
+      └── /user/profiles/     所有用户（管理员）
+    """
+    queryset = User.objects.all().select_related('profile')
+    authentication_classes = [JWTAuthentication]
+    serializer_class = UserDetailSerializer
+    permission_classes = [permissions.IsAdminUser] 
+    # 仅管理员可以访问列表
+    def get_permissions(self):
+        if self.action in ['list']:
+            return [permissions.IsAdminUser()]
+        elif self.action in ['me', 'partial_update', 'update']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    # 普通 list: /user/profiles/
+    def list(self, request, *args, **kwargs):
+        """管理员查看所有用户资料"""
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get', 'patch'], url_path='me')
+    def me(self, request):
+        """
+        GET /user/me/      → 当前用户资料
+        PATCH /user/me/    → 修改当前用户资料
+        """
+        user = request.user
+        if request.method == 'GET':
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        elif request.method == 'PATCH':
+            serializer = self.get_serializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['get', 'patch'],
+        url_path='detail',
+        permission_classes=[permissions.IsAuthenticated],
+        authentication_classes=[JWTAuthentication]
+    )
+    def detail(self, request):
+        """
+        GET  /user/detail/?fields=id,username,email,phone
+        PATCH /user/detail/ { "username": "...", "phone": "..." }
+        """
+        user = request.user
+
+        # 从 query 中取动态字段
+        fields_param  = request.query_params.get('fields')
+        exclude_param = request.query_params.get('exclude')
+        fields  = [s.strip() for s in fields_param.split(',')] if fields_param else None
+        exclude = [s.strip() for s in exclude_param.split(',')] if exclude_param else None
+
+        if request.method == 'GET':
+            ser = UserDetailSerializer(user, context={'request': request}, fields=fields, exclude=exclude)
+            return Response(ser.data)
+
+        # PATCH：只允许基础信息字段
+        ser = UserDetailSerializer(
+            user,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class UserListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """
+    GET /user/list/   All user basic information
+    """
+    queryset = User.objects.all().select_related('profile')
+    serializer_class = UserListSerializer
+    permission_classes = [permissions.IsAdminUser]   # 或视需求改成 IsAuthenticated
+    
+    def get_view_name(self):
+        if getattr(self, 'action', None) == 'list':
+            return 'User list'   # 你想要的标题
+        return super().get_view_name()
 
 
 class UserInfoViewSet(mixins.RetrieveModelMixin,
@@ -174,3 +274,38 @@ class UserMeView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     def get_object(self):
         return self.request.user
+    
+
+class UserOpsViewSet(viewsets.GenericViewSet):
+    """
+    空前缀挂载，仅提供动作：
+    - GET /user/me/
+    - GET|PATCH /user/detail/
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserDetailSerializer  # 用于 detail 更新
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        ser = UserMeSerializer(request.user, context={'request': request})
+        return Response(ser.data)
+
+    @action(detail=False, methods=['get', 'patch'])
+    def detail(self, request):
+        user = request.user
+        fields_q  = request.query_params.get('fields')
+        exclude_q = request.query_params.get('exclude')
+        fields  = [s.strip() for s in fields_q.split(',')] if fields_q else None
+        exclude = [s.strip() for s in exclude_q.split(',')] if exclude_q else None
+
+        if request.method == 'GET':
+            ser = UserDetailSerializer(user, context={'request': request},
+                                       fields=fields, exclude=exclude)
+            return Response(ser.data)
+
+        ser = UserDetailSerializer(user, data=request.data, partial=True,
+                                   context={'request': request})
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)

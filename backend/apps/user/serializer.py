@@ -239,3 +239,83 @@ class UploadImageSerializer(serializers.Serializer):
         if attrs['image'].size > 2 * 1024 * 1024:
             raise serializers.ValidationError("Image size can't bigger than 2M")
         return super().validate(attrs)
+
+
+# apps/user/serializers.py
+from django.contrib.auth.models import User
+from rest_framework import serializers
+
+class UserListSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone')
+
+
+class DynamicFieldsModelSerializer(serializers.ModelSerializer):
+    """
+    允许通过 kwargs['fields'] / kwargs['exclude'] 动态裁剪字段
+    """
+    def __init__(self, *args, **kwargs):
+        fields = kwargs.pop('fields', None)
+        exclude = kwargs.pop('exclude', None)
+        super().__init__(*args, **kwargs)
+        if fields is not None:
+            allowed = set(fields)
+            for f in list(self.fields.keys()):
+                if f not in allowed:
+                    self.fields.pop(f)
+        if exclude is not None:
+            for f in exclude:
+                self.fields.pop(f, None)
+
+class UserDetailSerializer(DynamicFieldsModelSerializer):
+    # 把 phone 映射到 profile.phone
+    phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name',
+                  'phone', 'is_staff', 'date_joined', 'last_login')
+        extra_kwargs = {
+            'username': {'required': False},
+            'email': {'required': False},
+            'first_name': {'required': False, 'allow_blank': True},
+            'last_name': {'required': False, 'allow_blank': True},
+        }
+
+    # 唯一性校验
+    def validate_username(self, v):
+        if not v:
+            return v
+        user = self.instance or self.context.get('request').user
+        if User.objects.exclude(pk=user.pk).filter(username=v).exists():
+            raise serializers.ValidationError('该用户名已被占用')
+        return v
+
+    def validate_email(self, v):
+        if not v:
+            return v
+        user = self.instance or self.context.get('request').user
+        if User.objects.exclude(pk=user.pk).filter(email=v).exists():
+            raise serializers.ValidationError('该邮箱已被占用')
+        return v
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('profile', {})
+        # 更新 User 字段
+        for attr in ['username', 'first_name', 'last_name', 'email']:
+            if attr in validated_data:
+                setattr(instance, attr, validated_data[attr])
+        instance.save()
+        # 更新 phone
+        if 'phone' in profile_data:
+            profile = getattr(instance, 'profile', None)
+            if profile is None:
+                from .models import UserProfile
+                profile = UserProfile.objects.create(user=instance)
+            profile.phone = profile_data.get('phone') or ''
+            profile.full_clean()
+            profile.save()
+        return instance
