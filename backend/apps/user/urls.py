@@ -8,9 +8,15 @@ from rest_framework_simplejwt.views import (
 from collections import OrderedDict
 from rest_framework.reverse import reverse
 from . import views
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 app_name = 'user'
 
 class UserDefaultRouter(DefaultRouter):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
     def __init__(self, root_name='User', root_description='The default basic root view for user router'):
         super().__init__()
         self._root_name = root_name
@@ -37,11 +43,36 @@ class UserDefaultRouter(DefaultRouter):
         # view.cls.get = patched_get
         return view
     
+class UserRootAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get_view_name(self):         # 页眉
+        return 'User'
+    def get_view_description(self, html=False):   # 副标题
+        return 'The default basic root view for user router'
+
+    def get(self, request):
+        base = request.build_absolute_uri('/user/')
+        data = OrderedDict([
+            ('register', reverse('user:register-list',   request=request)),
+            ('list',     reverse('user:user-list-list',  request=request)),
+            # ↓ 这两行是你要的“模板链接”
+            ('userinfo', f'{base}<id>/'),
+            # ('detail',   f'{base}<id>/detail/'),
+            # # 也顺便把“当前用户”的两个接口列出来（可选）
+            # ('me',       reverse('user:user-me',         request=request)
+            #              if 'user:user-me' in request.resolver_match.namespaces
+            #              else reverse('user:user-me',    request=request)),
+            # ('my_detail', reverse('user:user-my-detail', request=request)),
+        ])
+        return Response(data)
+    
 router = UserDefaultRouter()
-router.register('register', views.RegisterViewSet, basename='category')
+router.register('register', views.RegisterViewSet, basename='register')
 router.register('userinfo', views.UserInfoViewSet, basename='userinfo')
 router.register('list',      views.UserListViewSet,basename='user-list')
-router.register('',         views.UserOpsViewSet,  basename='user-ops')
+router.register('',         views.UserOpsViewSet,  basename='user')
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -81,5 +112,10 @@ urlpatterns = [
         views.UserMeView.as_view(),
         name='user-me'
     ),
+    path(
+        '',
+        UserRootAPIView.as_view(),
+        name='api-root'
+    ),    
     * router.urls,
 ]

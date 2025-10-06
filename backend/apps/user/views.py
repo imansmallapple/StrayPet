@@ -12,7 +12,7 @@ from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
     UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer, \
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer, UserMeSerializer, UserListSerializer, \
-        UserDetailSerializer
+    UserDetailSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.utils import generate_catcha_image
 from django.core.files.storage import default_storage
@@ -25,6 +25,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, permissions
 from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 User = get_user_model()
 
     
@@ -276,23 +277,34 @@ class UserMeView(generics.RetrieveUpdateAPIView):
         return self.request.user
     
 
-class UserOpsViewSet(viewsets.GenericViewSet):
+class UserOpsViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
-    空前缀挂载，仅提供动作：
-    - GET /user/me/
-    - GET|PATCH /user/detail/
+    提供以下路由（空前缀）：
+    - GET  /user/<id>/              → 按 id 查看单个用户
+    - GET  /user/<id>/detail/       → 按 id 查看单个用户的详细信息
+    - GET  /user/me/                → 当前登录用户（简要）
+    - GET  /user/detail/            → 当前用户详细（支持 fields/exclude）
+    - PATCH /user/detail/           → 修改当前用户基础信息（username/email/first/last/phone）
     """
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = UserDetailSerializer  # 用于 detail 更新
+    queryset = User.objects.all().select_related('profile')
+    serializer_class = UserDetailSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
 
+    def get_permissions(self):
+        # 按需调整：只有管理员能看/查他人；当前用户自己的接口只需登录
+        if self.action in ['retrieve', 'detail_by_id']:
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
+
+    # 当前用户——简要
     @action(detail=False, methods=['get'])
     def me(self, request):
         ser = UserMeSerializer(request.user, context={'request': request})
         return Response(ser.data)
 
-    @action(detail=False, methods=['get', 'patch'])
-    def detail(self, request):
+    # 当前用户——详细（GET 可裁剪字段，PATCH 可修改基础信息）
+    @action(detail=False, methods=['get', 'patch'], url_path='detail', url_name='my-detail')
+    def my_detail(self, request):
         user = request.user
         fields_q  = request.query_params.get('fields')
         exclude_q = request.query_params.get('exclude')
@@ -308,4 +320,11 @@ class UserOpsViewSet(viewsets.GenericViewSet):
                                    context={'request': request})
         ser.is_valid(raise_exception=True)
         ser.save()
+        return Response(ser.data)
+
+    # 指定 id —— 详细
+    @action(detail=True, methods=['get'], url_path='detail', url_name='detail-by-id')
+    def detail_by_id(self, request, pk=None):
+        obj = self.get_object()  # 按 pk 取用户
+        ser = UserDetailSerializer(obj, context={'request': request})
         return Response(ser.data)

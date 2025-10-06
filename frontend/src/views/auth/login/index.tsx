@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { authApi } from '@/services/modules/auth'
+import { authApi, setAccessHeader } from '@/services/modules/auth'
 
 function Login() {
   const [loading, setLoading] = useState(false)
@@ -40,6 +40,10 @@ function Login() {
       const { data } = await authApi.login({ username, password, captcha, uid })
       localStorage.setItem('accessToken', data.access)
       if (data.refresh) localStorage.setItem('refreshToken', data.refresh)
+      setAccessHeader(data.access) 
+      const me = await authApi.getMe().then(r => r.data) 
+      localStorage.setItem('user', JSON.stringify(me))
+      window.dispatchEvent(new Event('auth:updated'))
       nav(sp.get('next') || '/')
     } catch (err: any) {
       // 尝试从后端错误中给出更友好的提示

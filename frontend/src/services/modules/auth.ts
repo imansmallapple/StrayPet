@@ -1,6 +1,9 @@
 import http from '@/services/http'
 
-const baseURL: string = 'http://localhost:8000/'
+const baseURL: string = 'http://localhost:8000/user/'
+
+const saved = localStorage.getItem('accessToken')
+if (saved) setAccessHeader(saved)
 
 export const ENDPOINTS = {
   // DRF SimpleJWT（登录/刷新）
@@ -16,10 +19,20 @@ export const ENDPOINTS = {
 
   resetConfirm: baseURL + 'password/reset/confirm/',        
 
-   sendEmailCode: baseURL + 'send_email_code/',
+  sendEmailCode: baseURL + 'send_email_code/',
 
-   captcha: baseURL + 'captcha/',
+  captcha: baseURL + 'captcha/',
    
+  me: baseURL + 'me/',
+   
+}
+
+export function setAccessHeader(token?: string) {
+  if (token) {
+    (http as any).defaults.headers.common.Authorization = `Bearer ${token}`
+  } else {
+    delete (http as any).defaults.headers.common.Authorization
+  }
 }
 
 export const authApi = {
@@ -37,6 +50,8 @@ export const authApi = {
 
   sendEmailCode: (email: string) => http.post(ENDPOINTS.sendEmailCode, { email }),
   getCaptcha: () => http.get<CaptchaResp>(ENDPOINTS.captcha),
+
+  getMe: () => http.get<UserMe>(ENDPOINTS.me),
 }
 
 export type LoginBody = {
@@ -56,4 +71,11 @@ export type RegisterBody = {
 export type RegisterResp = { tokens?: { access: string; refresh?: string } }
 export type CaptchaResp = { uid: string; image: string }
 
-
+export type UserMe = {
+  id: number
+  username: string
+  email: string
+  first_name?: string
+  last_name?: string
+  phone?: string
+}

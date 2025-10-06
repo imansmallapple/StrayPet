@@ -33,7 +33,6 @@ export default function SignInWidget() {
     )
   }
 
-  // 显示名（优先 username → name → email 前缀）
   const displayName =
     (user as any).username?.trim() ||
     (user as any).name?.trim() ||
