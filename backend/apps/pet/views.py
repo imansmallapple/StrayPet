@@ -4,7 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, decorators, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from .models import Pet, Adoption, Lost, Donation
@@ -19,7 +19,7 @@ class PetViewSet(viewsets.ModelViewSet):
     filterset_class = PetFilter
     search_fields = ["name", "species", "breed", "description", "address"]
     ordering_fields = ["add_date", "pub_date", "age_months", "name"]
-    permission_classes = [IsOwnerOrAdmin]
+    permission_classes = [AllowAny]
 
     @action(detail=True, methods=['post'])
     def mark_lost(self, request, pk=None):
