@@ -10,7 +10,7 @@ export default function Home() {
 
         <nav className="site-nav">
           <NavLink to="/adopt">Adopt</NavLink>
-          <NavLink to="/post">Post</NavLink>
+          <NavLink to="/lost">Post</NavLink>
           <NavLink to="/shelters">Shelters</NavLink>
           <NavLink to="/home" className={({ isActive }) => (isActive ? 'active' : undefined)}>
             home

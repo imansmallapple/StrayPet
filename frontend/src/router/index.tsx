@@ -64,6 +64,19 @@ const router: RouteObject[] = [
         path: '/adopt/:id/apply',
         element: LazyLoad(lazy(() => import('@/views/adoption/apply'))), // 以后做详情时用
       },
+      // src/router/index.tsx 节选
+      {
+        path: '/lost',
+        element: LazyLoad(lazy(() => import('@/views/lost/list'))),
+      },
+      {
+        path: '/lost/:id',
+        element: LazyLoad(lazy(() => import('@/views/lost/detail'))),
+      },
+      {
+        path: '/lost/report',
+        element: LazyLoad(lazy(() => import('@/views/lost/post'))),
+      },
       ...routes, // modules 路由
     ],
   },
