@@ -204,6 +204,9 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
 
 
 class CaptchaGenericAPIView(GenericAPIView):
+    permission_classes = [AllowAny]          
+    authentication_classes = []  
+    
     def get(self, request, *args, **kwargs):
         image, text = generate_catcha_image()
         uid = uuid.uuid4().hex

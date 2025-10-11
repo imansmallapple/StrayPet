@@ -55,7 +55,7 @@ export default function SignInWidget() {
 
       {open && (
         <div className="siw-menu" role="menu">
-          <button type="button" className="siw-item" onClick={() => { setOpen(false); nav('/profile') }}>
+          <button type="button" className="siw-item" onClick={() => { setOpen(false); nav('/user/profile') }}>
             Profile
           </button>
           <button type="button" className="siw-item danger" onClick={() => { logout(); setOpen(false) }}>

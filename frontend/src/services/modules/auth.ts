@@ -24,6 +24,8 @@ export const ENDPOINTS = {
   captcha: baseURL + 'captcha/',
    
   me: baseURL + 'me/',
+
+  detail: baseURL + 'detail/',
    
 }
 
@@ -52,6 +54,8 @@ export const authApi = {
   getCaptcha: () => http.get<CaptchaResp>(ENDPOINTS.captcha),
 
   getMe: () => http.get<UserMe>(ENDPOINTS.me),
+
+  getProfile: ()=>http.get(ENDPOINTS.detail),
 }
 
 export type LoginBody = {

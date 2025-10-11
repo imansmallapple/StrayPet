@@ -27,6 +27,10 @@ const router: RouteObject[] = [
         element: LazyLoad(lazy(() => import('@/views/test/login'))),
       },
       {
+        path: '/user/profile',
+        element: LazyLoad(lazy(() => import('@/views/user/profile'))),
+      },
+      {
         path: '/404',
         element: LazyLoad(lazy(() => import('@/components/not-fount'))),
       },
