@@ -42,8 +42,8 @@ export default function LostDetail() {
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24, marginTop:16 }}>
         <div style={{ aspectRatio:'4/3', background:'#f6f7fb', borderRadius:12, overflow:'hidden' }}>
-          {item.cover ? (
-            <img src={item.cover} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+          {item.photo ? (
+            <img src={item.photo_url} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
           ) : (
             <div style={{ width:'100%', height:'100%', display:'grid', placeItems:'center', color:'#999' }}>No Image</div>
           )}

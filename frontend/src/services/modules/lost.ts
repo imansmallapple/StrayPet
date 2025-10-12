@@ -3,16 +3,18 @@ import http from '@/services/http'
 
 export type LostPet = {
   id: number
-  name: string
+  pet_name?: string
+  name?: string
   species?: string
   breed?: string
   age_months?: number
-  sex?: 'M' | 'F' | 'U'
+  sex?: 'M' | 'F' | 'U' | 'male' | 'female'
   color?: string
   description?: string
   pub_date?: string
   address?: string | { full?: string }
-  cover?: string
+  photo?: string          // 相对URL（兼容）
+  photo_url?: string      // ⭐ 后端新增的绝对URL
 }
 
 export type PageResp<T> = {

@@ -78,8 +78,8 @@ export default function LostList() {
         {data?.results.map(item => (
           <Link to={`/lost/${item.id}`} key={item.id} className="card" style={{ textDecoration:'none', color:'inherit', border:'1px solid #eee', borderRadius:12, overflow:'hidden' }}>
             <div style={{ aspectRatio:'4/3', background:'#f6f7fb' }}>
-              {item.cover ? (
-                <img src={item.cover} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+              {item.photo ? (
+                <img src={item.photo_url} alt={item.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
               ) : (
                 <div style={{ width:'100%', height:'100%', display:'grid', placeItems:'center', color:'#999' }}>No Image</div>
               )}

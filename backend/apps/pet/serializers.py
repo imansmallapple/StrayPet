@@ -127,7 +127,8 @@ class LostSerializer(serializers.ModelSerializer):
     country = serializers.IntegerField(source='address.country_id', read_only=True)
     region = serializers.IntegerField(source='address.region_id', read_only=True)
     city = serializers.CharField(source='address.city.name', read_only=True)
-
+    
+    photo_url = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Lost
         fields = [
@@ -135,8 +136,19 @@ class LostSerializer(serializers.ModelSerializer):
             'pet_name',  # ✅ 改为名字字符串
             'species', 'breed', 'color', 'sex', 'size',
             'address', 'country', 'region', 'city',
-            'lost_time', 'description', 'reward', 'photo',
+            'lost_time', 'description', 'reward', 'photo', 'photo_url',  
             'status', 'reporter', 'reporter_username',
             'created_at', 'updated_at',
         ]
         read_only_fields = ('reporter', 'created_at', 'updated_at')
+    
+    def get_photo_url(self, obj):
+        # 有图就返回绝对 URL，否则 None
+        try:
+            if obj.photo and hasattr(obj.photo, 'url'):
+                request = self.context.get('request')
+                url = obj.photo.url
+                return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+        return None
