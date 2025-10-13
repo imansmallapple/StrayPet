@@ -1,7 +1,6 @@
 # apps/pet/serializers.py
 from rest_framework import serializers
-from .models import Pet, Adoption, DonationPhoto, Donation, Lost
-
+from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address
 
 class PetListSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
@@ -120,30 +119,38 @@ class DonationDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ["status", "reviewer", "review_note", "created_pet_id", "add_date", "pub_date"]
 
 
+
+
 class LostSerializer(serializers.ModelSerializer):
     reporter_username = serializers.ReadOnlyField(source='reporter.username')
-
-    # 只读派生出的地点字段，便于前端展示/过滤
     country = serializers.IntegerField(source='address.country_id', read_only=True)
     region = serializers.IntegerField(source='address.region_id', read_only=True)
     city = serializers.CharField(source='address.city.name', read_only=True)
-    
     photo_url = serializers.SerializerMethodField(read_only=True)
+
+    # 新增：嵌套地址字段
+    address_data = serializers.DictField(write_only=True, required=False)
+
     class Meta:
         model = Lost
         fields = [
-            'id',
-            'pet_name',  # ✅ 改为名字字符串
-            'species', 'breed', 'color', 'sex', 'size',
-            'address', 'country', 'region', 'city',
-            'lost_time', 'description', 'reward', 'photo', 'photo_url',  
+            'id', 'pet_name', 'species', 'breed', 'color', 'sex', 'size',
+            'address', 'address_data',  # ✅ 新增
+            'country', 'region', 'city',
+            'lost_time', 'description', 'reward', 'photo', 'photo_url',
             'status', 'reporter', 'reporter_username',
             'created_at', 'updated_at',
         ]
         read_only_fields = ('reporter', 'created_at', 'updated_at')
-    
+
+    def create(self, validated_data):
+        address_data = validated_data.pop('address_data', None)
+        if address_data:
+            address = Address.objects.create(**address_data)
+            validated_data['address'] = address
+        return super().create(validated_data)
+
     def get_photo_url(self, obj):
-        # 有图就返回绝对 URL，否则 None
         try:
             if obj.photo and hasattr(obj.photo, 'url'):
                 request = self.context.get('request')

@@ -4,7 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, decorators, status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
-from rest_framework.permissions import IsAdminUser, AllowAny
+from rest_framework.permissions import IsAdminUser, AllowAny, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from .models import Pet, Adoption, Lost, Donation
@@ -12,7 +12,8 @@ from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionC
     AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer
 from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
-
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.select_related("created_by", "address", "address__city", "address__region", "address__country").order_by("-pub_date")
@@ -189,6 +190,16 @@ class LostViewSet(viewsets.ModelViewSet):
     filterset_class = LostFilter
     ordering_fields = ['created_at', 'lost_time']
     ordering = ['-created_at']
+
+    # 仅写操作做 JWT 认证，读操作不解析 Authorization（坏 token 也不影响 GET）
+    authentication_classes = [JWTAuthentication]
+    def get_authenticators(self):
+        if self.request and self.request.method in SAFE_METHODS:
+            return []
+        return super().get_authenticators()
+
+    # ✅ 允许 multipart/form-data 与 application/x-www-form-urlencoded
+    parser_classes = [MultiPartParser, FormParser]
 
     def perform_create(self, serializer):
         serializer.save(reporter=self.request.user)

@@ -1,32 +1,19 @@
+// src/services/modules/auth.ts
 import http from '@/services/http'
 
-const baseURL: string = 'http://localhost:8000/user/'
-
-const saved = localStorage.getItem('accessToken')
-if (saved) setAccessHeader(saved)
+const baseURL = 'http://localhost:8000/user/'
 
 export const ENDPOINTS = {
-  // DRF SimpleJWT（登录/刷新）
-  login: baseURL + 'token/',            // POST {username,password} -> {access,refresh}
-  refresh: baseURL + 'token/refresh/',  // POST {refresh}           -> {access}
-
-  // 注册（两种三选一：Djoser / 你自己的 DRF 路由）
-  // Djoser:
+  login:   baseURL + 'token/',
+  refresh: baseURL + 'token/refresh/',
   register: baseURL + 'register/',
-  // 如果没有 Djoser，用你的 DRF 路径（示例）：
-  // register: 'users/register/',
-  resetRequest: baseURL + 'password/reset/request/',     
-
-  resetConfirm: baseURL + 'password/reset/confirm/',        
-
+  resetRequest: baseURL + 'password/reset/request/',
+  resetConfirm: baseURL + 'password/reset/confirm/',
   sendEmailCode: baseURL + 'send_email_code/',
-
   captcha: baseURL + 'captcha/',
-   
   me: baseURL + 'me/',
-
-  detail: baseURL + 'detail/',
-   
+  // 你后端当前返回“个人详情”的路由（若不同，自行改为你后端真实可用的）
+  detail: baseURL + 'detail/',   // ← 这里用于 Profile 页面
 }
 
 export function setAccessHeader(token?: string) {
@@ -38,15 +25,11 @@ export function setAccessHeader(token?: string) {
 }
 
 export const authApi = {
-  login: (body: LoginBody) => http.post<LoginResp>(ENDPOINTS.login, body),
-  
+  login:   (body: LoginBody) => http.post<LoginResp>(ENDPOINTS.login, body),
   refresh: (body: { refresh: string }) => http.post<{ access: string }>(ENDPOINTS.refresh, body),
-  
- register: (body: RegisterBody) => http.post<RegisterResp>(ENDPOINTS.register, body),
-  
-  // 忘记密码：发码
+
+  register: (body: RegisterBody) => http.post<RegisterResp>(ENDPOINTS.register, body),
   requestReset: (body: { email: string }) => http.post(ENDPOINTS.resetRequest, body),
-  // 忘记密码：确认
   confirmReset: (body: { email: string; code: string; new_password: string; re_new_password: string }) =>
     http.post(ENDPOINTS.resetConfirm, body),
 
@@ -54,15 +37,14 @@ export const authApi = {
   getCaptcha: () => http.get<CaptchaResp>(ENDPOINTS.captcha),
 
   getMe: () => http.get<UserMe>(ENDPOINTS.me),
-
-  getProfile: ()=>http.get(ENDPOINTS.detail),
+  getProfile: () => http.get<UserMe>(ENDPOINTS.detail),
 }
 
 export type LoginBody = {
   username: string
   password: string
-  captcha: string  
-  uid: string      
+  captcha: string
+  uid: string
 }
 export type LoginResp = { access: string; refresh?: string }
 export type RegisterBody = {
