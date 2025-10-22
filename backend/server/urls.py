@@ -18,6 +18,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from apps.pet.views import LostGeoViewSet 
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r"pet/lost_geo", LostGeoViewSet, basename="lost-geo")
 
 urlpatterns = [
     path('admin/', admin.site.urls),

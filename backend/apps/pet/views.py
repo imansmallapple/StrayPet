@@ -14,7 +14,8 @@ from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
-
+from rest_framework_gis.filters import InBBoxFilter
+from .serializers import LostGeoSerializer
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.select_related("created_by", "address", "address__city", "address__region", "address__country").order_by("-pub_date")
     filterset_class = PetFilter
@@ -233,3 +234,10 @@ class DonationViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     ordering_fields = ['add_date', 'pub_date']
     ordering = ['-pub_date']
+
+
+class LostGeoViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Lost.objects.select_related("address", "pet", "reporter").all()
+    serializer_class = LostGeoSerializer
+    filter_backends = (InBBoxFilter,)
+    bbox_filter_field = "address__location" 

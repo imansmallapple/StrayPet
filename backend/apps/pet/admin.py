@@ -2,8 +2,21 @@
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost
+from django.contrib.gis.admin import GISModelAdmin
+from django.contrib.gis.forms.widgets import OSMWidget
+from django import forms
 
-
+class AddressAdminForm(forms.ModelForm):
+    class Meta:
+        model = Address
+        fields = "__all__"
+        widgets = {
+            "location": OSMWidget(attrs={
+                "map_width": 700,
+                "map_height": 400,
+                "default_zoom": 5,
+            })
+        }
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
     list_display = ("id", "thumb", "name", "species", "breed", "status", "formatted_address", "created_by", "add_date")
@@ -151,11 +164,15 @@ def close_donation(modeladmin, request, queryset):
 
 
 @admin.register(Address)
-class AddressAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "country", "region", "city", "street", "building_number", "postal_code")
-    list_filter = ("country", "region", "city")
-    search_fields = ("country__name", "region__name", "city__name", "street", "building_number", "postal_code")
-    fields = ("country", "region", "city", "street", "building_number", "postal_code", "latitude", "longitude")
+class AddressAdmin(GISModelAdmin):
+    form = AddressAdminForm
+    list_display = ("__str__", "postal_code", "location")
+    list_select_related = ("city", "region", "country")
+    # ⭐ 必须有 search_fields，供其他 Admin 的 autocomplete 使用
+    search_fields = (
+        "street", "building_number", "postal_code",
+        "city__name", "region__name", "country__name",
+    )
 
 
 @admin.register(Lost)
@@ -197,3 +214,4 @@ class LostAdmin(admin.ModelAdmin):
         return obj.address.city.name if obj.address_id and obj.address.city_id else ""
 
     city_name.short_description = "City"
+

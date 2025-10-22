@@ -2,11 +2,13 @@
 from rest_framework.routers import DefaultRouter
 from .views import PetViewSet, AdoptionViewSet, LostViewSet, DonationViewSet
 from django.urls import path
+from apps.pet.views import LostGeoViewSet
 
 router = DefaultRouter()
 router.register("pet", PetViewSet, basename="pet")
 router.register("adoption", AdoptionViewSet, basename="pet-application")
 router.register(r'lost', LostViewSet, basename='lost')
+router.register(r"pet/lost_geo", LostGeoViewSet, basename="lost-geo")
 
 urlpatterns = [
     # —— Pet —— #

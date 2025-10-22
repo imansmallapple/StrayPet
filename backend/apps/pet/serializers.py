@@ -1,6 +1,17 @@
 # apps/pet/serializers.py
 from rest_framework import serializers
 from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
+from rest_framework_gis.fields import GeometryField
+
+class LostGeoSerializer(GeoFeatureModelSerializer):
+    # 用 GeometryField 显式映射外键下的 geometry 字段
+    geometry = GeometryField(source='address.location')
+
+    class Meta:
+        model = Lost
+        geo_field = "geometry"
+        fields = ("id", "status", "pet_name", "species", "breed", "color", "sex", "size", "reporter", "lost_time")
 
 class PetListSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
@@ -117,8 +128,6 @@ class DonationDetailSerializer(serializers.ModelSerializer):
                   "description", "address", "dewormed", "vaccinated", "microchipped", "is_stray", "contact_phone",
                   "status", "reviewer", "review_note", "created_pet_id", "photos", "add_date", "pub_date"]
         read_only_fields = ["status", "reviewer", "review_note", "created_pet_id", "add_date", "pub_date"]
-
-
 
 
 class LostSerializer(serializers.ModelSerializer):
