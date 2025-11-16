@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
+import PageHeroTitle from '@/components/page-hero-title'
 
 import {
   Container, Row, Col,
@@ -89,12 +90,12 @@ export default function Adopt() {
   }
 
   return (
-    <div className="pf3-page bg-light min-vh-100">
+    <div>
       {/* 顶部大标题 + 黄线 */}
-      <Container className="pt-4">
-        <h1 className="display-4 fw-bolder text-primary mb-0">Pet Search</h1>
-        <div className="pf3-underline mt-2" />
-      </Container>
+      <PageHeroTitle
+        title="Pet Search"
+        subtitle="Find your best friend!"
+      />
 
       {/* 白色工具条 */}
       <Container className="pf3-toolbar bg-white rounded-4 shadow-sm py-3 px-3 my-3">

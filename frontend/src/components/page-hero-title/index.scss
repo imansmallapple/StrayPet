@@ -1,0 +1,28 @@
+.page-hero-title {
+    max-width: 1240px;
+    margin: 24px auto 12px;
+    padding: 0 20px;
+}
+
+.page-hero-title h1 {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 800;
+    color: #0b69d4;
+    /* 和你截图一样的亮蓝色 */
+}
+
+.page-hero-title p {
+    margin: 8px 0 0;
+    font-size: 15px;
+    color: #4b5563;
+}
+
+.page-hero-underline {
+    margin-top: 10px;
+    width: 110px;
+    height: 4px;
+    border-radius: 999px;
+    background: #f7c948;
+    /* 黄色小横线 */
+}

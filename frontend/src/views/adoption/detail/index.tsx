@@ -1,197 +1,244 @@
-import { useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+// src/views/adoption/detail/index.tsx
+import { useParams, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
-import axios from 'axios'
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Table,
+  Badge,
+  Spinner,
+} from 'react-bootstrap'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
 import './index.scss'
 
-// 占位图（放在 public/images 下）
-const placeholder = '/images/pet-placeholder.jpg'
+type PetDetail = Pet & {
+  city?: string
+  status?: string          // e.g. "Looking for a home"
+  breed?: string
+  size?: string            // small / medium / large
+  activity?: string        // e.g. "Couch Potatoes"
+  added_at?: string
+  updated_at?: string
 
-// 把相对路径补成绝对（后端返回 /media/... 时生效）
-const API_ORIGIN = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000'
-const toAbs = (url?: string | null) => {
-  if (!url) return placeholder
-  if (/^https?:\/\//i.test(url)) return url
-  try { return new URL(url, API_ORIGIN).toString() } catch { return placeholder }
+  shelter_name?: string
+  shelter_address?: string
+  shelter_city?: string
+  shelter_phone?: string
+  shelter_website?: string
+
+  description_long?: string
+  traits?: string[]
+  photos?: string[]
 }
 
-const ageLabel = (y?: number, m?: number) => {
-  const Y = y ?? 0, M = m ?? 0
-  if (!Y && !M) return '—'
-  return `${Y ? `${Y}y` : ''}${Y && M ? ' ' : ''}${M ? `${M}m` : ''}`
-}
+export default function AdoptDetail() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
 
-const statusMeta = (raw?: string) => {
-  const v = String(raw || '').toLowerCase()
-  if (v === 'available') return { text: 'Available', cls: 'ok' }
-  if (v === 'pending')   return { text: 'Pending',   cls: 'warn' }
-  if (v === 'adopted')   return { text: 'Adopted',   cls: 'muted' }
-  if (v === 'lost')      return { text: 'Lost',      cls: 'danger' }
-  return { text: raw || '—', cls: 'muted' }
-}
-
-export default function PetDetail() {
-  const { id: idStr } = useParams<{ id: string }>()
-  const id = Number(idStr)
-
-  const { data: pet, loading, error } = useRequest<Pet, []>(
-    () => adoptApi.detail(id).then(r => r.data),
-    { ready: Number.isFinite(id) }
+  const { data, loading } = useRequest(
+    () =>
+      adoptApi
+        .detail(Number(id))
+        .then(res => res.data as PetDetail),
+    {
+      ready: !!id,
+      refreshDeps: [id],
+    },
   )
 
-  // 画廊图片（如果只有封面也能正常显示）
-  const photos = useMemo<string[]>(() => {
-    if (!pet) return [null as any]
-    const any = pet as any
-    const list: string[] =
-      any?.photos ?? any?.gallery ??
-      (any?.photo ? [any.photo] : (any?.cover ? [any.cover] : []))
-    return list.length ? list : [null as any]
-  }, [pet])
+  if (!id) {
+    return <div className="pet-detail-empty">Invalid pet id</div>
+  }
 
-  const [idx, setIdx] = useState(0)
-  const go = (d: number) => setIdx(i => (i + d + photos.length) % photos.length)
-
-  const addrCity = (pet as any)?.address_city || (pet as any)?.address?.city?.name
-  const years = (pet as any)?.age_years
-  const months = (pet as any)?.age_months
-  const st = statusMeta(pet?.status)
-  const canApply = st.cls === 'ok' // 仅 available 可申请
-
-  // 错误态
-  if (error) {
-    const status = axios.isAxiosError(error) ? error.response?.status : undefined
+  if (loading || !data) {
     return (
-      <div className="detail-layout">
-        <div className="card empty">
-          {status === 404 ? '未找到该宠物。' :
-           status === 403 ? '该宠物未公开，无法查看。' :
-           '加载失败，请稍后再试。'}
-          <div className="back"><Link to="/adopt">← 返回列表</Link></div>
-        </div>
+      <div className="pet-detail-loading">
+        <Spinner animation="border" role="status" />
       </div>
     )
   }
 
-  // 加载骨架
-  if (loading || !pet) {
-    return (
-      <div className="detail-layout">
-        <div className="left">
-          <div className="card sk" style={{height: 360}} />
-          <div className="card sk" style={{height: 120}} />
-          <div className="card sk" style={{height: 220}} />
-        </div>
-        <aside className="right">
-          <div className="card sk" style={{height: 240}} />
-        </aside>
-      </div>
-    )
-  }
+  const pet = data
+  const mainPhoto =
+    pet.photo || pet.photos?.[0] || '/images/pet-placeholder.jpg'
+
+  const ageText = (() => {
+    if (pet.age_years || pet.age_months) {
+      const yy = pet.age_years ? `${pet.age_years}y` : ''
+      const mm = pet.age_months ? `${pet.age_months}m` : ''
+      return [yy, mm].filter(Boolean).join(' ')
+    }
+    return 'Age N/A'
+  })()
+
+  const traits = pet.traits ?? []
 
   return (
-    <div className="detail-layout">
-      {/* 左侧 */}
-      <div className="left">
-        {/* 画廊 */}
-        <div className="gallery card">
-          <div className="stage">
-            <img
-              src={toAbs(photos[idx])}
-              alt={pet?.name || 'pet'}
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholder }}
-            />
-            {photos.length > 1 && (
-              <>
-                <button type="button" className="nav prev" onClick={() => go(-1)} aria-label="prev">‹</button>
-                <button type="button" className="nav next" onClick={() => go(+1)} aria-label="next">›</button>
-                <div className="dots">
-                  {photos.map((p, i) => (
-                    <span
-                      key={(typeof p === 'string' && p) ? p : `dot-${i}`}
-                      className={i === idx ? 'on' : ''}
-                      onClick={() => setIdx(i)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+    <div className="pet-detail-page">
+      {/* 顶部绿色区域 */}
+      <div className="pet-detail-hero">
+        <Container>
+          <div className="pet-detail-hero-text">
+            <div className="muted">My name is</div>
+            <h1>{pet.name}</h1>
           </div>
-        </div>
-
-        {/* 标题 + 关键信息 */}
-        <div className="card head">
-          <div className="title-row">
-            <h1 className="name">{pet?.name || '—'}</h1>
-            <span className={`badge ${st.cls}`}>{st.text}</span>
-          </div>
-          <div className="sub">
-            <span>{pet?.breed || 'Unknown breed'}</span>
-            {addrCity && <span> • {addrCity}</span>}
-          </div>
-          <div className="facts">
-            {pet?.species && <span className="pill">{pet.species}</span>}
-            {pet?.sex &&     <span className="pill">{pet.sex}</span>}
-            <span className="pill">{ageLabel(years, months)}</span>
-          </div>
-        </div>
-
-        {/* About */}
-        <section className="card section">
-          <h2>About</h2>
-          <dl className="about">
-            <div><dt>Breed</dt><dd>{pet?.breed || '—'}</dd></div>
-            <div><dt>Sex</dt><dd>{pet?.sex || '—'}</dd></div>
-            <div><dt>Age</dt><dd>{ageLabel(years, months)}</dd></div>
-            <div><dt>City</dt><dd>{addrCity || '—'}</dd></div>
-          </dl>
-        </section>
-
-        {/* 描述 */}
-        <section className="card section">
-          <h2>Meet {pet?.name}</h2>
-          <p className="desc">{pet?.description || '暂无更多介绍。'}</p>
-        </section>
-
-        <div className="back-link"><Link to="/adopt">← 返回列表</Link></div>
+        </Container>
       </div>
 
-      {/* 右侧侧栏 */}
-      <aside className="right">
-        <div className="card cta">
-          <h3>Considering {pet?.name} for adoption?</h3>
-          <Link
-            to={canApply ? `/adopt/${id}/apply` : '#'}
-            className={`btn primary ${canApply ? '' : 'disabled'}`}
-            aria-disabled={!canApply}
-            onClick={(e) => { if (!canApply) e.preventDefault() }}
-          >
-            START YOUR INQUIRY
-          </Link>
-          <button type="button" className="btn ghost" onClick={() => alert('FAQs 敬请期待')}>
-            READ FAQs
-          </button>
-          <div className="split">
-            <button type="button" className="btn outline" onClick={() => alert('Sponsor 敬请期待')}>SPONSOR</button>
-            <button type="button" className="btn outline" onClick={() => alert('收藏成功（本地示例）')}>FAVORITE</button>
-          </div>
-          {!canApply && <p className="hint">仅 “Available” 的宠物可以提交申请。</p>}
-        </div>
+      <Container className="pet-detail-content">
+        <Row className="g-4 align-items-start">
+          {/* 左侧：大图 + 基本信息表格 + 描述 + trait 列表 */}
+          <Col lg={8}>
+            <Card className="pet-detail-main-card">
+              <div className="pet-detail-photo-wrapper">
+                <img src={mainPhoto} alt={pet.name} />
+                {pet.status && (
+                  <Badge bg="success" className="pet-detail-status-pill">
+                    {pet.status}
+                  </Badge>
+                )}
+                {pet.photos && pet.photos.length > 1 && (
+                  <div className="pet-detail-photo-count">
+                    {pet.photos.length} photos
+                  </div>
+                )}
+              </div>
 
-        <div className="card ad">Shelters are full! [Ad]</div>
+              <div className="pet-detail-table-wrapper">
+                <Table borderless size="sm" className="pet-detail-table">
+                  <tbody>
+                    <tr>
+                      <th>Name:</th>
+                      <td>{pet.name}</td>
+                    </tr>
+                    <tr>
+                      <th>City:</th>
+                      <td>{pet.city || pet.shelter_city || '—'}</td>
+                    </tr>
+                    <tr>
+                      <th>Status:</th>
+                      <td>{pet.status || 'Looking for a home'}</td>
+                    </tr>
+                    <tr>
+                      <th>Species:</th>
+                      <td>{(pet.species ?? 'Pet').toString()}</td>
+                    </tr>
+                    <tr>
+                      <th>Sex:</th>
+                      <td>{pet.sex || 'Unknown'}</td>
+                    </tr>
+                    <tr>
+                      <th>Age:</th>
+                      <td>{ageText}</td>
+                    </tr>
+                    <tr>
+                      <th>Size:</th>
+                      <td>{pet.size || '—'}</td>
+                    </tr>
+                    <tr>
+                      <th>Breed:</th>
+                      <td>{pet.breed || 'Mixed'}</td>
+                    </tr>
+                    <tr>
+                      <th>Activity:</th>
+                      <td>{pet.activity || 'Calm'}</td>
+                    </tr>
+                    <tr>
+                      <th>Added:</th>
+                      <td>{pet.added_at?.slice(0, 10) || '—'}</td>
+                    </tr>
+                    <tr>
+                      <th>Updated:</th>
+                      <td>{pet.updated_at?.slice(0, 10) || '—'}</td>
+                    </tr>
+                  </tbody>
+                </Table>
+              </div>
 
-        <div className="card org">
-          <h3>Contact</h3>
-          <ul>
-            <li><strong>Organization:</strong> {(pet as any)?.created_by?.username ?? 'Owner / Shelter'}</li>
-            <li><strong>Location:</strong> {addrCity || '—'}</li>
-            <li><strong>Email:</strong> —</li>
-            <li><strong>Phone:</strong> —</li>
-          </ul>
-          <button type="button" className="btn outline">MORE ABOUT US</button>
-        </div>
-      </aside>
+              <div className="pet-detail-description">
+                <p>
+                  {pet.description_long ||
+                    pet.description ||
+                    'No description yet.'}
+                </p>
+              </div>
+
+              {traits.length > 0 && (
+                <div className="pet-detail-traits">
+                  {traits.map(t => (
+                    <div key={t} className="trait-item">
+                      <span className="bullet" aria-hidden>
+                        ✓
+                      </span>
+                      <span>{t}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </Col>
+
+          {/* 右侧：救助站卡片 */}
+          <Col lg={4}>
+            <Card className="pet-detail-shelter-card">
+              <Card.Body>
+                <div className="shelter-name">
+                  {pet.shelter_name || 'Unknown shelter'}
+                </div>
+                <div className="shelter-sub">
+                  {pet.shelter_city || pet.city || '—'}
+                </div>
+                <div className="shelter-address">
+                  {pet.shelter_address || 'No address available'}
+                </div>
+
+                {/* 地图占位，后面可以换成真实地图组件 */}
+                <div className="shelter-map-placeholder">
+                  Map placeholder
+                </div>
+
+                <div className="shelter-actions">
+                  {pet.shelter_phone && (
+                    <Button
+                      type="button"
+                      variant="success"
+                      className="w-100 mb-2"
+                      as="a"
+                      href={`tel:${pet.shelter_phone}`}
+                    >
+                      📞 Call shelter
+                    </Button>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline-warning"
+                    className="w-100"
+                    onClick={() => navigate(`/adopt/${pet.id}/apply`)}
+                  >
+                    📝 Ask about this pet
+                  </Button>
+                </div>
+
+                {pet.shelter_website && (
+                  <div className="shelter-footer">
+                    <a
+                      href={pet.shelter_website}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Visit shelter website
+                    </a>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
     </div>
   )
 }
