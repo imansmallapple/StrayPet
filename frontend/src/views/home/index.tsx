@@ -1,27 +1,9 @@
-import { NavLink } from 'react-router-dom'
 import './index.scss'
-import SignInWidget from '@/components/sign-in-widget'
 
 export default function Home() {
   return (
     <div className="home">
-      <header className="site-header">
-        <div className="brand">Stray Pet</div>
-
-        <nav className="site-nav">
-          <NavLink to="/adopt">Adopt</NavLink>
-          <NavLink to="/lost">Post</NavLink>
-          <NavLink to="/shelters">Shelters</NavLink>
-          <NavLink to="/home" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-            home
-          </NavLink>
-        </nav>
-
-        {/* 放在 header 的最右侧 */}
-        <div className="header-right">
-          <SignInWidget />
-        </div>
-      </header>
+      {/* 原来的 <header className="site-header"> ... </header> 删掉 */}
 
       <main className="hero-title">
         <h1>Help pet finding a loving home</h1>
@@ -32,10 +14,8 @@ export default function Home() {
       </main>
 
       <div className="hero-image">
-          <img src="images/hero-cat.jpg" alt="A rescued cat in a shelter" />
+        <img src="images/hero-cat.jpg" alt="A rescued cat in a shelter" />
       </div>
-    
     </div>
-
   )
 }

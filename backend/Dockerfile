@@ -23,4 +23,12 @@ ENV DJANGO_SETTINGS_MODULE=server.settings \
 RUN python manage.py collectstatic --noinput
 
 # 迁移 + 启动 gunicorn
-CMD ["bash", "-lc", "python manage.py migrate && gunicorn server.wsgi:application -b 0.0.0.0:8000 --workers 3"]
+CMD ["bash", "-lc", "python manage.py migrate && \
+    gunicorn server.wsgi:application \
+    -b 0.0.0.0:8000 \
+    --workers 3 \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --keep-alive 5 \
+    --access-logfile - \
+    --error-logfile -"]

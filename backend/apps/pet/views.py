@@ -16,12 +16,14 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_gis.filters import InBBoxFilter
 from .serializers import LostGeoSerializer
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.select_related("created_by", "address", "address__city", "address__region", "address__country").order_by("-pub_date")
     filterset_class = PetFilter
     search_fields = ["name", "species", "breed", "description", "address"]
     ordering_fields = ["add_date", "pub_date", "age_months", "name"]
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     @action(detail=True, methods=['post'])
     def mark_lost(self, request, pk=None):

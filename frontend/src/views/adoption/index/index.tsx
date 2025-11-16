@@ -1,222 +1,224 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useRequest } from 'ahooks'
-import axios from 'axios'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
-import placeholder from '/images/pet-placeholder.jpg'
+
+import {
+  Container, Row, Col,
+  Card, Button, Form, Stack,
+  Pagination, Placeholder,
+} from 'react-bootstrap'
+
 import './index.scss'
 
-const API_ORIGIN = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000'
-const toAbs = (url?: string | null) => {
-  if (!url) return placeholder
-  if (/^https?:\/\//i.test(url)) return url
-  try { return new URL(url, API_ORIGIN).toString() } catch { return placeholder }
-}
-const clean = <T extends Record<string, any>>(obj: T) =>
-  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== '')) as Partial<T>
+type PageToken =
+  | { kind: 'page'; value: number; key: string }
+  | { kind: 'ellipsis'; key: string }
 
-function mapAgeBucket(bucket: string) {
-  // 可按你后端的 PetFilter 调整
-  switch (bucket) {
-    case 'baby':   return { age_min: 0,  age_max: 6 }
-    case 'young':  return { age_min: 6,  age_max: 12 }
-    case 'adult':  return { age_min: 12, age_max: 84 }
-    case 'senior': return { age_min: 84 }
-    default:       return {}
-  }
-}
-
-export default function AdoptionIndex() {
+export default function Adopt() {
   const [sp, setSp] = useSearchParams()
-
-  // URL 状态
   const page = Number(sp.get('page') || 1)
-  const pageSize = Number(sp.get('page_size') || 12)
+  const pageSize = Number(sp.get('page_size') || 24)
   const species = sp.get('species') || ''
-  const breed   = sp.get('breed') || ''
-  const age     = sp.get('age') || ''           // baby/young/adult/senior
-  const size    = sp.get('size') || ''          // small/medium/large…
-  const gender  = sp.get('gender') || ''        // male/female
-  const city    = sp.get('city') || ''
+  const sort = sp.get('sort') || 'longest_stay'
 
-  // 组装查询参数（exactOptionalPropertyTypes 下不要传 undefined）
-const params = useMemo(() => clean({
-  page,
-  page_size: pageSize,
-  species,
-  breed,
-  city,
-  sex: gender || undefined,   // ✅ 关键：传 sex=male/female（有值才传）
-  ...mapAgeBucket(age),
-  ordering: '-pub_date',
-}), [page, pageSize, species, breed, gender, age, city])
+  const params = useMemo(
+    () => ({
+      page,
+      page_size: pageSize,
+      ...(species ? { species } : {}),
+      ...(sort ? { ordering: sort } : {}),
+    }),
+    [page, pageSize, species, sort],
+  )
 
-    const { data, loading, error } = useRequest<Paginated<Pet>, []>(
-    () => adoptApi.list(params).then(r => r.data),
+  const { data, loading } = useRequest(
+    () => adoptApi.list(params).then(res => res.data as Paginated<Pet>),
     { refreshDeps: [params] }
-    )
+  )
 
-  // 收藏（本地）示例
-  const [fav, setFav] = useState<Record<number, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem('fav_pets') || '{}') } catch { return {} }
-  })
-  const toggleFav = (id: number) => {
-    const next = { ...fav, [id]: !fav[id] }
-    setFav(next)
-    localStorage.setItem('fav_pets', JSON.stringify(next))
-  }
+  const list = data?.results ?? []
+  const count = data?.count ?? 0
+  const totalPages = Math.max(1, Math.ceil(count / pageSize))
 
-  const results = data?.results ?? []
-  const count   = data?.count ?? 0
+  // ✅ 生成唯一的 skeleton key（避免用 index）
+  const skeletonKeys = useMemo(
+    () => Array.from({ length: 8 }, () =>
+      (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
+    ),
+    []
+  )
 
-  const set = (key: string, val: string) => {
+  const setQuery = (key: string, val?: string) => {
     if (val) sp.set(key, val); else sp.delete(key)
     sp.set('page', '1')
     setSp(sp)
   }
-  const goPage = (n: number) => { sp.set('page', String(n)); setSp(sp, { replace: true }) }
-  const resetFilters = () => {
-    ['species','breed','age','size','gender','city','page'].forEach(k => sp.delete(k))
+
+  const goPage = (n: number) => {
+    const safe = Math.min(Math.max(1, n), totalPages)
+    sp.set('page', String(safe))
     setSp(sp, { replace: true })
   }
 
-  const skeletonKeys = useMemo(
-  () =>
-    Array.from({ length: 8 }, () =>
-      (crypto as any).randomUUID?.() ?? Math.random().toString(36).slice(2)
-    ),
-  []
-  )
+  const around = (center: number, radius = 2): PageToken[] => {
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+      .filter(n => Math.abs(n - center) <= radius || n === 1 || n === totalPages)
 
-  if (error) {
-    const status = axios.isAxiosError(error) ? error.response?.status : undefined
-    return <div className="adopt-layout"><p className="hint">加载失败（{status ?? 'unknown'}），稍后再试。</p></div>
+    const tokens: PageToken[] = []
+    for (let i = 0; i < pages.length; i++) {
+      const n = pages[i]
+      if (i === 0) { tokens.push({ kind: 'page', value: n, key: `p-${n}` }); continue }
+      const prev = pages[i - 1]
+      if (n - prev === 1) tokens.push({ kind: 'page', value: n, key: `p-${n}` })
+      else {
+        tokens.push({ kind: 'ellipsis', key: `el-${prev}-${n}` })
+        tokens.push({ kind: 'page', value: n, key: `p-${n}` })
+      }
+    }
+    return tokens
+  }
+
+  const ageText = (p: Pet) => {
+    if (p.age_years || p.age_months) {
+      const yy = p.age_years ? `${p.age_years}y` : ''
+      const mm = p.age_months ? `${p.age_months}m` : ''
+      return [yy, mm].filter(Boolean).join(' ')
+    }
+    return 'Age N/A'
   }
 
   return (
-    <div className="adopt-layout">
-      {/* 侧栏筛选 */}
-      <aside className="filters">
-        <div className="card">
-          <h3>Match</h3>
-          <p>It only takes 60 seconds!</p>
-          <button type="button" className="primary" onClick={() => alert('TODO: match 流程')}>GET STARTED</button>
-        </div>
+    <div className="pf3-page bg-light min-vh-100">
+      {/* 顶部大标题 + 黄线 */}
+      <Container className="pt-4">
+        <h1 className="display-4 fw-bolder text-primary mb-0">Pet Search</h1>
+        <div className="pf3-underline mt-2" />
+      </Container>
 
-        <div className="group">
-          <label>BREED</label>
-          <select value={breed} onChange={(e) => set('breed', e.target.value)}>
-            <option value="">Any</option>
-            <option value="shorthair">Shorthair</option>
-            <option value="persian">Persian</option>
-            <option value="mixed">Mixed</option>
-          </select>
-        </div>
+      {/* 白色工具条 */}
+      <Container className="pf3-toolbar bg-white rounded-4 shadow-sm py-3 px-3 my-3">
+        <Stack
+          direction="horizontal"
+          gap={3}
+          className="flex-wrap justify-content-between align-items-center"
+        >
+          <div className="fs-5">
+            <strong className="fw-bolder">{count}</strong> Pets waiting to meet you
+          </div>
 
-        <div className="group">
-          <label>AGE</label>
-          <select value={age} onChange={(e) => set('age', e.target.value)}>
-            <option value="">Any</option>
-            <option value="baby">Baby (0–6m)</option>
-            <option value="young">Young (6–12m)</option>
-            <option value="adult">Adult (1–7y)</option>
-            <option value="senior">Senior (7y+)</option>
-          </select>
-        </div>
+          <Stack direction="horizontal" gap={2} className="flex-wrap">
+            <Button type="button" variant="primary" className="fw-bold">
+              <span className="me-2" aria-hidden>🐾</span>
+              Find Your Perfect Match
+            </Button>
 
-        <div className="group">
-          <label>SIZE</label>
-          <select value={size} onChange={(e) => set('size', e.target.value)}>
-            <option value="">Any</option>
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
-          </select>
-        </div>
+            <Button type="button" variant="light" className="pf3-pill fw-semibold border">
+              Longest Stay <span className="ms-1" aria-hidden>▾</span>
+            </Button>
 
-        <div className="group">
-          <label>GENDER</label>
-          <select value={gender} onChange={(e) => set('gender', e.target.value)}>
-            <option value="">Any</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </div>
+            <Form.Select
+              aria-label="Sort"
+              value={sort}
+              onChange={(e) => setQuery('sort', e.target.value)}
+              className="pf3-select"
+            >
+              <option value="longest_stay">Longest Stay</option>
+              <option value="-add_date">Newest</option>
+              <option value="name">Name A–Z</option>
+            </Form.Select>
 
-        <div className="group">
-          <label>CITY</label>
-          <input value={city} onChange={(e) => set('city', e.target.value)} placeholder="City / Region" />
-        </div>
+            <Form.Select
+              aria-label="Species"
+              value={species}
+              onChange={(e) => setQuery('species', e.target.value || undefined)}
+              className="pf3-select"
+            >
+              <option value="">All Species</option>
+              <option value="dog">Dogs</option>
+              <option value="cat">Cats</option>
+            </Form.Select>
+          </Stack>
+        </Stack>
+      </Container>
 
-        <button type="button" className="link" onClick={resetFilters}>Reset filters</button>
-      </aside>
-
-      {/* 右侧内容 */}
-      <main className="content">
-        {/* 顶部保存搜索 Banner（示例） */}
-        <div className="save-banner">
-          <div className="text">Save a search for “{species || 'Pets'} near {city || 'your area'}”</div>
-          <button type="button" className="primary" onClick={() => alert('已保存（示例）')}>SAVE SEARCH</button>
-        </div>
-
-        <h1 className="title">{(species || 'Pets')} Available for Adoption</h1>
-
+      {/* 网格 */}
+      <Container className="pb-4">
         {loading ? (
-                <div className="skeleton-grid">
-                {skeletonKeys.map(k => <div key={k} className="sk-card" />)}
-                </div>
-        ) : results.length === 0 ? (
-          <div className="empty">没有找到符合条件的宠物</div>
+          <Row className="g-4">
+            {skeletonKeys.map(k => (
+              <Col key={k} xs={12} sm={6} md={4} lg={3}>
+                <Card className="h-100 border-0 shadow-sm rounded-4">
+                  <Placeholder as={Card.Img} animation="wave" style={{ height: 220 }} />
+                  <Card.Body>
+                    <Placeholder as={Card.Title} animation="wave" className="w-75 rounded-2">
+                      Loading
+                    </Placeholder>
+                    <Placeholder animation="wave" className="w-50 d-block mt-2 rounded-2"> </Placeholder>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
         ) : (
           <>
-            <div className="grid">
-              {results.map(p => (
-                <article key={p.id} className="pet-card">
-                  <div className="thumb">
-                    <img
-                      src={toAbs(p.photo)}
-                      alt={p.name}
-                      loading="lazy"
-                      onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholder }}
-                    />
-                    <button
-                      type="button"
-                      className={`fav ${fav[p.id] ? 'on' : ''}`}
-                      aria-label="favorite"
-                      onClick={() => toggleFav(p.id)}
-                    >
-                      {/* 心形 SVG */}
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill={fav[p.id] ? '#7c3aed' : 'none'} stroke="#7c3aed" strokeWidth="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1 7.8 7.8 7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-                    </button>
-                  </div>
-                  <div className="body">
-                    <h3 title={p.name}>{p.name}</h3>
-                    <p className="muted">
-                      {(p.species || 'Pet')}{p.breed ? ` • ${p.breed}` : ''}{p.sex ? ` • ${p.sex}` : ''}{p.city ? ` • ${p.city}` : ''}
-                    </p>
-                    <div className="actions">
-                      <Link to={`/adopt/${p.id}`} className="btn">Details</Link>
-                    </div>
-                  </div>
-                </article>
+            <Row className="g-4">
+              {list.map((pet) => (
+                <Col key={pet.id} xs={12} sm={6} md={4} lg={3}>
+                  <Card className="pf3-card h-100 border-0 shadow-lg rounded-4">
+                    <Link to={`/adopt/${pet.id}`} className="text-decoration-none">
+                      <Card.Img
+                        variant="top"
+                        src={pet.photo || '/images/pet-placeholder.jpg'}
+                        alt={pet.name}
+                        style={{ objectFit: 'cover', height: 220 }}
+                      />
+                      <Card.Body>
+                        <Card.Title className="pf3-name text-primary fw-bolder">
+                          {pet.name}
+                        </Card.Title>
+                        <div className="text-secondary fw-semibold">A{String(pet.id).padStart(6, '0')}</div>
+                        <div className="small text-muted mt-1">
+                          {(pet.species ?? 'Pet').toString()} • {ageText(pet)}
+                        </div>
+                      </Card.Body>
+                    </Link>
+                  </Card>
+                </Col>
               ))}
-            </div>
+            </Row>
 
-            {/* 简单分页 */}
-            {count > pageSize && (
-              <div className="pager">
-                <button type="button" disabled={page <= 1} onClick={() => goPage(page - 1)}>Prev</button>
-                <span>{page}</span>
-                <button
-                  type="button"
-                  disabled={results.length < pageSize}
-                  onClick={() => goPage(page + 1)}
-                >Next</button>
+            {/* 分页 */}
+            {totalPages > 1 && (
+              <div className="d-flex justify-content-center mt-4">
+                <Pagination className="mb-0">
+                  <Pagination.Prev
+                    onClick={() => goPage(page - 1)}
+                    disabled={page <= 1}
+                  />
+                  {around(page).map(t =>
+                    t.kind === 'ellipsis'
+                      ? <Pagination.Ellipsis key={t.key} disabled />
+                      : (
+                        <Pagination.Item
+                          key={t.key}
+                          active={t.value === page}
+                          onClick={() => goPage(t.value)}
+                        >
+                          {t.value}
+                        </Pagination.Item>
+                      )
+                  )}
+                  <Pagination.Next
+                    onClick={() => goPage(page + 1)}
+                    disabled={page >= totalPages}
+                  />
+                </Pagination>
               </div>
             )}
           </>
         )}
-      </main>
+      </Container>
     </div>
   )
 }

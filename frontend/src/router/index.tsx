@@ -1,17 +1,19 @@
-import { lazy } from 'react';
+import { lazy } from 'react'
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 
-import ErrorBoundary from '../error-boundary';
-import { LazyLoad, routes } from './utils';
+import ErrorBoundary from '../error-boundary'
+import { LazyLoad, routes } from './utils'
+import RootLayout from '@/layouts/rootLayout'   // ★ 新增
 
 const router: RouteObject[] = [
   {
     path: '/',
+    // ★ 这里挂上 RootLayout，这样所有 children 都会带 navbar
+    element: <RootLayout />,
     /**
      * 可以在Root组件（自己新建），用 useLoaderData 接收 loader 返回的数据做一些操作
      * @see https://reactrouter.com/en/main/hooks/use-loader-data#useloaderdata
      */
-    // element: <Root />,
     errorElement: <ErrorBoundary />,
     children: [
       {
@@ -55,16 +57,15 @@ const router: RouteObject[] = [
         path: '/adopt',
         element: LazyLoad(lazy(() => import('@/views/adoption/index'))),
       },
-      // 详情页（可选）
+      // 详情页
       {
         path: '/adopt/:id',
-        element: LazyLoad(lazy(() => import('@/views/adoption/detail'))), // 以后做详情时用
+        element: LazyLoad(lazy(() => import('@/views/adoption/detail'))),
       },
-            {
+      {
         path: '/adopt/:id/apply',
-        element: LazyLoad(lazy(() => import('@/views/adoption/apply'))), // 以后做详情时用
+        element: LazyLoad(lazy(() => import('@/views/adoption/apply'))),
       },
-      // src/router/index.tsx 节选
       {
         path: '/lost',
         element: LazyLoad(lazy(() => import('@/views/lost/list'))),
@@ -84,6 +85,6 @@ const router: RouteObject[] = [
     path: '*',
     element: <Navigate to="/404" />, // 找不到页面
   },
-];
+]
 
-export default createBrowserRouter(router);
+export default createBrowserRouter(router)
