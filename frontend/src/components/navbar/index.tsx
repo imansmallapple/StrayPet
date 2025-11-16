@@ -10,6 +10,7 @@ export default function TopNavbar() {
       <nav className="site-nav">
         <NavLink to="/adopt">Adopt</NavLink>
         <NavLink to="/lost">Post</NavLink>
+        <NavLink to="/donation">Donation</NavLink>
         <NavLink to="/shelters">Shelters</NavLink>
         <NavLink
           to="/home"

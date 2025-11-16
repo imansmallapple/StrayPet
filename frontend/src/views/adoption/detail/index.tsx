@@ -75,6 +75,8 @@ export default function AdoptDetail() {
   })()
 
   const traits = pet.traits ?? []
+  const address = `${pet.city || ''}`.trim()
+  const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
 
   return (
     <div className="pet-detail-page">
@@ -197,7 +199,15 @@ export default function AdoptDetail() {
 
                 {/* 地图占位，后面可以换成真实地图组件 */}
                 <div className="shelter-map-placeholder">
-                  Map placeholder
+                <iframe
+                  src={mapSrc}
+                  width="100%"
+                  height="200"
+                  style={{ border: 0, borderRadius: 12 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  sandbox="allow-scripts allow-popups allow-forms"
+                />
                 </div>
 
                 <div className="shelter-actions">

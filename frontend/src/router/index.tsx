@@ -78,6 +78,10 @@ const router: RouteObject[] = [
         path: '/lost/report',
         element: LazyLoad(lazy(() => import('@/views/lost/post'))),
       },
+      {
+        path: '/donation',
+        element: LazyLoad(lazy(() => import('@/views/donation'))),
+      },
       ...routes, // modules 路由
     ],
   },
