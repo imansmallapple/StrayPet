@@ -22,6 +22,7 @@ import '@opentiny/fluent-editor/style.css'
 import FluentEditor from '@opentiny/fluent-editor'
 
 import './index.scss'
+import { donationApi, buildDonationFormData } from '@/services/modules/donation'
 
 type AgeOption = 'baby' | 'very_young' | 'young' | 'adult' | 'senior'
 type SizeOption = 'small' | 'medium' | 'large'
@@ -36,6 +37,8 @@ interface TraitDef {
 const TRAITS: TraitDef[] = [
   { key: 'sterilized', label: 'sterilization/castration' },
   { key: 'vaccinated', label: 'vaccination' },
+  { key: 'dewormed', label: 'dewormed' },
+  { key: 'microchipped', label: 'microchipped' },
   { key: 'child_friendly', label: 'Child-friendly' },
   { key: 'trained', label: 'Trained' },
   { key: 'loves_play', label: 'loves to play' },
@@ -71,6 +74,10 @@ export default function DonationCreate() {
     breed: 'Hybrid',
     traits: {},
   })
+
+  const [species, setSpecies] = useState('dog')
+  const [addressData, setAddressData] = useState({ country: '', region: '', city: '', street: '', postal_code: '' })
+  const [contactPhone, setContactPhone] = useState('')
 
   const [photos, setPhotos] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -163,6 +170,10 @@ export default function DonationCreate() {
     }))
   }
 
+  const handleAddressChange = (field: keyof typeof addressData, value: string) => {
+    setAddressData(prev => ({ ...prev, [field]: value }))
+  }
+
   const handleTraitChange = (key: string, checked: boolean) => {
     setForm(prev => ({
       ...prev,
@@ -195,7 +206,7 @@ export default function DonationCreate() {
     setError(null)
     setSuccess(null)
 
-    if (!form.city.trim()) {
+    if (!addressData.city.trim()) {
       setError('Please fill in the city where the pet is located.')
       return
     }
@@ -210,22 +221,50 @@ export default function DonationCreate() {
 
     setSubmitting(true)
     try {
-      const payload = {
-        city: form.city,
-        name: form.name,
-        description_html: form.description,
-        sex: form.sex,
-        age: form.age,
-        size: form.size,
-        activity: form.activity,
-        breed: form.breed,
-        traits: Object.keys(form.traits).filter(k => form.traits[k]),
+      // 将前端表单字段映射为后端期望的字段（最小实现）
+      // species & address data from UI
+      // choices: dog/cat/other
+      const sex_map: Record<SexOption, 'male' | 'female' | 'unknown'> = { he: 'male', she: 'female', unknown: 'unknown' }
+      const age_map: Record<string, { y: number; m: number }> = {
+        baby: { y: 0, m: 3 },
+        very_young: { y: 0, m: 6 },
+        young: { y: 1, m: 0 },
+        adult: { y: 3, m: 0 },
+        senior: { y: 7, m: 0 },
       }
 
-      console.warn('Pet donation payload:', payload)
-      console.warn('Photos:', photos)
+      const mappedAge = age_map[form.age]
+      const addressObj: any = {}
+      if (addressData.country) addressObj.country = addressData.country
+      if (addressData.region) addressObj.region = addressData.region
+      if (addressData.city) addressObj.city = addressData.city
+      if (addressData.street) addressObj.street = addressData.street
+      if (addressData.postal_code) addressObj.postal_code = addressData.postal_code
 
-      // TODO: 调用后端 API（FormData + photos）
+      const payload = {
+        name: form.name,
+        species: species || 'dog',
+        breed: form.breed,
+        sex: sex_map[form.sex] ?? 'male',
+        age_years: mappedAge?.y ?? 0,
+        age_months: mappedAge?.m ?? 0,
+        description: form.description,
+        address_data: Object.keys(addressObj).length ? addressObj : undefined,
+        // address: undefined, // TODO: 支持创建/选择地址（当前仅用于演示）
+        dewormed: !!form.traits['dewormed'],
+        vaccinated: !!form.traits['vaccinated'],
+        microchipped: !!form.traits['microchipped'],
+        is_stray: !!form.traits['loves_cares'], // example mapping: adjust as UI requires
+        contact_phone: contactPhone,
+        photos,
+      }
+
+      console.warn('[donation] payload', payload)
+      const fd = buildDonationFormData(payload)
+
+      // 调用后端
+      const res = await donationApi.create(fd)
+      console.warn('[donation] backend result', res)
 
       setSuccess('Your pet has been submitted for adoption review.')
 
@@ -235,9 +274,35 @@ export default function DonationCreate() {
         description: '',
       }))
       setPhotos([])
+      // reset simple fields
+      setSpecies('dog')
+      setAddressData({ country: '', region: '', city: '', street: '', postal_code: '' })
+      setContactPhone('')
     } catch (err) {
       console.error(err)
-      setError('Something went wrong while submitting the pet.')
+      // 显示更具体的后端错误信息（axios）
+      const errRes = (err as any)?.response?.data
+      let msg = (err as any)?.message || 'Something went wrong while submitting the pet.'
+      if (errRes) {
+        if (typeof errRes === 'string') {
+          msg = errRes
+        } else if (errRes.detail) {
+          msg = errRes.detail
+        } else if (typeof errRes === 'object') {
+          // Join field errors
+          const parts: string[] = []
+          for (const k of Object.keys(errRes)) {
+            const val = errRes[k]
+            if (Array.isArray(val)) {
+              parts.push(`${k}: ${val.join('; ')}`)
+            } else if (typeof val === 'string') {
+              parts.push(`${k}: ${val}`)
+            }
+          }
+          if (parts.length) msg = parts.join(' | ')
+        }
+      }
+      setError(String(msg))
     } finally {
       setSubmitting(false)
     }
@@ -368,6 +433,16 @@ export default function DonationCreate() {
                         </Form.Select>
                       </Form.Group>
                     </Col>
+                    <Col xs={12} className="mt-3">
+                      <Form.Group controlId="species">
+                        <Form.Label>Species</Form.Label>
+                        <Form.Select value={species} onChange={(e) => setSpecies(e.target.value)}>
+                          <option value="dog">Dog</option>
+                          <option value="cat">Cat</option>
+                          <option value="other">Other</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
 
                     <Col xs={12}>
                       <Form.Group controlId="breed">
@@ -377,8 +452,39 @@ export default function DonationCreate() {
                           value={form.breed}
                           onChange={e => handleChange('breed', e.target.value)}
                           placeholder="Hybrid, German Shepherd, ..."
+                          />
+                        </Form.Group>
+                      </Col>
+                    <Col xs={12} className="mt-3">
+                      <Form.Group controlId="contactPhone">
+                        <Form.Label>Contact phone</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value)}
+                          placeholder="Phone number for the listing"
                         />
                       </Form.Group>
+                    </Col>
+                    <Col xs={12} className="mt-3">
+                      <Form.Label>Address</Form.Label>
+                      <Row className="g-2">
+                        <Col xs={12} sm={6}>
+                          <Form.Control type="text" placeholder="Country" value={addressData.country} onChange={(e) => handleAddressChange('country', e.target.value)} />
+                        </Col>
+                        <Col xs={12} sm={6}>
+                          <Form.Control type="text" placeholder="Region" value={addressData.region} onChange={(e) => handleAddressChange('region', e.target.value)} />
+                        </Col>
+                        <Col xs={12} sm={6} className="mt-2">
+                          <Form.Control type="text" placeholder="City" value={addressData.city} onChange={(e) => handleAddressChange('city', e.target.value)} />
+                        </Col>
+                        <Col xs={12} sm={6} className="mt-2">
+                          <Form.Control type="text" placeholder="Postal code" value={addressData.postal_code} onChange={(e) => handleAddressChange('postal_code', e.target.value)} />
+                        </Col>
+                        <Col xs={12} className="mt-2">
+                          <Form.Control type="text" placeholder="Street and building" value={addressData.street} onChange={(e) => handleAddressChange('street', e.target.value)} />
+                        </Col>
+                      </Row>
                     </Col>
                   </Row>
 

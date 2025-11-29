@@ -1,6 +1,102 @@
 # apps/pet/serializers.py
 from rest_framework import serializers
-from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address
+import json
+from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City
+
+
+def _create_or_resolve_address(address_data: dict) -> Address:
+    """
+    Resolve or create Country/Region/City from provided strings or IDs and return an Address instance.
+    address_data may contain: country, region, city, street, postal_code, building_number, latitude, longitude.
+    """
+    country = None
+    region = None
+    city = None
+
+    if not address_data:
+        raise ValueError("address_data is required")
+
+    # Helper to normalize str
+    def _norm(s):
+        return str(s).strip() if s is not None else None
+
+    cval = address_data.get('country')
+    if cval is not None:
+        if isinstance(cval, int):
+            country = Country.objects.filter(pk=cval).first()
+        else:
+            cstr = _norm(cval)
+            if len(cstr or '') == 2:
+                country = Country.objects.filter(code__iexact=cstr).first()
+            if not country:
+                country = Country.objects.filter(name__iexact=cstr).first()
+            if not country:
+                # fallback: create with a guessed code
+                code = ''.join([ch for ch in cstr if ch.isalpha()])[:2].upper() or 'XX'
+                country, _ = Country.objects.get_or_create(code=code, defaults={'name': cstr or code})
+
+    rval = address_data.get('region')
+    if rval is not None:
+        if isinstance(rval, int):
+            region = Region.objects.filter(pk=rval).first()
+        else:
+            rstr = _norm(rval)
+            if country:
+                region = Region.objects.filter(country=country, name__iexact=rstr).first()
+            if not region:
+                region = Region.objects.filter(name__iexact=rstr).first()
+            if not region and country:
+                region, _ = Region.objects.get_or_create(country=country, name=rstr)
+
+    ctyval = address_data.get('city')
+    if ctyval is not None:
+        if isinstance(ctyval, int):
+            city = City.objects.filter(pk=ctyval).first()
+        else:
+            cstr = _norm(ctyval)
+            if region:
+                city = City.objects.filter(region=region, name__iexact=cstr).first()
+            if not city:
+                city = City.objects.filter(name__iexact=cstr).first()
+            if not city and region:
+                city, _ = City.objects.get_or_create(region=region, name=cstr)
+
+    # If only city string provided and we didn't find a city, try find any city by name
+    if not city and isinstance(address_data.get('city'), str):
+        city = City.objects.filter(name__iexact=_norm(address_data.get('city'))).first()
+        if city and not region:
+            region = city.region
+            country = city.region.country if city.region else country
+
+    # Build Address kwargs
+    addr_kwargs = {}
+    if country:
+        addr_kwargs['country'] = country
+    if region:
+        addr_kwargs['region'] = region
+    if city:
+        addr_kwargs['city'] = city
+    if address_data.get('street'):
+        addr_kwargs['street'] = _norm(address_data.get('street'))
+    if address_data.get('building_number'):
+        addr_kwargs['building_number'] = _norm(address_data.get('building_number'))
+    if address_data.get('postal_code'):
+        addr_kwargs['postal_code'] = _norm(address_data.get('postal_code'))
+    # optional lat/lng
+    if address_data.get('latitude') is not None:
+        try:
+            addr_kwargs['latitude'] = float(address_data.get('latitude'))
+        except Exception:
+            pass
+    if address_data.get('longitude') is not None:
+        try:
+            addr_kwargs['longitude'] = float(address_data.get('longitude'))
+        except Exception:
+            pass
+
+    addr = Address.objects.create(**addr_kwargs)
+    return addr
+
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from rest_framework_gis.fields import GeometryField
 
@@ -102,15 +198,28 @@ class DonationPhotoSerializer(serializers.ModelSerializer):
 
 class DonationCreateSerializer(serializers.ModelSerializer):
     photos = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
+    # 支持嵌套地址数据（参考 LostSerializer）
+    address_data = serializers.DictField(write_only=True, required=False)
 
     class Meta:
         model = Donation
         fields = ["name", "species", "breed", "sex", "age_years", "age_months",
-                  "description", "address", "dewormed", "vaccinated", "microchipped",
+                  "description", "address", "address_data", "dewormed", "vaccinated", "microchipped",
                   "is_stray", "contact_phone", "photos"]
 
     def create(self, validated_data):
         photos = validated_data.pop("photos", [])
+        address_data = validated_data.pop('address_data', None)
+        if address_data:
+            # Accept JSON string or dict
+            if isinstance(address_data, str):
+                try:
+                    address_data = json.loads(address_data)
+                except Exception:
+                    address_data = None
+            if address_data:
+                address = _create_or_resolve_address(address_data)
+                validated_data['address'] = address
         donation = Donation.objects.create(donor=self.context["request"].user, **validated_data)
         for img in photos[:8]:
             DonationPhoto.objects.create(donation=donation, image=img)
@@ -155,8 +264,15 @@ class LostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         address_data = validated_data.pop('address_data', None)
         if address_data:
-            address = Address.objects.create(**address_data)
-            validated_data['address'] = address
+            # Allow JSON string input in multipart/form-data
+            if isinstance(address_data, str):
+                try:
+                    address_data = json.loads(address_data)
+                except Exception:
+                    address_data = None
+            if address_data:
+                address = _create_or_resolve_address(address_data)
+                validated_data['address'] = address
         return super().create(validated_data)
 
     def get_photo_url(self, obj):

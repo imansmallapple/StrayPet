@@ -1,8 +1,9 @@
-import { lazy } from 'react'
+// 'lazy' is not used in this file as we use lazyWithFallback; keep imports minimal
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 
 import ErrorBoundary from '../error-boundary'
 import { LazyLoad, routes } from './utils'
+import { lazyWithFallback } from './utils/lazy-load'
 import RootLayout from '@/layouts/rootLayout'   // ★ 新增
 
 const router: RouteObject[] = [
@@ -22,65 +23,65 @@ const router: RouteObject[] = [
       },
       {
         path: '/home',
-        element: LazyLoad(lazy(() => import('@/views/home'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/home'))),
       },
       {
         path: '/login',
-        element: LazyLoad(lazy(() => import('@/views/test/login'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/test/login'))),
       },
       {
         path: '/user/profile',
-        element: LazyLoad(lazy(() => import('@/views/user/profile'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/user/profile'))),
       },
       {
         path: '/404',
-        element: LazyLoad(lazy(() => import('@/components/not-fount'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/components/not-fount'))),
       },
       {
         path: '/auth/login',
-        element: LazyLoad(lazy(() => import('@/views/auth/login'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/auth/login'))),
       },
       {
         path: '/auth/register',
-        element: LazyLoad(lazy(() => import('@/views/auth/register'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/auth/register'))),
       },
       {
         path: '/auth/forget',
-        element: LazyLoad(lazy(() => import('@/views/auth/forget'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/auth/forget'))),
       },
       {
         path: '/auth/reset',
-        element: LazyLoad(lazy(() => import('@/views/auth/reset'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/auth/reset'))),
       },
       // src/router/index.tsx
       {
         path: '/adopt',
-        element: LazyLoad(lazy(() => import('@/views/adoption/index'))),
+        element: LazyLoad(lazyWithFallback(() => import('@/views/adoption/index'))),
       },
       // 详情页
       {
         path: '/adopt/:id',
-        element: LazyLoad(lazy(() => import('@/views/adoption/detail'))),
+        element: LazyLoad(lazyWithFallback(() => import('@/views/adoption/detail'))),
       },
       {
         path: '/adopt/:id/apply',
-        element: LazyLoad(lazy(() => import('@/views/adoption/apply'))),
+        element: LazyLoad(lazyWithFallback(() => import('@/views/adoption/apply'))),
       },
       {
         path: '/lost',
-        element: LazyLoad(lazy(() => import('@/views/lost/list'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/lost/list'))),
       },
       {
         path: '/lost/:id',
-        element: LazyLoad(lazy(() => import('@/views/lost/detail'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/lost/detail'))),
       },
       {
         path: '/lost/report',
-        element: LazyLoad(lazy(() => import('@/views/lost/post'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/lost/post'))),
       },
       {
         path: '/donation',
-        element: LazyLoad(lazy(() => import('@/views/donation'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/donation'))),
       },
       ...routes, // modules 路由
     ],

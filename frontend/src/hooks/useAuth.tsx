@@ -94,8 +94,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const value = useMemo<Ctx>(() => ({ user, loading, logout, reloadMe }), [user, loading, logout, reloadMe])
 
-  // React 19 推荐：直接渲染 <Context> 作为 Provider
-  // TS 类型库若未更新到 React 19，可用 ts-expect-error 临时抑制
+  // 使用 Provider 语法以兼容不同 React 版本的类型与运行时实现
   return <AuthContext value={value}>{children}</AuthContext>
 }
 

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from .models import Pet, Adoption, Lost, Donation
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
-    AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer
+    AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer, DonationDetailSerializer
 from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -232,10 +232,25 @@ class DonationViewSet(viewsets.ModelViewSet):
         .all()
     )
     serializer_class = DonationCreateSerializer
-    permission_classes = [permissions.AllowAny]  # 按需改
+    permission_classes = [permissions.AllowAny]  # 默认：公开读取
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     ordering_fields = ['add_date', 'pub_date']
     ordering = ['-pub_date']
+    parser_classes = [MultiPartParser, FormParser]
+    authentication_classes = [JWTAuthentication]
+
+    def get_permissions(self):
+        # 创建/修改/删除需要登录，列表/详情允许匿名访问
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return [permissions.IsAuthenticated()]
+        if self.action in ("list", "retrieve"):
+            return [permissions.AllowAny()]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action in ("list", "retrieve"):
+            return DonationDetailSerializer
+        return DonationCreateSerializer
 
 
 class LostGeoViewSet(viewsets.ReadOnlyModelViewSet):

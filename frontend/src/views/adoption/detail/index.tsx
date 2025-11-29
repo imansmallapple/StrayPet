@@ -13,6 +13,7 @@ import {
 } from 'react-bootstrap'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
 import './index.scss'
+import SafeHtml from '@/components/SafeHtml'
 
 type PetDetail = Pet & {
   city?: string
@@ -161,11 +162,7 @@ export default function AdoptDetail() {
               </div>
 
               <div className="pet-detail-description">
-                <p>
-                  {pet.description_long ||
-                    pet.description ||
-                    'No description yet.'}
-                </p>
+                <SafeHtml html={pet.description_long || pet.description || 'No description yet.'} />
               </div>
 
               {traits.length > 0 && (

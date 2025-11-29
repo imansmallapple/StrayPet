@@ -167,6 +167,7 @@ class Donation(models.Model):
     # —— 审核通过时自动创建 Pet，并将第一张图设为封面 ——
     def approve(self, reviewer, note=""):
         from django.db import transaction
+        import bleach
         with transaction.atomic():
             if self.created_pet:
                 return self.created_pet  # 避免重复创建
@@ -174,10 +175,26 @@ class Donation(models.Model):
             if self.status not in ("submitted", "reviewing", "approved"):
                 raise ValueError("Current status can't process")
 
+            # sanitize rich HTML content from donation before creating Pet
+            safe_description = None
+            try:
+                # allow some commonly used HTML tags and attributes
+                allowed_tags = [
+                    'p', 'br', 'strong', 'b', 'em', 'i', 'ul', 'ol', 'li', 'a', 'img',
+                    'h1', 'h2', 'h3', 'blockquote'
+                ]
+                allowed_attrs = {
+                    'a': ['href', 'title', 'rel', 'target'],
+                    'img': ['src', 'alt', 'title'],
+                }
+                safe_description = bleach.clean(self.description or '', tags=allowed_tags, attributes=allowed_attrs)
+            except Exception:
+                safe_description = (self.description or '')
+
             pet = Pet.objects.create(
                 name=self.name, species=self.species, breed=self.breed, sex=self.sex,
                 age_years=self.age_years, age_months=self.age_months,
-                description=self.description,
+                description=safe_description,
                 address=self.address,
                 status=Pet.Status.AVAILABLE,
                 created_by=self.donor,  # 或 reviewer/机构账号

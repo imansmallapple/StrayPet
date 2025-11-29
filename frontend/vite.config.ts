@@ -29,6 +29,9 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
     resolve: {
       alias: {
         '@': resolve(import.meta.dirname, 'src'),
+        // Ensure single React copy: alias react/react-dom to top-level node_modules
+        react: resolve(process.cwd(), 'node_modules', 'react'),
+        'react-dom': resolve(process.cwd(), 'node_modules', 'react-dom'),
       },
     },
     css: {
