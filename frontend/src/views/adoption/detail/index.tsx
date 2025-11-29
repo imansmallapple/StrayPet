@@ -76,8 +76,13 @@ export default function AdoptDetail() {
   })()
 
   const traits = pet.traits ?? []
-  const address = `${pet.city || ''}`.trim()
-  const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
+  // Prefer the `address_display` string returned by backend pet serializer (PetListSerializer)
+  // Fallbacks: `pet.address` (id or string) -> `pet.city` -> empty
+  const _rawAddr = (pet.address_display || pet.address || pet.city || '').trim()
+  const address = (_rawAddr === '-' || _rawAddr === '—') ? '' : _rawAddr
+  const mapSrc = address
+    ? `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
+    : ''
 
   return (
     <div className="pet-detail-page">
@@ -118,8 +123,8 @@ export default function AdoptDetail() {
                       <td>{pet.name}</td>
                     </tr>
                     <tr>
-                      <th>City:</th>
-                      <td>{pet.city || pet.shelter_city || '—'}</td>
+                      <th>City/Address:</th>
+                      <td>{(pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : (pet.city || pet.shelter_city || '—')}</td>
                     </tr>
                     <tr>
                       <th>Status:</th>
@@ -185,26 +190,30 @@ export default function AdoptDetail() {
             <Card className="pet-detail-shelter-card">
               <Card.Body>
                 <div className="shelter-name">
-                  {pet.shelter_name || 'Unknown shelter'}
+                  {pet.shelter_name || (typeof pet.created_by === 'string' ? pet.created_by : 'Unknown shelter')}
                 </div>
                 <div className="shelter-sub">
-                  {pet.shelter_city || pet.city || '—'}
+                  {pet.shelter_city || pet.city || ''}
                 </div>
                 <div className="shelter-address">
-                  {pet.shelter_address || 'No address available'}
+                  {pet.shelter_address || ((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : 'No address available')}
                 </div>
 
                 {/* 地图占位，后面可以换成真实地图组件 */}
                 <div className="shelter-map-placeholder">
-                <iframe
-                  src={mapSrc}
-                  width="100%"
-                  height="200"
-                  style={{ border: 0, borderRadius: 12 }}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  sandbox="allow-scripts allow-popups allow-forms"
-                />
+                {mapSrc ? (
+                  <iframe
+                    src={mapSrc}
+                    width="100%"
+                    height="200"
+                    style={{ border: 0, borderRadius: 12 }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    sandbox="allow-scripts allow-popups allow-forms"
+                  />
+                ) : (
+                  <div className="map-unavailable muted">No address to show on map</div>
+                )}
                 </div>
 
                 <div className="shelter-actions">

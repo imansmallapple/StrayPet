@@ -13,6 +13,7 @@ export type Pet = {
   age_months?: number
   city?: string
   address?: string
+  address_display?: string
   description?: string
   status?: 'AVAILABLE' | 'PENDING' | 'ADOPTED' | 'LOST' | 'DRAFT' | 'ARCHIVED' | string
   photo?: string | null

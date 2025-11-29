@@ -179,8 +179,13 @@ export default function Adopt() {
                           {pet.name}
                         </Card.Title>
                         <div className="text-secondary fw-semibold">A{String(pet.id).padStart(6, '0')}</div>
-                        <div className="small text-muted mt-1">
-                          {(pet.species ?? 'Pet').toString()} • {ageText(pet)}
+                        <div className="small text-muted mt-1 d-flex justify-content-between align-items-center">
+                          <div className="d-inline-block">
+                            {(pet.species ?? 'Pet').toString()} • {ageText(pet)}
+                          </div>
+                          <div className="pf3-location text-truncate ms-2 d-inline-block" style={{ maxWidth: '40%' }} title={pet.address_display || pet.city || ''}>
+                            {((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : pet.city) || ''}
+                          </div>
                         </div>
                       </Card.Body>
                     </Link>

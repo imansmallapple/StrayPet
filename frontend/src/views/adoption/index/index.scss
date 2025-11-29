@@ -34,3 +34,11 @@
 .pf3-name {
     font-size: 1.35rem;
 }
+
+.pf3-location {
+    font-size: 0.85rem;
+    color: #6b7280; /* muted */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
