@@ -12,7 +12,15 @@ export type DonationCreatePayload = {
   description?: string
   address?: number
   // 嵌套地址结构（会被序列化为 JSON）
-  address_data?: { country?: string | number; region?: string | number; city?: string | number; street?: string; postal_code?: string }
+  address_data?: {
+    country?: string | number
+    region?: string | number
+    city?: string | number
+    street?: string
+    postal_code?: string
+    latitude?: number
+    longitude?: number
+  }
   dewormed?: boolean
   vaccinated?: boolean
   microchipped?: boolean

@@ -49,14 +49,6 @@ export default function AddressPicker({
   useEffect(() => {
     if (fallbackSimpleInput) return
     if (!countryId) {
-      // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
-      setRegions([]); 
-      // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
-      setRegionId('');
-      // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
-      setCities([]);
-      // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
-      setCityId('');
       return
     }
     let alive = true
@@ -77,10 +69,6 @@ export default function AddressPicker({
   useEffect(() => {
     if (fallbackSimpleInput) return
     if (!regionId) {
-      // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
-      setCities([]); 
-      // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
-      setCityId('');
       return
     }
     let alive = true

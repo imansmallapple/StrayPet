@@ -1,5 +1,6 @@
 // src/views/adoption/detail/index.tsx
 import { useParams, useNavigate } from 'react-router-dom'
+// no hooks imported from react directly in this file anymore
 import { useRequest } from 'ahooks'
 import {
   Container,
@@ -13,6 +14,7 @@ import {
 } from 'react-bootstrap'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
 import './index.scss'
+import MapboxMap from '@/components/MapboxMap'
 import SafeHtml from '@/components/SafeHtml'
 
 type PetDetail = Pet & {
@@ -50,6 +52,8 @@ export default function AdoptDetail() {
     },
   )
 
+  
+
   if (!id) {
     return <div className="pet-detail-empty">Invalid pet id</div>
   }
@@ -80,9 +84,9 @@ export default function AdoptDetail() {
   // Fallbacks: `pet.address` (id or string) -> `pet.city` -> empty
   const _rawAddr = (pet.address_display || pet.address || pet.city || '').trim()
   const address = (_rawAddr === '-' || _rawAddr === '—') ? '' : _rawAddr
-  const mapSrc = address
-    ? `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
-    : ''
+  
+
+  
 
   return (
     <div className="pet-detail-page">
@@ -201,19 +205,11 @@ export default function AdoptDetail() {
 
                 {/* 地图占位，后面可以换成真实地图组件 */}
                 <div className="shelter-map-placeholder">
-                {mapSrc ? (
-                  <iframe
-                    src={mapSrc}
-                    width="100%"
-                    height="200"
-                    style={{ border: 0, borderRadius: 12 }}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    sandbox="allow-scripts allow-popups allow-forms"
-                  />
-                ) : (
-                  <div className="map-unavailable muted">No address to show on map</div>
-                )}
+                  {address ? (
+                    <MapboxMap address={address} lon={(pet as any)?.address_lon} lat={(pet as any)?.address_lat} />
+                  ) : (
+                    <div className="map-unavailable muted">No address to show on map</div>
+                  )}
                 </div>
 
                 <div className="shelter-actions">

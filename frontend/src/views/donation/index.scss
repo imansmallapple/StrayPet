@@ -214,3 +214,13 @@
 .donation-editor-wrapper .ql-toolbar {
     width: 100% !important;
 }
+
+.address-suggestions {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.address-suggestions .list-group-item.active {
+    background-color: #eef2ff;
+    color: #0b69d4;
+}

@@ -10,7 +10,8 @@ from smart_selects.db_fields import ChainedForeignKey
 from django.contrib.gis.db import models as gis_models
 from django.contrib.gis.geos import Point
 from django.contrib.postgres.indexes import GistIndex
-
+from django.db import transaction
+import bleach
 User = get_user_model()
 
 
@@ -166,8 +167,7 @@ class Donation(models.Model):
 
     # —— 审核通过时自动创建 Pet，并将第一张图设为封面 ——
     def approve(self, reviewer, note=""):
-        from django.db import transaction
-        import bleach
+
         with transaction.atomic():
             if self.created_pet:
                 return self.created_pet  # 避免重复创建
