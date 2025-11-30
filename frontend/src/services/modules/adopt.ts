@@ -17,8 +17,11 @@ export type Pet = {
   description?: string
   status?: 'AVAILABLE' | 'PENDING' | 'ADOPTED' | 'LOST' | 'DRAFT' | 'ARCHIVED' | string
   photo?: string | null
+  add_date?: string
   pub_date?: string
   created_by?: { id?: number; username?: string } | number
+  address_lat?: number
+  address_lon?: number
 }
 
 export type PetListParams = {

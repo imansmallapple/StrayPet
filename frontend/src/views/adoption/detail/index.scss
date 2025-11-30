@@ -30,30 +30,36 @@
 
 /* 左侧主卡片 */
 .pet-detail-main-card {
-    border-radius: 18px;
+    border-radius: 20px;
     overflow: hidden;
     border: none;
-    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
-    background: #fdfdfd;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    background: #ffffff;
+    transition: box-shadow 0.3s ease;
+}
+
+.pet-detail-main-card:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
 }
 
 /* ====== 图片区域：和参考站相近的比例 / 留白 ====== */
 .pet-detail-photo-wrapper {
     position: relative;
-    padding: 16px 16px 8px;
-    background: #f5f5f5;
-    /* 四周淡灰色背景 */
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    /* 渐变背景 */
 }
 
 .pet-detail-photo-wrapper img {
     display: block;
     width: 100%;
-    max-height: 420px;
+    max-height: 460px;
     /* 控制纵向高度，接近截图 */
     object-fit: cover;
     /* 超出部分裁剪 */
-    border-radius: 4px;
+    border-radius: 12px;
     background: #000;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 /* 状态小条 */
@@ -87,32 +93,41 @@
     width: 100%;
     border-collapse: collapse;
     margin: 0;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .pet-detail-table th,
 .pet-detail-table td {
-    padding: 10px 18px;
-    border-bottom: 1px solid #e3e3e3;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 /* 左侧 label 列：浅灰背景 + 深灰文字 */
-.pet-detail-table .label {
-    width: 42%;
-    background: #f4f4f4;
+.pet-detail-table th {
+    width: 38%;
+    background: #f8f9fa;
     font-weight: 600;
-    color: #555;
-    border-right: 1px solid #e0e0e0;
+    color: #495057;
+    border-right: 1px solid #e9ecef;
 }
 
 /* 右侧 value 列：白底正文色 */
-.pet-detail-table .value {
+.pet-detail-table td {
     background: #ffffff;
-    color: #333;
+    color: #212529;
+    font-weight: 500;
 }
 
-/* 城市绿色高亮：颜色更接近参考页 */
-.pet-detail-table .value-city {
+/* Status badge styling */
+.status-badge {
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+/* Address cell with icon */
+.address-cell {
     color: #6ac657;
     font-weight: 600;
 }
@@ -125,17 +140,17 @@
 
 /* 描述区域 */
 .pet-detail-description {
-    padding: 14px 24px 18px;
-    border-top: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
-    background: #ffffff;
+    padding: 20px 28px;
+    border-top: 2px solid #f0f0f0;
+    border-bottom: 2px solid #f0f0f0;
+    background: #fafbfc;
 }
 
 .pet-detail-description p {
     margin: 0;
     font-size: 15px;
-    line-height: 1.6;
-    color: #333;
+    line-height: 1.7;
+    color: #374151;
 }
 
 /* traits 列表，两列小勾勾 */

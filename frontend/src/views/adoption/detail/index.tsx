@@ -35,22 +35,17 @@ import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 type PetDetail = Pet & {
   city?: string
-  status?: string          // e.g. "Looking for a home"
+  status?: string
   breed?: string
-  size?: string            // small / medium / large
-  activity?: string        // e.g. "Couch Potatoes"
-  added_at?: string
-  updated_at?: string
-
+  description_long?: string
+  traits?: string[]
+  photos?: string[]
+  
   shelter_name?: string
   shelter_address?: string
   shelter_city?: string
   shelter_phone?: string
   shelter_website?: string
-
-  description_long?: string
-  traits?: string[]
-  photos?: string[]
 }
 
 export default function AdoptDetail() {
@@ -143,16 +138,16 @@ export default function AdoptDetail() {
                       <td>{pet.name}</td>
                     </tr>
                     <tr>
-                      <th>City/Address:</th>
-                      <td>{(pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : (pet.city || pet.shelter_city || '—')}</td>
-                    </tr>
-                    <tr>
                       <th>Status:</th>
-                      <td>{pet.status || 'Looking for a home'}</td>
+                      <td><Badge bg="success" className="status-badge">{pet.status || 'Available'}</Badge></td>
                     </tr>
                     <tr>
                       <th>Species:</th>
                       <td>{(pet.species ?? 'Pet').toString()}</td>
+                    </tr>
+                    <tr>
+                      <th>Breed:</th>
+                      <td>{pet.breed || 'Mixed'}</td>
                     </tr>
                     <tr>
                       <th>Sex:</th>
@@ -163,24 +158,16 @@ export default function AdoptDetail() {
                       <td>{ageText}</td>
                     </tr>
                     <tr>
-                      <th>Size:</th>
-                      <td>{pet.size || '—'}</td>
-                    </tr>
-                    <tr>
-                      <th>Breed:</th>
-                      <td>{pet.breed || 'Mixed'}</td>
-                    </tr>
-                    <tr>
-                      <th>Activity:</th>
-                      <td>{pet.activity || 'Calm'}</td>
+                      <th>City/Address:</th>
+                      <td className="address-cell">{(pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : (pet.city || pet.shelter_city || '—')}</td>
                     </tr>
                     <tr>
                       <th>Added:</th>
-                      <td>{pet.added_at?.slice(0, 10) || '—'}</td>
+                      <td>{pet.add_date?.slice(0, 10) || '—'}</td>
                     </tr>
                     <tr>
                       <th>Updated:</th>
-                      <td>{pet.updated_at?.slice(0, 10) || '—'}</td>
+                      <td>{pet.pub_date?.slice(0, 10) || '—'}</td>
                     </tr>
                   </tbody>
                 </Table>
