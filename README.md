@@ -169,7 +169,21 @@ pip install -r requirements.txt
 ```
 
 Frontend install pnpm
+
 ```
 npm install -g pnpm
 pnpm -v
 ```
+
+### Backend Address Geocoding
+
+- Set environment variable `MAPBOX_TOKEN` for server-side geocoding. When an address (street/city/region/country/postal_code) is submitted without coordinates, the backend will geocode to `latitude/longitude` and persist a geometry Point.
+- Fallback: If Mapbox is not configured, OpenStreetMap Nominatim is used.
+- Caching: geocoding results are cached for 24h via Django cache.
+- Backfill existing addresses:
+
+```bash
+python backend/manage.py geocode_addresses --limit 1000
+```
+
+Add `--dry-run` to preview without writing.

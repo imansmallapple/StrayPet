@@ -184,3 +184,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 SIMPLE_JWT = {
     "TOKEN_OBTAIN_SERIALIZER": "apps.user.serializer.LoginSerializer"
 }
+
+# Mapbox token (optional) for server-side geocoding
+MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN", None)

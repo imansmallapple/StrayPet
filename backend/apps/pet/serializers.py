@@ -5,6 +5,7 @@ import json
 from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City
 from django.contrib.gis.geos import Point
 from typing import TYPE_CHECKING
+from common.utils import geocode_address
 if TYPE_CHECKING:
     from apps.pet.models import Location
 
@@ -104,6 +105,54 @@ def _create_or_resolve_address(address_data: dict) -> Address:
             lon_val = None
     else:
         lon_val = None
+
+    # If coordinates were not provided, try geocoding from the textual address
+    if (lat_val is None or lon_val is None):
+        # Prefer resolved model names for city/region/country when available
+        parts = []
+        street = _norm(address_data.get('street')) if address_data.get('street') else None
+        bnum = _norm(address_data.get('building_number')) if address_data.get('building_number') else None
+        if street and bnum and bnum not in street:
+            parts.append(f"{street} {bnum}")
+        elif street:
+            parts.append(street)
+        elif bnum:
+            parts.append(bnum)
+
+        # add locality hierarchy (prefer resolved objects)
+        if city:
+            parts.append(city.name)
+        elif address_data.get('city'):
+            parts.append(_norm(address_data.get('city')))
+        if region:
+            parts.append(region.name)
+        elif address_data.get('region'):
+            parts.append(_norm(address_data.get('region')))
+        if country:
+            parts.append(country.name)
+        elif address_data.get('country'):
+            parts.append(_norm(address_data.get('country')))
+
+        if address_data.get('postal_code'):
+            parts.append(_norm(address_data.get('postal_code')))
+
+        addr_str = ", ".join([p for p in parts if p])
+        try:
+            ctx = {
+                'street': (f"{street} {bnum}" if street else bnum) if (street or bnum) else None,
+                'city': city.name if city else None,
+                'region': region.name if region else None,
+                'country': country.name if country else None,
+                'country_code': country.code if country else None,
+                'postal_code': _norm(address_data.get('postal_code')) if address_data.get('postal_code') else None,
+            }
+            coords = geocode_address(addr_str, context=ctx) if addr_str else None
+        except Exception:
+            coords = None
+        if coords:
+            lon_val, lat_val = coords
+            addr_kwargs['latitude'] = lat_val
+            addr_kwargs['longitude'] = lon_val
 
     if lat_val is not None and lon_val is not None:
         try:
@@ -261,6 +310,55 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
             "description", "address", "cover", "status"
         )
         read_only_fields = ("status",)  # 创建默认 AVAILABLE；如需修改在视图层控制
+
+    def _ensure_address_coords(self, address: Address):
+        try:
+            if not address:
+                return
+            lat_missing = getattr(address, 'latitude', None) is None
+            lon_missing = getattr(address, 'longitude', None) is None
+            if not (lat_missing or lon_missing):
+                return
+            parts = [
+                address.street or '',
+                address.building_number or '',
+                address.city.name if getattr(address, 'city_id', None) else '',
+                address.region.name if getattr(address, 'region_id', None) else '',
+                address.country.name if getattr(address, 'country_id', None) else '',
+                address.postal_code or '',
+            ]
+            addr_str = ", ".join([p for p in parts if p])
+            ctx = {
+                'street': (f"{address.street} {address.building_number}".strip()) if (address.street or address.building_number) else None,
+                'city': address.city.name if getattr(address, 'city_id', None) else None,
+                'region': address.region.name if getattr(address, 'region_id', None) else None,
+                'country': address.country.name if getattr(address, 'country_id', None) else None,
+                'country_code': getattr(getattr(address, 'country', None), 'code', None) if getattr(address, 'country_id', None) else None,
+                'postal_code': address.postal_code or None,
+            }
+            coords = geocode_address(addr_str, context=ctx) if addr_str else None
+            if coords:
+                lon, lat = coords
+                address.latitude = lat
+                address.longitude = lon
+                try:
+                    address.location = Point(lon, lat)
+                except Exception:
+                    pass
+                address.save(update_fields=["latitude", "longitude", "location"])
+        except Exception:
+            # 不阻断主流程
+            pass
+
+    def create(self, validated_data):
+        address = validated_data.get('address')
+        self._ensure_address_coords(address)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        address = validated_data.get('address') or instance.address
+        self._ensure_address_coords(address)
+        return super().update(instance, validated_data)
 
 
 class AdoptionCreateSerializer(serializers.ModelSerializer):

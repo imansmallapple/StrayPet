@@ -1,6 +1,11 @@
 import string
 import random
 from PIL import Image, ImageDraw, ImageFont
+import logging
+from typing import Optional, Tuple, Dict, Any
+import requests
+from django.conf import settings
+from django.core.cache import cache
 
 
 def random_string(length=4):
@@ -39,3 +44,128 @@ def generate_catcha_image(width=80, height=30, font_size=27, font_path='', lengt
 
 if __name__ == '__main__':
     generate_catcha_image()
+
+
+# ============== Geocoding helpers ==============
+logger = logging.getLogger(__name__)
+
+def _cache_get(key: str):
+    try:
+        return cache.get(key)
+    except Exception:
+        return None
+
+def _cache_set(key: str, value, timeout: int = 24*3600):
+    try:
+        cache.set(key, value, timeout=timeout)
+    except Exception:
+        pass
+
+def _mk_cache_key(prefix: str, payload: Dict[str, Any]) -> str:
+    try:
+        import hashlib, json as _json
+        s = prefix + _json.dumps(payload, sort_keys=True, ensure_ascii=False)
+        return 'gc:' + hashlib.md5(s.encode('utf-8')).hexdigest()
+    except Exception:
+        return prefix
+
+def geocode_address(address: str, *, context: Optional[Dict[str, Any]] = None) -> Optional[Tuple[float, float]]:
+    """
+    Geocode a free-form address string to (lon, lat).
+    Prefers Mapbox when MAPBOX_TOKEN is configured; falls back to OSM Nominatim.
+    context may include: street, city, region, country, country_code, postal_code.
+    Caches results for 24 hours.
+    """
+    if not address or not isinstance(address, str):
+        return None
+    addr = address.strip()
+    if not addr:
+        return None
+
+    context = context or {}
+    cache_key = _mk_cache_key("geocode", {"addr": addr, **{k: v for k, v in context.items() if v}})
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    # Try Mapbox Geocoding API
+    token = getattr(settings, 'MAPBOX_TOKEN', None) or getattr(settings, 'MAPBOX_ACCESS_TOKEN', None)
+    if token:
+        try:
+            params = {
+                "access_token": token,
+                "limit": 1,
+                "autocomplete": "false",
+                "types": "address,poi",
+                "language": "pl",
+            }
+            if context.get('country_code'):
+                params['country'] = str(context['country_code']).lower()
+            url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{requests.utils.quote(addr)}.json"
+            resp = requests.get(url, params=params, timeout=6)
+            if resp.ok:
+                data = resp.json()
+                feats = (data or {}).get('features', [])
+                if feats:
+                    feat0 = feats[0]
+                    # 要求足够相关且类型为 address/poi 才接受
+                    if feat0.get('relevance', 0) >= 0.8 and any(t in ('address','poi') for t in feat0.get('place_type', [])):
+                        center = feat0.get('center')
+                        if isinstance(center, list) and len(center) >= 2:
+                            lon, lat = float(center[0]), float(center[1])
+                            _cache_set(cache_key, (lon, lat))
+                            return lon, lat
+            # 额外尝试将 “12/16” 简化为 “12” 再查一次
+            if context.get('street') and '/' in str(context['street']):
+                simple_street = str(context['street']).split('/')[0].strip()
+                alt_addr = simple_street
+                if context.get('city'):
+                    alt_addr += f", {context['city']}"
+                if context.get('postal_code'):
+                    alt_addr += f", {context['postal_code']}"
+                params2 = dict(params)
+                url2 = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{requests.utils.quote(alt_addr)}.json"
+                resp2 = requests.get(url2, params=params2, timeout=6)
+                if resp2.ok:
+                    data2 = resp2.json()
+                    feats2 = (data2 or {}).get('features', [])
+                    if feats2:
+                        f0 = feats2[0]
+                        if f0.get('relevance', 0) >= 0.8 and any(t in ('address','poi') for t in f0.get('place_type', [])):
+                            center = f0.get('center')
+                            if isinstance(center, list) and len(center) >= 2:
+                                lon, lat = float(center[0]), float(center[1])
+                                _cache_set(cache_key, (lon, lat))
+                                return lon, lat
+        except Exception as e:
+            logger.debug('Mapbox geocoding failed: %s', e)
+
+    # Fallback to OSM Nominatim
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        headers = {"User-Agent": "straypet/1.0 (geocoder)"}
+        params: Dict[str, Any] = {"format": "jsonv2", "limit": 1, "addressdetails": 1, "accept-language": "pl"}
+        # 尽量使用结构化查询提升精度
+        if any(context.get(k) for k in ('street','city','country','postal_code')):
+            if context.get('street'):
+                params['street'] = context['street']
+            if context.get('city'):
+                params['city'] = context['city']
+            if context.get('postal_code'):
+                params['postalcode'] = context['postal_code']
+            if context.get('country'):
+                params['country'] = context['country']
+        else:
+            params['q'] = addr
+        resp = requests.get(url, params=params, headers=headers, timeout=8)
+        if resp.ok:
+            arr = resp.json() or []
+            if arr:
+                lat = float(arr[0].get('lat'))
+                lon = float(arr[0].get('lon'))
+                _cache_set(cache_key, (lon, lat))
+                return lon, lat
+    except Exception as e:
+        logger.debug('Nominatim geocoding failed: %s', e)
+
+    return None
