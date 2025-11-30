@@ -14,8 +14,24 @@ import {
 } from 'react-bootstrap'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
 import './index.scss'
-import MapboxMap from '@/components/MapboxMap'
+// Use local MapboxMap implementation for interactive map
 import SafeHtml from '@/components/SafeHtml'
+import { useEffect, useRef } from 'react'
+import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
+// Local Leaflet dependency for IE/WebGL fallback
+import L, { type LatLngTuple } from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+// Fix Leaflet marker icon paths in bundled environments
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 type PetDetail = Pet & {
   city?: string
@@ -206,7 +222,14 @@ export default function AdoptDetail() {
                 {/* 地图占位，后面可以换成真实地图组件 */}
                 <div className="shelter-map-placeholder">
                   {address ? (
-                    <MapboxMap address={address} lon={(pet as any)?.address_lon} lat={(pet as any)?.address_lat} />
+                    <MapboxMap
+                      address={address}
+                      lon={typeof (pet as any)?.address_lon === 'number' ? (pet as any).address_lon : undefined}
+                      lat={typeof (pet as any)?.address_lat === 'number' ? (pet as any).address_lat : undefined}
+                      className="mapbox-map"
+                      width="100%"
+                      height={220}
+                    />
                   ) : (
                     <div className="map-unavailable muted">No address to show on map</div>
                   )}
@@ -253,4 +276,111 @@ export default function AdoptDetail() {
       </Container>
     </div>
   )
+}
+
+type MapboxMapProps = {
+  address?: string
+  lon?: number
+  lat?: number
+  className?: string
+  width?: string | number
+  height?: number
+}
+
+function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: MapboxMapProps) {
+  const ref = useRef<HTMLDivElement|null>(null)
+  const supportsRef = useRef<boolean>(true)
+  const hasTokenRef = useRef<boolean>(true)
+
+  useEffect(() => {
+    const token = import.meta.env.VITE_MAPBOX_TOKEN
+    if (!ref.current) return
+    if (!token) {
+      // Token 缺失时，不直接返回；允许走 Leaflet + OSM 交互或静态兜底
+      console.warn('Mapbox token missing: set VITE_MAPBOX_TOKEN')
+      hasTokenRef.current = false
+    }
+    mapboxgl.accessToken = token
+
+    // IE 检测：IE11 及以下通过 document.documentMode 或 UA 中的 Trident/MSIE
+    const isIE = ((document as any).documentMode) || /MSIE|Trident/.test(navigator.userAgent)
+    if (isIE) {
+      const centerLatLng: LatLngTuple = (typeof lon === 'number' && typeof lat === 'number')
+        ? [lat as number, lon as number]
+        : [0, 0]
+      const leafletMap = L.map(ref.current!, { zoomControl: true })
+      leafletMap.setView(centerLatLng, (typeof lon === 'number' && typeof lat === 'number') ? 12 : 1)
+      const tileUrl = token
+        ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      const attribution = token ? '© Mapbox © OpenStreetMap' : '© OpenStreetMap contributors'
+      L.tileLayer(tileUrl, { tileSize: 256, attribution, crossOrigin: true }).addTo(leafletMap)
+      if (typeof lon === 'number' && typeof lat === 'number') {
+        const defaultIcon = L.icon({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl })
+        L.marker(centerLatLng, { icon: defaultIcon }).addTo(leafletMap)
+      }
+      return () => { leafletMap.remove() }
+    }
+
+    const supports = typeof (mapboxgl as any).supported === 'function'
+      ? (mapboxgl as any).supported()
+      : !!document.createElement('canvas').getContext('webgl')
+
+    if (!supports) {
+      // WebGL 不支持（非 IE 的老设备等）：使用本地 Leaflet 交互兜底
+      console.warn('Mapbox GL not supported; using local Leaflet tiles fallback')
+      supportsRef.current = false
+      const centerLatLng: LatLngTuple = (typeof lon === 'number' && typeof lat === 'number')
+        ? [lat as number, lon as number]
+        : [0, 0]
+      const leafletMap = L.map(ref.current!, { zoomControl: true })
+      leafletMap.setView(centerLatLng, (typeof lon === 'number' && typeof lat === 'number') ? 12 : 1)
+      const tileUrl = token
+        ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      const attribution = token ? '© Mapbox © OpenStreetMap' : '© OpenStreetMap contributors'
+      L.tileLayer(tileUrl, { tileSize: 256, attribution, crossOrigin: true }).addTo(leafletMap)
+      if (typeof lon === 'number' && typeof lat === 'number') {
+        const defaultIcon = L.icon({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl })
+        L.marker(centerLatLng, { icon: defaultIcon }).addTo(leafletMap)
+      }
+      return () => { leafletMap.remove() }
+    }
+
+    const center = (typeof lon === 'number' && typeof lat === 'number')
+      ? [lon, lat] as [number, number]
+      : undefined
+
+    const map = new mapboxgl.Map({
+      container: ref.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: center ?? [0, 0],
+      zoom: center ? 12 : 1,
+      interactive: true,
+    })
+    map.addControl(new mapboxgl.NavigationControl())
+    map.on('load', () => {
+      map.resize()
+    })
+    if (center) new mapboxgl.Marker().setLngLat(center).addTo(map)
+
+    return () => map.remove()
+  }, [address, lon, lat])
+
+  // Static image fallback for missing token or unsupported WebGL
+  const canStatic = typeof lon === 'number' && typeof lat === 'number'
+  const token = import.meta.env.VITE_MAPBOX_TOKEN
+  if ((!hasTokenRef.current || !supportsRef.current) && canStatic && token) {
+    const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${lon},${lat})/${lon},${lat},12,0/${Math.max(300, typeof width === 'number' ? width : 600)}x${height}?access_token=${token}`
+    return (
+      <img
+        src={url}
+        alt={address || 'Location'}
+        className={className}
+        style={{ width, height, borderRadius: 12, objectFit: 'cover' }}
+      />
+    )
+  }
+
+  return <div ref={ref} className={className} style={{ width, height }} />
 }

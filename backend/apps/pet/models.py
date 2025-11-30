@@ -10,8 +10,7 @@ from smart_selects.db_fields import ChainedForeignKey
 from django.contrib.gis.db import models as gis_models
 from django.contrib.gis.geos import Point
 from django.contrib.postgres.indexes import GistIndex
-from django.db import transaction
-import bleach
+
 User = get_user_model()
 
 
@@ -46,10 +45,6 @@ class Pet(models.Model):
     address = models.ForeignKey(
         "pet.Address", on_delete=models.SET_NULL, null=True, blank=True, related_name="pets", verbose_name="Address"
     )
-    # 新增通用 location 外键（用于兼容 Map 渲染），优先使用 location
-    location = models.ForeignKey(
-        'pet.Location', on_delete=models.SET_NULL, null=True, blank=True, related_name='pet_locations',
-        verbose_name='Location')
     cover = models.ImageField("Cover", upload_to="pets/", blank=True, null=True)
 
     status = models.CharField(
@@ -137,10 +132,6 @@ class Donation(models.Model):
         "pet.Address", on_delete=models.SET_NULL, null=True, blank=True, related_name="donations",
         verbose_name="Address"
     )
-    # 新增 location 外键，优先使用 location 作为渲染来源
-    location = models.ForeignKey(
-        'pet.Location', on_delete=models.SET_NULL, null=True, blank=True, related_name='donation_locations',
-        verbose_name='Location')
     # 健康与背景（可选）
     dewormed = models.BooleanField("Dewormed", default=False)
     vaccinated = models.BooleanField("Vaccinated", default=False)
@@ -175,7 +166,7 @@ class Donation(models.Model):
 
     # —— 审核通过时自动创建 Pet，并将第一张图设为封面 ——
     def approve(self, reviewer, note=""):
-
+        from django.db import transaction
         with transaction.atomic():
             if self.created_pet:
                 return self.created_pet  # 避免重复创建
@@ -183,50 +174,14 @@ class Donation(models.Model):
             if self.status not in ("submitted", "reviewing", "approved"):
                 raise ValueError("Current status can't process")
 
-            # sanitize rich HTML content from donation before creating Pet
-            safe_description = None
-            try:
-                # allow some commonly used HTML tags and attributes
-                allowed_tags = [
-                    'p', 'br', 'strong', 'b', 'em', 'i', 'ul', 'ol', 'li', 'a', 'img',
-                    'h1', 'h2', 'h3', 'blockquote'
-                ]
-                allowed_attrs = {
-                    'a': ['href', 'title', 'rel', 'target'],
-                    'img': ['src', 'alt', 'title'],
-                }
-                safe_description = bleach.clean(self.description or '', tags=allowed_tags, attributes=allowed_attrs)
-            except Exception:
-                safe_description = (self.description or '')
-
-            pet_location = self.location
-            # 如果 Donation 还没有 location，但 Address 里有经纬度，可以顺便克隆一份 Location（可选）
-            if not pet_location and self.address and self.address.latitude is not None and self.address.longitude is not None:
-                try:
-                    pet_location = Location.objects.create(
-                        country_code = getattr(self.address.country, 'code', '') or '',
-                        country_name = getattr(self.address.country, 'name', '') or '',
-                        region       = getattr(self.address.region, 'name', '') or '',
-                        city         = getattr(self.address.city, 'name', '') or '',
-                        street       = self.address.street or '',
-                        postal_code  = self.address.postal_code or '',
-                        latitude     = self.address.latitude,
-                        longitude    = self.address.longitude,
-                        location     = self.address.location  # PointField 可直接复用
-                    )
-                except Exception:
-                    pet_location = None  # 出错就算了，不影响主流程
-
             pet = Pet.objects.create(
                 name=self.name, species=self.species, breed=self.breed, sex=self.sex,
                 age_years=self.age_years, age_months=self.age_months,
-                description=safe_description,
-                address=self.address,          # 兼容老逻辑，先保留
-                location=pet_location,         # ✅ 新增：把 Donation.location 传给 Pet.location
+                description=self.description,
+                address=self.address,
                 status=Pet.Status.AVAILABLE,
-                created_by=self.donor,
+                created_by=self.donor,  # 或 reviewer/机构账号
             )
-            
             first = self.photos.order_by("id").first()
             if first and first.image:
                 try:
@@ -359,28 +314,6 @@ class Address(models.Model):
             self.postal_code,
         ]
         return ", ".join([p for p in parts if p]) or "Address"
-
-
-# 新的更简单的地理位置模型，替代之前复杂的 Address 以便前端轻松传输 location_data
-class Location(models.Model):
-    country_code = models.CharField(max_length=8, blank=True, default='')
-    country_name = models.CharField(max_length=128, blank=True, default='')
-    region = models.CharField(max_length=128, blank=True, default='')
-    city = models.CharField(max_length=128, blank=True, default='')
-    street = models.CharField(max_length=128, blank=True, default='')
-    postal_code = models.CharField(max_length=20, blank=True, default='')
-    latitude = models.DecimalField("Lat", max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField("Lng", max_digits=9, decimal_places=6, null=True, blank=True)
-    location = gis_models.PointField(srid=4326, geography=True, null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Location"
-        verbose_name_plural = "Locations"
-        ordering = ["country_name", "region", "city", "street"]
-
-    def __str__(self):
-        parts = [self.street, self.city, self.region, self.country_name, self.postal_code]
-        return ", ".join([p for p in parts if p]) or "Location"
 
 
 class LostStatus(models.TextChoices):

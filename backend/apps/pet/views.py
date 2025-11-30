@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAdminUser, AllowAny, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from .models import Pet, Adoption, Lost, Donation
+from django.core.exceptions import FieldDoesNotExist
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
     AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer,\
     DonationDetailSerializer, DonationCreateSerializer, DonationDetailSerializer
@@ -23,7 +24,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 class PetViewSet(viewsets.ModelViewSet):
-    queryset = Pet.objects.select_related("created_by", "address", "address__city", "address__region", "address__country", "location").order_by("-pub_date")
+    # Build a safe select_related list based on actual model relations so we don't crash
+    _pet_related = ["created_by", "address", "address__city", "address__region", "address__country", "location"]
+    _valid_related = []
+    for _f in _pet_related:
+        root = _f.split("__")[0]
+        try:
+            fld = Pet._meta.get_field(root)
+            if getattr(fld, "is_relation", False):
+                _valid_related.append(_f)
+        except FieldDoesNotExist:
+            pass
+    queryset = Pet.objects.select_related(*_valid_related).order_by("-pub_date")
     filterset_class = PetFilter
     search_fields = ["name", "species", "breed", "description", "address"]
     ordering_fields = ["add_date", "pub_date", "age_months", "name"]
@@ -48,12 +60,17 @@ class PetViewSet(viewsets.ModelViewSet):
 
     # 公共列表：只展示 AVAILABLE/PENDING
     def list(self, request, *args, **kwargs):
-        qs = self.filter_queryset(
-            self.get_queryset().filter(status__in=[Pet.Status.AVAILABLE, Pet.Status.PENDING])
-        )
-        page = self.paginate_queryset(qs)
-        ser = PetListSerializer(page, many=True, context={"request": request})
-        return self.get_paginated_response(ser.data)
+        try:
+            qs = self.filter_queryset(
+                self.get_queryset().filter(status__in=[Pet.Status.AVAILABLE, Pet.Status.PENDING])
+            )
+            page = self.paginate_queryset(qs)
+            ser = PetListSerializer(page, many=True, context={"request": request})
+            return self.get_paginated_response(ser.data)
+        except Exception as exc:
+            logger.exception('PetViewSet.list encountered error')
+            # Return JSON error and avoid unhandled exception bubbling (helps with CORS during dev)
+            return Response({"detail": "Internal Server Error", "error": str(exc)}, status=500)
 
     # 非公开详情限制访问（DRAFT/ARCHIVED 仅作者/管理员可见）
     def retrieve(self, request, *args, **kwargs):
@@ -62,8 +79,12 @@ class PetViewSet(viewsets.ModelViewSet):
             u = request.user
             if not (u.is_authenticated and (u.is_staff or u.id == obj.created_by_id)):
                 raise PermissionDenied("This pet is not public.")
-        ser = PetListSerializer(obj, context={"request": request})
-        return Response(ser.data)
+        try:
+            ser = PetListSerializer(obj, context={"request": request})
+            return Response(ser.data)
+        except Exception:
+            logger.exception('PetViewSet.retrieve serialization failed')
+            return Response({"detail": "Internal Server Error"}, status=500)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user, status=Pet.Status.AVAILABLE)
@@ -227,15 +248,21 @@ class LostViewSet(viewsets.ModelViewSet):
 
 
 class DonationViewSet(viewsets.ModelViewSet):
-    queryset = (
-        Donation.objects
-        .select_related(
-            'address', 'address__country', 'address__region', 'address__city',
-            'location',
-            'donor', 'created_pet',
-        )
-        .all()
-    )
+    # Build a safe select_related list for Donation (avoid FieldError when 'location' missing)
+    _donation_related = [
+        'address', 'address__country', 'address__region', 'address__city',
+        'location', 'donor', 'created_pet',
+    ]
+    _valid_donation_related = []
+    for _f in _donation_related:
+        root = _f.split('__')[0]
+        try:
+            fld = Donation._meta.get_field(root)
+            if getattr(fld, 'is_relation', False):
+                _valid_donation_related.append(_f)
+        except FieldDoesNotExist:
+            pass
+    queryset = Donation.objects.select_related(*_valid_donation_related).all()
     # 不再在这里固定 serializer_class，完全交给 get_serializer_class 决定
     permission_classes = [permissions.AllowAny]
     authentication_classes = [JWTAuthentication]
@@ -272,8 +299,8 @@ class DonationViewSet(viewsets.ModelViewSet):
         logger.debug(
             "DonationViewSet.create: created donation id=%s address_id=%s location_id=%s",
             donation.id,
-            getattr(donation.address, "id", None),
-            getattr(donation.location, "id", None),
+            getattr(getattr(donation, 'address', None), "id", None),
+            getattr(getattr(donation, 'location', None), "id", None),
         )
 
         detail_ser = DonationDetailSerializer(donation, context={"request": request})

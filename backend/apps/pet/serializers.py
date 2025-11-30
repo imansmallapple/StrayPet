@@ -213,9 +213,9 @@ class PetListSerializer(serializers.ModelSerializer):
         return "0m"
 
     def get_address_display(self, obj: Pet) -> str:
-        # ✅ 先看 Location，再看 Address
-        if obj.location_id:
-            loc = obj.location
+        # ✅ Prefer Location (if available) then Address
+        if getattr(obj, 'location_id', None):
+            loc = getattr(obj, 'location', None)
             parts = [
                 loc.street,
                 loc.city,
@@ -225,8 +225,8 @@ class PetListSerializer(serializers.ModelSerializer):
             ]
             return ", ".join([p for p in parts if p])
 
-        if obj.address_id:
-            a = obj.address
+        if getattr(obj, 'address_id', None):
+            a = getattr(obj, 'address', None)
             parts = [
                 a.street, a.building_number,
                 a.city.name if a.city_id else "",
@@ -239,16 +239,16 @@ class PetListSerializer(serializers.ModelSerializer):
         return "-"
 
     def get_address_lat(self, obj: Pet):
-        if obj.location_id and obj.location and getattr(obj.location, 'latitude', None) is not None:
+        if getattr(obj, 'location_id', None) and getattr(obj, 'location', None) and getattr(obj.location, 'latitude', None) is not None:
             return obj.location.latitude
-        if obj.address_id and obj.address and getattr(obj.address, 'latitude', None) is not None:
+        if getattr(obj, 'address_id', None) and getattr(obj, 'address', None) and getattr(obj.address, 'latitude', None) is not None:
             return obj.address.latitude
         return None
 
     def get_address_lon(self, obj: Pet):
-        if obj.location_id and obj.location and getattr(obj.location, 'longitude', None) is not None:
+        if getattr(obj, 'location_id', None) and getattr(obj, 'location', None) and getattr(obj.location, 'longitude', None) is not None:
             return obj.location.longitude
-        if obj.address_id and obj.address and getattr(obj.address, 'longitude', None) is not None:
+        if getattr(obj, 'address_id', None) and getattr(obj, 'address', None) and getattr(obj.address, 'longitude', None) is not None:
             return obj.address.longitude
         return None
 
@@ -398,7 +398,13 @@ class DonationCreateSerializer(serializers.ModelSerializer):
                 try:
                     # Create a Location row to persist geometry more simply
                     loc_obj = _create_or_get_location(location_data)
-                    validated_data['location'] = loc_obj
+                    # Only attach to validated_data if Donation model actually has a 'location' field
+                    try:
+                        Donation._meta.get_field('location')
+                        validated_data['location'] = loc_obj
+                    except Exception:
+                        # Donation model has no 'location' attribute — we'll assign after creation if supported
+                        pass
                     logger.debug('Location created id=%s from location_data', getattr(loc_obj, 'id', None))
                 except Exception:
                     logger.exception('Failed to create Location from location_data')
@@ -418,9 +424,16 @@ class DonationCreateSerializer(serializers.ModelSerializer):
                 donation.address = address
                 donation.save(update_fields=["address"]) 
             # ensure donation.location is set
-            if loc_obj and not donation.location:
-                donation.location = loc_obj
-                donation.save(update_fields=["location"]) 
+            # ensure donation.location is set if the model supports the field
+            if loc_obj:
+                try:
+                    Donation._meta.get_field('location')
+                    if not getattr(donation, 'location', None):
+                        donation.location = loc_obj
+                        donation.save(update_fields=["location"]) 
+                except Exception:
+                    # Donation model doesn't support 'location' — ignore
+                    pass
             logger.debug('Donation created id=%s; address=%s', donation.id, getattr(donation.address, 'id', None))
         return donation
 
@@ -429,10 +442,10 @@ class DonationDetailSerializer(serializers.ModelSerializer):
     photos = DonationPhotoSerializer(many=True, read_only=True)
     donor_name = serializers.CharField(source="donor.username", read_only=True)
     created_pet_id = serializers.IntegerField(source="created_pet.id", read_only=True)
-    # expose location id and coordinates (read-only) so clients can render map even when address is null
-    location = serializers.IntegerField(source='location.id', read_only=True)
-    latitude = serializers.DecimalField(source='location.latitude', max_digits=9, decimal_places=6, read_only=True)
-    longitude = serializers.DecimalField(source='location.longitude', max_digits=9, decimal_places=6, read_only=True)
+    # expose location id and coordinates (read-only) via methods to safely handle when field doesn't exist
+    location = serializers.SerializerMethodField(read_only=True)
+    latitude = serializers.SerializerMethodField(read_only=True)
+    longitude = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Donation
@@ -441,6 +454,30 @@ class DonationDetailSerializer(serializers.ModelSerializer):
                   "status", "reviewer", "review_note", "created_pet_id", "photos", "add_date", "pub_date"]
         read_only_fields = ["status", "reviewer", "review_note", "created_pet_id", "add_date", "pub_date"]
 
+    def get_location(self, obj: Donation):
+            try:
+                if not hasattr(obj, 'location'):
+                    return None
+                loc = getattr(obj, 'location')
+                return getattr(loc, 'id', None)
+            except Exception:
+                return None
+
+    def get_latitude(self, obj: Donation):
+            try:
+                if not hasattr(obj, 'location'):
+                    return None
+                return getattr(getattr(obj, 'location'), 'latitude', None)
+            except Exception:
+                return None
+
+    def get_longitude(self, obj: Donation):
+            try:
+                if not hasattr(obj, 'location'):
+                    return None
+                return getattr(getattr(obj, 'location'), 'longitude', None)
+            except Exception:
+                return None
 
 class LostSerializer(serializers.ModelSerializer):
     reporter_username = serializers.ReadOnlyField(source='reporter.username')
