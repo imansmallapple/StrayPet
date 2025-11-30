@@ -209,31 +209,16 @@ export default function AdoptDetail() {
           <Col lg={4}>
             <Card className="pet-detail-shelter-card">
               <Card.Body>
-                <div className="shelter-name">
-                  {pet.shelter_name || (typeof pet.created_by === 'string' ? pet.created_by : 'Unknown shelter')}
-                </div>
-                <div className="shelter-sub">
-                  {pet.shelter_city || pet.city || ''}
-                </div>
                 <div className="shelter-address">
                   {pet.shelter_address || ((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : 'No address available')}
                 </div>
 
-                {/* 地图占位，后面可以换成真实地图组件 */}
-                <div className="shelter-map-placeholder">
-                  {address ? (
-                    <MapboxMap
-                      address={address}
-                      lon={typeof (pet as any)?.address_lon === 'number' ? (pet as any).address_lon : undefined}
-                      lat={typeof (pet as any)?.address_lat === 'number' ? (pet as any).address_lat : undefined}
-                      className="mapbox-map"
-                      width="100%"
-                      height={220}
-                    />
-                  ) : (
-                    <div className="map-unavailable muted">No address to show on map</div>
-                  )}
-                </div>
+                {/* Interactive map with Google Maps link */}
+                <ExternalMapPreview
+                  address={address}
+                  lat={typeof (pet as any)?.address_lat === 'number' ? (pet as any).address_lat : undefined}
+                  lon={typeof (pet as any)?.address_lon === 'number' ? (pet as any).address_lon : undefined}
+                />
 
                 <div className="shelter-actions">
                   {pet.shelter_phone && (
@@ -279,12 +264,12 @@ export default function AdoptDetail() {
 }
 
 type MapboxMapProps = {
-  address?: string
-  lon?: number
-  lat?: number
-  className?: string
-  width?: string | number
-  height?: number
+  address?: string | undefined
+  lon?: number | undefined
+  lat?: number | undefined
+  className?: string | undefined
+  width?: string | number | undefined
+  height?: number | undefined
 }
 
 function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: MapboxMapProps) {
@@ -383,4 +368,42 @@ function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: M
   }
 
   return <div ref={ref} className={className} style={{ width, height }} />
+}
+
+// Interactive map component with Google Maps external link
+type ExternalMapPreviewProps = {
+  address?: string | undefined
+  lat?: number | undefined
+  lon?: number | undefined
+}
+
+function ExternalMapPreview({ address, lat, lon }: ExternalMapPreviewProps) {
+  const hasCoords = typeof lat === 'number' && typeof lon === 'number'
+  const googleLink = hasCoords
+    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+    : (address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null)
+  
+  return (
+    <div className="external-map-card">
+      <div className="ext-map-header">
+        {googleLink && (
+          <a href={googleLink} target="_blank" rel="noopener noreferrer" className="ext-map-link">View larger map</a>
+        )}
+      </div>
+      <div className="ext-map-interactive">
+        {hasCoords ? (
+          <MapboxMap
+            address={address}
+            lat={lat}
+            lon={lon}
+            className="mapbox-map"
+            width="100%"
+            height={280}
+          />
+        ) : (
+          <div className="ext-map-thumb-placeholder">No map preview</div>
+        )}
+      </div>
+    </div>
+  )
 }
