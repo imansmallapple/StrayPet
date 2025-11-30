@@ -1,7 +1,7 @@
 # apps/pet/admin.py
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost
+from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto
 from django.contrib.gis.admin import GISModelAdmin
 from django.contrib.gis.forms.widgets import OSMWidget
 from django import forms
@@ -17,6 +17,14 @@ class AddressAdminForm(forms.ModelForm):
                 "default_zoom": 5,
             })
         }
+
+
+class PetPhotoInline(admin.TabularInline):
+    model = PetPhoto
+    extra = 1
+    fields = ("image", "order")
+
+
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
     list_display = ("id", "thumb", "name", "species", "breed", "status", "formatted_address", "created_by", "add_date")
@@ -24,6 +32,7 @@ class PetAdmin(admin.ModelAdmin):
     list_filter = ("status", "species", "add_date")
     search_fields = ("name", "species", "breed", "description", "address")
     autocomplete_fields = ("created_by",)
+    inlines = [PetPhotoInline]
     fields = (
         "name", "species", "breed", "sex", "age_years", "age_months", "description",
         "address", "cover", "status", "created_by"

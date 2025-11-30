@@ -124,6 +124,7 @@ export default function DonationCreate() {
   const [contactPhone, setContactPhone] = useState('')
 
   const [photos, setPhotos] = useState<File[]>([])
+  const [coverPhotoIndex, setCoverPhotoIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -519,6 +520,22 @@ export default function DonationCreate() {
     setPhotos(prev => [...prev, ...Array.from(files)])
   }
 
+  const handleRemovePhoto = (index: number) => {
+    setPhotos(prev => {
+      const updated = prev.filter((_, i) => i !== index)
+      if (coverPhotoIndex >= updated.length) {
+        setCoverPhotoIndex(Math.max(0, updated.length - 1))
+      } else if (coverPhotoIndex === index) {
+        setCoverPhotoIndex(0)
+      }
+      return updated
+    })
+  }
+
+  const handleSetCover = (index: number) => {
+    setCoverPhotoIndex(index)
+  }
+
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
@@ -529,6 +546,15 @@ export default function DonationCreate() {
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
+  }
+
+  const reorderPhotosWithCoverFirst = () => {
+    if (photos.length === 0) return []
+    if (coverPhotoIndex === 0) return photos
+    const reordered = [...photos]
+    const [cover] = reordered.splice(coverPhotoIndex, 1)
+    reordered.unshift(cover)
+    return reordered
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -589,7 +615,7 @@ export default function DonationCreate() {
         microchipped: !!form.traits['microchipped'],
         is_stray: !!form.traits['loves_cares'],
         contact_phone: contactPhone,
-        photos,
+        photos: reorderPhotosWithCoverFirst(),
       }
 
       console.warn('[donation] payload', payload)
@@ -606,6 +632,7 @@ export default function DonationCreate() {
         description: '',
       }))
       setPhotos([])
+      setCoverPhotoIndex(0)
       setSpecies('dog')
       setAddressData({
         country: '',
@@ -663,7 +690,6 @@ export default function DonationCreate() {
           {/* 主信息卡片 */}
           <Card className="donation-section mb-4">
             <Card.Header className="donation-section-header">
-              <span className="icon">−</span>
               <span className="text">Main information</span>
             </Card.Header>
             <Card.Body>
@@ -1069,7 +1095,6 @@ export default function DonationCreate() {
           {/* 照片上传区域 */}
           <Card className="donation-section">
             <Card.Header className="donation-section-header">
-              <span className="icon">−</span>
               <span className="text">Photos</span>
             </Card.Header>
             <Card.Body>
@@ -1093,11 +1118,11 @@ export default function DonationCreate() {
                   onChange={e => handlePhotoSelect(e.target.files)}
                 />
                 <div className="icon-wrapper">📷</div>
-                <div className="title">Click to add a photo</div>
+                <div className="title">Click to add photos</div>
                 <div className="subtitle">
                   You must add at least one photo.
                   <br />
-                  The first photo will be the pet&apos;s profile picture.
+                  Select multiple photos to upload.
                 </div>
                 <div className="hint">
                   Minimum image size is:{' '}
@@ -1108,13 +1133,41 @@ export default function DonationCreate() {
               </div>
 
               {photoPreviews.length > 0 && (
-                <div className="donation-photo-preview-grid mt-3">
-                  {photoPreviews.map((url, idx) => (
-                    <div className="photo-preview-item" key={url}>
-                      <img src={url} alt={`preview-${idx}`} />
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="mt-3 mb-2">
+                    <strong>{photoPreviews.length}</strong> photo(s) selected. Click on a photo to set it as the cover image.
+                  </div>
+                  <div className="donation-photo-preview-grid">
+                    {photoPreviews.map((url, idx) => (
+                      <div 
+                        className={`photo-preview-item ${idx === coverPhotoIndex ? 'is-cover' : ''}`} 
+                        key={url}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleSetCover(idx)
+                        }}
+                      >
+                        <img src={url} alt={`preview-${idx}`} />
+                        {idx === coverPhotoIndex && (
+                          <div className="cover-badge">
+                            <Badge bg="success">Cover</Badge>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="remove-photo-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemovePhoto(idx)
+                          }}
+                          title="Remove photo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </Card.Body>
           </Card>

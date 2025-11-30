@@ -182,26 +182,42 @@ class Donation(models.Model):
                 status=Pet.Status.AVAILABLE,
                 created_by=self.donor,  # 或 reviewer/机构账号
             )
-            first = self.photos.order_by("id").first()
-            if first and first.image:
+            
+            # 复制所有照片到 PetPhoto
+            donation_photos = self.photos.order_by("id").all()
+            for idx, donation_photo in enumerate(donation_photos):
+                if not donation_photo.image:
+                    continue
+                    
                 try:
-                    # 确保文件句柄可读
-                    first.image.open("rb")
-                    data = first.image.read()
-                    # 生成新文件名（避免重名）
-                    orig_name = first.image.name.split("/")[-1]  # e.g. pet1.png
-                    target_path = f"pets/{pet.id}_{orig_name}"
-                    saved_path = default_storage.save(target_path, ContentFile(data))
-                    pet.cover.name = saved_path
-                    pet.save(update_fields=["cover"])
-                except Exception:
+                    # 读取照片数据
+                    donation_photo.image.open("rb")
+                    data = donation_photo.image.read()
+                    donation_photo.image.close()
+                    
+                    # 生成新文件名
+                    orig_name = donation_photo.image.name.split("/")[-1]
+                    
+                    # 第一张设为封面
+                    if idx == 0:
+                        target_path = f"pets/{pet.id}_{orig_name}"
+                        saved_path = default_storage.save(target_path, ContentFile(data))
+                        pet.cover.name = saved_path
+                        pet.save(update_fields=["cover"])
+                    
+                    # 创建 PetPhoto（包括第一张，这样在 photos 数组中也能看到所有照片）
+                    pet_photo = PetPhoto.objects.create(
+                        pet=pet,
+                        order=idx,
+                    )
+                    photo_target_path = f"pets/photos/{pet.id}_{idx}_{orig_name}"
+                    pet_photo.image.save(photo_target_path, ContentFile(data), save=True)
+                    
+                except Exception as e:
                     # 出错也不阻断主流程
-                    pass
-                finally:
-                    try:
-                        first.image.close()
-                    except Exception:
-                        pass
+                    import logging
+                    logging.error(f"Failed to copy photo {idx} for pet {pet.id}: {e}")
+                    continue
 
             self.created_pet = pet
             self.status = "approved"
@@ -209,6 +225,22 @@ class Donation(models.Model):
             self.review_note = note
             self.save(update_fields=["created_pet", "status", "reviewer", "review_note", "pub_date"])
             return pet
+
+
+class PetPhoto(models.Model):
+    """ Pet 的额外照片（多图） """
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="photos", verbose_name="Pet")
+    image = models.ImageField("Photo", upload_to="pets/photos/")
+    order = models.PositiveIntegerField("Display Order", default=0)  # 用于排序
+    add_date = models.DateTimeField("Created At", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Pet Photo"
+        verbose_name_plural = "Pet Photos"
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"Photo for {self.pet.name}"
 
 
 class DonationPhoto(models.Model):

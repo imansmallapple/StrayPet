@@ -237,18 +237,35 @@ class PetListSerializer(serializers.ModelSerializer):
     address_lat = serializers.SerializerMethodField()
     address_lon = serializers.SerializerMethodField()
     photo = serializers.ImageField(source='cover', read_only=True)
+    photos = serializers.SerializerMethodField()  # 多张照片数组
 
     class Meta:
         model = Pet
         fields = (
             "id", "name", "species", "breed", "sex",
             "age_years", "age_months", "age_display",
-            "description", "address_display", "cover", 'photo',
+            "description", "address_display", "cover", 'photo', 'photos',
             "address_lat", "address_lon",
             "status", "created_by", "applications_count",
             "add_date", "pub_date"
         )
         read_only_fields = ("status", "created_by", "applications_count", "add_date", "pub_date")
+
+    def get_photos(self, obj: Pet):
+        """返回所有额外照片的 URL"""
+        request = self.context.get('request')
+        photo_objs = obj.photos.all()
+        if not photo_objs:
+            return []
+        
+        urls = []
+        for photo in photo_objs:
+            if photo.image:
+                if request:
+                    urls.append(request.build_absolute_uri(photo.image.url))
+                else:
+                    urls.append(photo.image.url)
+        return urls
 
     def get_age_display(self, obj: Pet) -> str:
         y = obj.age_years or 0

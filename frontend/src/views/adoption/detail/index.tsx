@@ -16,7 +16,7 @@ import { adoptApi, type Pet } from '@/services/modules/adopt'
 import './index.scss'
 // Use local MapboxMap implementation for interactive map
 import SafeHtml from '@/components/SafeHtml'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 // Local Leaflet dependency for IE/WebGL fallback
@@ -51,6 +51,7 @@ type PetDetail = Pet & {
 export default function AdoptDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
 
   const { data, loading } = useRequest(
     () =>
@@ -63,7 +64,34 @@ export default function AdoptDetail() {
     },
   )
 
+  // Prepare photo data
+  const allPhotos = data?.photos && data.photos.length > 0 
+    ? data.photos 
+    : data?.photo 
+      ? [data.photo] 
+      : ['/images/pet-placeholder.jpg']
   
+  const hasMultiplePhotos = allPhotos.length > 1
+
+  // Keyboard navigation for photos
+  useEffect(() => {
+    if (!hasMultiplePhotos) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setCurrentPhotoIndex(prev => 
+          prev === 0 ? allPhotos.length - 1 : prev - 1
+        )
+      } else if (e.key === 'ArrowRight') {
+        setCurrentPhotoIndex(prev => 
+          prev === allPhotos.length - 1 ? 0 : prev + 1
+        )
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [hasMultiplePhotos, allPhotos.length])
 
   if (!id) {
     return <div className="pet-detail-empty">Invalid pet id</div>
@@ -78,8 +106,19 @@ export default function AdoptDetail() {
   }
 
   const pet = data
-  const mainPhoto =
-    pet.photo || pet.photos?.[0] || '/images/pet-placeholder.jpg'
+  const currentPhoto = allPhotos[currentPhotoIndex] || allPhotos[0]
+
+  const handlePrevPhoto = () => {
+    setCurrentPhotoIndex(prev => 
+      prev === 0 ? allPhotos.length - 1 : prev - 1
+    )
+  }
+
+  const handleNextPhoto = () => {
+    setCurrentPhotoIndex(prev => 
+      prev === allPhotos.length - 1 ? 0 : prev + 1
+    )
+  }
 
   const ageText = (() => {
     if (pet.age_years || pet.age_months) {
@@ -117,16 +156,34 @@ export default function AdoptDetail() {
           <Col lg={8}>
             <Card className="pet-detail-main-card">
               <div className="pet-detail-photo-wrapper">
-                <img src={mainPhoto} alt={pet.name} />
+                <img src={currentPhoto} alt={pet.name} />
                 {pet.status && (
                   <Badge bg="success" className="pet-detail-status-pill">
                     {pet.status}
                   </Badge>
                 )}
-                {pet.photos && pet.photos.length > 1 && (
-                  <div className="pet-detail-photo-count">
-                    {pet.photos.length} photos
-                  </div>
+                {hasMultiplePhotos && (
+                  <>
+                    <div className="pet-detail-photo-count">
+                      {currentPhotoIndex + 1} / {allPhotos.length}
+                    </div>
+                    <button 
+                      className="photo-nav-btn photo-nav-prev"
+                      onClick={handlePrevPhoto}
+                      type="button"
+                      aria-label="Previous photo"
+                    >
+                      ‹
+                    </button>
+                    <button 
+                      className="photo-nav-btn photo-nav-next"
+                      onClick={handleNextPhoto}
+                      type="button"
+                      aria-label="Next photo"
+                    >
+                      ›
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -261,16 +318,21 @@ type MapboxMapProps = {
 
 function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: MapboxMapProps) {
   const ref = useRef<HTMLDivElement|null>(null)
-  const supportsRef = useRef<boolean>(true)
-  const hasTokenRef = useRef<boolean>(true)
+  const mapInstanceRef = useRef<mapboxgl.Map | L.Map | null>(null)
+  const initializedRef = useRef(false)
+  const showStaticFallbackRef = useRef(false)
 
   useEffect(() => {
+    if (initializedRef.current) return // Prevent re-initialization
+    
     const token = import.meta.env.VITE_MAPBOX_TOKEN
     if (!ref.current) return
+
     if (!token) {
-      // Token 缺失时，不直接返回；允许走 Leaflet + OSM 交互或静态兜底
       console.warn('Mapbox token missing: set VITE_MAPBOX_TOKEN')
-      hasTokenRef.current = false
+      showStaticFallbackRef.current = true
+      initializedRef.current = true
+      return
     }
     mapboxgl.accessToken = token
 
@@ -282,16 +344,21 @@ function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: M
         : [0, 0]
       const leafletMap = L.map(ref.current!, { zoomControl: true })
       leafletMap.setView(centerLatLng, (typeof lon === 'number' && typeof lat === 'number') ? 12 : 1)
-      const tileUrl = token
-        ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
-        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-      const attribution = token ? '© Mapbox © OpenStreetMap' : '© OpenStreetMap contributors'
+      const tileUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
+      const attribution = '© Mapbox © OpenStreetMap'
       L.tileLayer(tileUrl, { tileSize: 256, attribution, crossOrigin: true }).addTo(leafletMap)
       if (typeof lon === 'number' && typeof lat === 'number') {
         const defaultIcon = L.icon({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl })
         L.marker(centerLatLng, { icon: defaultIcon }).addTo(leafletMap)
       }
-      return () => { leafletMap.remove() }
+      mapInstanceRef.current = leafletMap
+      initializedRef.current = true
+      return () => { 
+        if (mapInstanceRef.current && 'remove' in mapInstanceRef.current) {
+          mapInstanceRef.current.remove()
+          mapInstanceRef.current = null
+        }
+      }
     }
 
     const supports = typeof (mapboxgl as any).supported === 'function'
@@ -301,22 +368,26 @@ function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: M
     if (!supports) {
       // WebGL 不支持（非 IE 的老设备等）：使用本地 Leaflet 交互兜底
       console.warn('Mapbox GL not supported; using local Leaflet tiles fallback')
-      supportsRef.current = false
       const centerLatLng: LatLngTuple = (typeof lon === 'number' && typeof lat === 'number')
         ? [lat as number, lon as number]
         : [0, 0]
       const leafletMap = L.map(ref.current!, { zoomControl: true })
       leafletMap.setView(centerLatLng, (typeof lon === 'number' && typeof lat === 'number') ? 12 : 1)
-      const tileUrl = token
-        ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
-        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-      const attribution = token ? '© Mapbox © OpenStreetMap' : '© OpenStreetMap contributors'
+      const tileUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
+      const attribution = '© Mapbox © OpenStreetMap'
       L.tileLayer(tileUrl, { tileSize: 256, attribution, crossOrigin: true }).addTo(leafletMap)
       if (typeof lon === 'number' && typeof lat === 'number') {
         const defaultIcon = L.icon({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl })
         L.marker(centerLatLng, { icon: defaultIcon }).addTo(leafletMap)
       }
-      return () => { leafletMap.remove() }
+      mapInstanceRef.current = leafletMap
+      initializedRef.current = true
+      return () => { 
+        if (mapInstanceRef.current && 'remove' in mapInstanceRef.current) {
+          mapInstanceRef.current.remove()
+          mapInstanceRef.current = null
+        }
+      }
     }
 
     const center = (typeof lon === 'number' && typeof lat === 'number')
@@ -336,22 +407,31 @@ function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: M
     })
     if (center) new mapboxgl.Marker().setLngLat(center).addTo(map)
 
-    return () => map.remove()
-  }, [address, lon, lat])
+    mapInstanceRef.current = map
+    initializedRef.current = true
+    return () => {
+      if (mapInstanceRef.current && 'remove' in mapInstanceRef.current) {
+        mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
+      }
+    }
+  }, [lat, lon])
 
-  // Static image fallback for missing token or unsupported WebGL
-  const canStatic = typeof lon === 'number' && typeof lat === 'number'
-  const token = import.meta.env.VITE_MAPBOX_TOKEN
-  if ((!hasTokenRef.current || !supportsRef.current) && canStatic && token) {
-    const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${lon},${lat})/${lon},${lat},12,0/${Math.max(300, typeof width === 'number' ? width : 600)}x${height}?access_token=${token}`
-    return (
-      <img
-        src={url}
-        alt={address || 'Location'}
-        className={className}
-        style={{ width, height, borderRadius: 12, objectFit: 'cover' }}
-      />
-    )
+  // Static image fallback for missing token
+  if (showStaticFallbackRef.current) {
+    const canStatic = typeof lon === 'number' && typeof lat === 'number'
+    const token = import.meta.env.VITE_MAPBOX_TOKEN
+    if (canStatic && token) {
+      const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${lon},${lat})/${lon},${lat},12,0/${Math.max(300, typeof width === 'number' ? width : 600)}x${height}?access_token=${token}`
+      return (
+        <img
+          src={url}
+          alt={address || 'Location'}
+          className={className}
+          style={{ width, height, borderRadius: 12, objectFit: 'cover' }}
+        />
+      )
+    }
   }
 
   return <div ref={ref} className={className} style={{ width, height }} />

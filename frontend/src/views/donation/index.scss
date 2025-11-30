@@ -1,49 +1,80 @@
 .donation-page {
-    background: #f7f7fb;
+    background: linear-gradient(135deg, #f7f7fb 0%, #f0f4f8 100%);
     min-height: 100vh;
-    padding: 24px 0 40px;
+    padding: 32px 0 48px;
 }
 
 .donation-title {
-    font-size: 28px;
-    font-weight: 700;
-    margin-bottom: 16px;
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 24px;
+    color: #1e293b;
+    text-align: center;
 }
 
 .donation-section {
-    border-radius: 14px;
+    border-radius: 16px;
     border: none;
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
     overflow: hidden;
+    background: #ffffff;
+    margin-bottom: 24px;
 }
 
 .donation-section-header {
-    background: #fafafa;
-    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border: none;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 600;
-    font-size: 16px;
-}
-
-.donation-section-header .icon {
-    display: inline-flex;
-    width: 18px;
-    justify-content: center;
-    color: #9ca3af;
+    font-weight: 700;
+    font-size: 17px;
+    padding: 16px 20px;
+    color: #ffffff;
 }
 
 .donation-section-header .text {
-    color: #374151;
+    color: #ffffff;
+    letter-spacing: 0.3px;
 }
 
 /* 黄色提示区域 */
 .donation-hint {
-    font-size: 13px;
+    font-size: 14px;
     background: #fffbea;
     border-color: #facc15;
     color: #92400e;
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+/* Form inputs styling */
+.donation-section .form-control,
+.donation-section .form-select {
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    padding: 10px 14px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.donation-section .form-control:focus,
+.donation-section .form-select:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.donation-section .form-label {
+    font-weight: 600;
+    color: #475569;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.donation-section .form-label .muted {
+    font-weight: 400;
+    color: #94a3b8;
+    font-size: 13px;
 }
 
 /* 轻量富文本编辑器样式：上黄下白，贴近你截图 */
@@ -117,65 +148,115 @@
 /* 照片上传区域 */
 .donation-photo-dropzone {
     margin-top: 8px;
-    border: 1px dashed #a3e635;
-    border-radius: 12px;
-    background: #fbfefb;
-    min-height: 180px;
-    padding: 32px 24px;
+    border: 2px dashed #a3e635;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #fbfefb 0%, #f0fdf4 100%);
+    min-height: 200px;
+    padding: 40px 24px;
     text-align: center;
     color: #4b5563;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+    transition: all 0.2s ease;
 }
 
 .donation-photo-dropzone:hover {
-    background: #f0fdf4;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     border-color: #65a30d;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(101, 163, 13, 0.1);
 }
 
 .donation-photo-dropzone .icon-wrapper {
-    font-size: 40px;
-    margin-bottom: 8px;
+    font-size: 48px;
+    margin-bottom: 12px;
     color: #22c55e;
 }
 
 .donation-photo-dropzone .title {
     font-size: 20px;
     font-weight: 700;
-    color: #4ade80;
+    color: #16a34a;
+    margin-bottom: 8px;
 }
 
 .donation-photo-dropzone .subtitle {
-    margin-top: 4px;
-    font-size: 14px;
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #475569;
 }
 
 .donation-photo-dropzone .hint {
-    margin-top: 8px;
+    margin-top: 12px;
     font-size: 13px;
-    color: #6b7280;
+    color: #64748b;
 }
 
 /* 照片预览 */
 .donation-photo-preview-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
 }
 
 .photo-preview-item {
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 2px solid #e5e7eb;
     background: #fff;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.photo-preview-item:hover {
+    border-color: #8b5cf6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(139, 92, 246, 0.15);
+}
+
+.photo-preview-item.is-cover {
+    border-color: #22c55e;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
 }
 
 .photo-preview-item img {
     width: 100%;
-    height: 110px;
+    height: 140px;
     object-fit: cover;
     display: block;
+}
+
+.photo-preview-item .cover-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+}
+
+.photo-preview-item .remove-photo-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.95);
+    color: white;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    transition: all 0.2s ease;
+}
+
+.photo-preview-item .remove-photo-btn:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.1);
 }
 
 /* 小屏幕 */
