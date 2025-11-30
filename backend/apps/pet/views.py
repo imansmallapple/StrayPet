@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from .models import Pet, Adoption, Lost, Donation
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
-    AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer, DonationDetailSerializer
+    AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer,\
+    DonationDetailSerializer, DonationCreateSerializer, DonationDetailSerializer
 from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -17,9 +18,12 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_gis.filters import InBBoxFilter
 from .serializers import LostGeoSerializer
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework import viewsets, permissions
+import logging
+logger = logging.getLogger(__name__)
 
 class PetViewSet(viewsets.ModelViewSet):
-    queryset = Pet.objects.select_related("created_by", "address", "address__city", "address__region", "address__country").order_by("-pub_date")
+    queryset = Pet.objects.select_related("created_by", "address", "address__city", "address__region", "address__country", "location").order_by("-pub_date")
     filterset_class = PetFilter
     search_fields = ["name", "species", "breed", "description", "address"]
     ordering_fields = ["add_date", "pub_date", "age_months", "name"]
@@ -227,30 +231,53 @@ class DonationViewSet(viewsets.ModelViewSet):
         Donation.objects
         .select_related(
             'address', 'address__country', 'address__region', 'address__city',
-            'donor', 'created_pet'
+            'location',
+            'donor', 'created_pet',
         )
         .all()
     )
-    serializer_class = DonationCreateSerializer
-    permission_classes = [permissions.AllowAny]  # 默认：公开读取
+    # 不再在这里固定 serializer_class，完全交给 get_serializer_class 决定
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = [JWTAuthentication]
+    parser_classes = [MultiPartParser, FormParser]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     ordering_fields = ['add_date', 'pub_date']
     ordering = ['-pub_date']
-    parser_classes = [MultiPartParser, FormParser]
-    authentication_classes = [JWTAuthentication]
 
     def get_permissions(self):
-        # 创建/修改/删除需要登录，列表/详情允许匿名访问
+        # 创建/修改/删除 需要登录
         if self.action in ("create", "update", "partial_update", "destroy"):
             return [permissions.IsAuthenticated()]
+        # 列表/详情允许匿名
         if self.action in ("list", "retrieve"):
             return [permissions.AllowAny()]
         return super().get_permissions()
 
     def get_serializer_class(self):
+        # list / retrieve 用详情版
         if self.action in ("list", "retrieve"):
             return DonationDetailSerializer
+        # create / update 用带自定义 create() 的版本
         return DonationCreateSerializer
+
+    def create(self, request, *args, **kwargs):
+        """
+        创建时用 DonationCreateSerializer 的 create()，
+        然后用 DonationDetailSerializer 再序列化一次返回完整数据。
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        donation = serializer.save()
+        logger.debug(
+            "DonationViewSet.create: created donation id=%s address_id=%s location_id=%s",
+            donation.id,
+            getattr(donation.address, "id", None),
+            getattr(donation.location, "id", None),
+        )
+
+        detail_ser = DonationDetailSerializer(donation, context={"request": request})
+        return Response(detail_ser.data, status=201)
 
 
 class LostGeoViewSet(viewsets.ReadOnlyModelViewSet):

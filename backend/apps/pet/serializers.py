@@ -1,7 +1,12 @@
+from __future__ import annotations
 # apps/pet/serializers.py
 from rest_framework import serializers
 import json
 from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City
+from django.contrib.gis.geos import Point
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from apps.pet.models import Location
 
 
 def _create_or_resolve_address(address_data: dict) -> Address:
@@ -85,17 +90,82 @@ def _create_or_resolve_address(address_data: dict) -> Address:
     # optional lat/lng
     if address_data.get('latitude') is not None:
         try:
-            addr_kwargs['latitude'] = float(address_data.get('latitude'))
+            lat_val = float(address_data.get('latitude'))
+            addr_kwargs['latitude'] = lat_val
         except Exception:
-            pass
+            lat_val = None
+    else:
+        lat_val = None
     if address_data.get('longitude') is not None:
         try:
-            addr_kwargs['longitude'] = float(address_data.get('longitude'))
+            lon_val = float(address_data.get('longitude'))
+            addr_kwargs['longitude'] = lon_val
         except Exception:
+            lon_val = None
+    else:
+        lon_val = None
+
+    if lat_val is not None and lon_val is not None:
+        try:
+            # Ensure location point (lon,lat) is stored as Point
+            addr_kwargs['location'] = Point(lon_val, lat_val)
+        except Exception:
+            # don't fail the whole flow if Point creation fails
             pass
 
     addr = Address.objects.create(**addr_kwargs)
+    logger.debug('Address created id=%s with kwargs=%r', getattr(addr, 'id', None), addr_kwargs)
     return addr
+
+
+def _create_or_get_location(location_data: dict) -> "Location":
+    """
+    Create a Location instance from a simple payload. The data is expected to be plain strings or numbers.
+    """
+    if not location_data:
+        raise ValueError('location_data is required')
+    def _v(k):
+        val = location_data.get(k)
+        return None if val is None or str(val).strip() == '' else val
+
+    lat = None
+    lon = None
+    if _v('latitude') is not None:
+        try:
+            lat = float(location_data.get('latitude'))
+        except Exception:
+            lat = None
+    if _v('longitude') is not None:
+        try:
+            lon = float(location_data.get('longitude'))
+        except Exception:
+            lon = None
+
+    kwargs = {
+        'country_code': _v('country_code') or _v('country') or '',
+        'country_name': _v('country') or _v('country_name') or '',
+        'region': _v('region') or '',
+        'city': _v('city') or '',
+        'street': _v('street') or '',
+        'postal_code': _v('postal_code') or '',
+    }
+    if lat is not None:
+        kwargs['latitude'] = lat
+    if lon is not None:
+        kwargs['longitude'] = lon
+    if lat is not None and lon is not None:
+        try:
+            kwargs['location'] = Point(lon, lat)
+        except Exception:
+            pass
+
+    from apps.pet.models import Location
+    loc = Location.objects.create(**kwargs)
+    return loc
+
+
+import logging
+logger = logging.getLogger(__name__)
 
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from rest_framework_gis.fields import GeometryField
@@ -114,6 +184,9 @@ class PetListSerializer(serializers.ModelSerializer):
     applications_count = serializers.IntegerField(read_only=True, default=0)  # 预留统计字段
     age_display = serializers.SerializerMethodField()
     address_display = serializers.SerializerMethodField()
+    # provide numeric coordinates for frontend map (fallback: address -> location)
+    address_lat = serializers.SerializerMethodField()
+    address_lon = serializers.SerializerMethodField()
     photo = serializers.ImageField(source='cover', read_only=True)
 
     class Meta:
@@ -122,6 +195,7 @@ class PetListSerializer(serializers.ModelSerializer):
             "id", "name", "species", "breed", "sex",
             "age_years", "age_months", "age_display",
             "description", "address_display", "cover", 'photo',
+            "address_lat", "address_lon",
             "status", "created_by", "applications_count",
             "add_date", "pub_date"
         )
@@ -139,17 +213,44 @@ class PetListSerializer(serializers.ModelSerializer):
         return "0m"
 
     def get_address_display(self, obj: Pet) -> str:
-        if not obj.address_id:
-            return "-"
-        a = obj.address
-        parts = [
-            a.street, a.building_number,
-            a.city.name if a.city_id else "",
-            a.region.name if a.region_id else "",
-            a.country.name if a.country_id else "",
-            a.postal_code,
-        ]
-        return ", ".join([p for p in parts if p])
+        # ✅ 先看 Location，再看 Address
+        if obj.location_id:
+            loc = obj.location
+            parts = [
+                loc.street,
+                loc.city,
+                loc.region,
+                loc.country_name,
+                loc.postal_code,
+            ]
+            return ", ".join([p for p in parts if p])
+
+        if obj.address_id:
+            a = obj.address
+            parts = [
+                a.street, a.building_number,
+                a.city.name if a.city_id else "",
+                a.region.name if a.region_id else "",
+                a.country.name if a.country_id else "",
+                a.postal_code,
+            ]
+            return ", ".join([p for p in parts if p])
+
+        return "-"
+
+    def get_address_lat(self, obj: Pet):
+        if obj.location_id and obj.location and getattr(obj.location, 'latitude', None) is not None:
+            return obj.location.latitude
+        if obj.address_id and obj.address and getattr(obj.address, 'latitude', None) is not None:
+            return obj.address.latitude
+        return None
+
+    def get_address_lon(self, obj: Pet):
+        if obj.location_id and obj.location and getattr(obj.location, 'longitude', None) is not None:
+            return obj.location.longitude
+        if obj.address_id and obj.address and getattr(obj.address, 'longitude', None) is not None:
+            return obj.address.longitude
+        return None
 
 
 class PetCreateUpdateSerializer(serializers.ModelSerializer):
@@ -199,17 +300,36 @@ class DonationPhotoSerializer(serializers.ModelSerializer):
 class DonationCreateSerializer(serializers.ModelSerializer):
     photos = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
     # 支持嵌套地址数据（参考 LostSerializer）
-    address_data = serializers.DictField(write_only=True, required=False)
+    address_data = serializers.JSONField(write_only=True, required=False)
+    # 新增：前端可能发送更简单的 location_data（兼容 Mapbox/短 payload）
+    location_data = serializers.JSONField(write_only=True, required=False)
 
     class Meta:
         model = Donation
         fields = ["name", "species", "breed", "sex", "age_years", "age_months",
-                  "description", "address", "address_data", "dewormed", "vaccinated", "microchipped",
+                  "description", "address", "address_data", "location_data", "dewormed", "vaccinated", "microchipped",
                   "is_stray", "contact_phone", "photos"]
 
     def create(self, validated_data):
         photos = validated_data.pop("photos", [])
         address_data = validated_data.pop('address_data', None)
+        location_data = validated_data.pop('location_data', None)
+        # fallback: if frontend didn't send 'address_data' JSON but provided fields in request
+        if not address_data:
+            req = self.context.get('request')
+            if req is not None:
+                # form data might include top-level fields: country, region, city, street, postal_code
+                logger.debug('Donation create request.data keys: %r', list(req.data.keys()))
+                possible = {}
+                for k in ('country', 'region', 'city', 'street', 'postal_code', 'latitude', 'longitude'):
+                    v = req.data.get(k)
+                    if v is not None and str(v).strip() != '':
+                        possible[k] = v
+                if possible:
+                    address_data = possible
+                    logger.debug('DonationCreateSerializer.create fallback using request.data fields for address_data: %r', address_data)
+        address = None
+        logger.debug('DonationCreateSerializer.create invoked; raw address_data: %r', address_data)
         if address_data:
             # Accept JSON string or dict
             if isinstance(address_data, str):
@@ -218,11 +338,90 @@ class DonationCreateSerializer(serializers.ModelSerializer):
                 except Exception:
                     address_data = None
             if address_data:
-                address = _create_or_resolve_address(address_data)
-                validated_data['address'] = address
-        donation = Donation.objects.create(donor=self.context["request"].user, **validated_data)
-        for img in photos[:8]:
-            DonationPhoto.objects.create(donation=donation, image=img)
+                try:
+                    address = _create_or_resolve_address(address_data)
+                    validated_data['address'] = address
+                except Exception as e:
+                    # Log address creation error and continue — the rest of fields still create Donation
+                    logger.exception('Failed to create Address from address_data')
+                    address = None
+                    # Fallback: create minimal address record so location or street is persisted
+                    try:
+                        fallback_kwargs = {}
+                        if address_data.get('street'):
+                            fallback_kwargs['street'] = address_data.get('street')
+                        if address_data.get('postal_code'):
+                            fallback_kwargs['postal_code'] = address_data.get('postal_code')
+                        if address_data.get('latitude') is not None:
+                            try:
+                                fallback_kwargs['latitude'] = float(address_data.get('latitude'))
+                            except Exception:
+                                pass
+                        if address_data.get('longitude') is not None:
+                            try:
+                                fallback_kwargs['longitude'] = float(address_data.get('longitude'))
+                            except Exception:
+                                pass
+                        if fallback_kwargs:
+                            # if lat/lon present set Point
+                            lat_val = fallback_kwargs.get('latitude')
+                            lon_val = fallback_kwargs.get('longitude')
+                            if lat_val is not None and lon_val is not None:
+                                try:
+                                    fallback_kwargs['location'] = Point(lon_val, lat_val)
+                                except Exception:
+                                    pass
+                            address = Address.objects.create(**fallback_kwargs)
+                            validated_data['address'] = address
+                            logger.debug('Fallback minimal Address created id=%s with kwargs=%r', address.id, fallback_kwargs)
+                    except Exception:
+                        logger.exception('Fallback address creation failed')
+
+        # If explicit location_data provided, create a Location and associate to donation
+        loc_obj = None
+        # Small fallback: if no location_data but address_data contains lat/lon, create a Location from that
+        if not location_data and address_data and (address_data.get('latitude') is not None or address_data.get('longitude') is not None):
+            # reuse latitude/longitude and other simple fields
+            tmp = {}
+            for k in ('country', 'region', 'city', 'street', 'postal_code', 'latitude', 'longitude', 'country_code'):
+                if address_data.get(k) is not None:
+                    tmp[k] = address_data.get(k)
+            location_data = tmp
+
+        if location_data:
+            if isinstance(location_data, str):
+                try:
+                    location_data = json.loads(location_data)
+                except Exception:
+                    location_data = None
+            if location_data:
+                try:
+                    # Create a Location row to persist geometry more simply
+                    loc_obj = _create_or_get_location(location_data)
+                    validated_data['location'] = loc_obj
+                    logger.debug('Location created id=%s from location_data', getattr(loc_obj, 'id', None))
+                except Exception:
+                    logger.exception('Failed to create Location from location_data')
+
+        # ensure donation creation and photo creation are an atomic operation
+        from django.db import transaction
+        with transaction.atomic():
+            # Dump creation context for debug
+            adid = getattr(validated_data.get('address'), 'id', None) if validated_data.get('address') else None
+            lid = getattr(validated_data.get('location'), 'id', None) if validated_data.get('location') else None
+            logger.debug('Creating Donation with validated_data address=%s location=%s', adid, lid)
+            donation = Donation.objects.create(donor=self.context["request"].user, **validated_data)
+            for img in photos[:8]:
+                DonationPhoto.objects.create(donation=donation, image=img)
+            # ensure donation.address is set (some DB backends may require instance to be assigned)
+            if address and not donation.address:
+                donation.address = address
+                donation.save(update_fields=["address"]) 
+            # ensure donation.location is set
+            if loc_obj and not donation.location:
+                donation.location = loc_obj
+                donation.save(update_fields=["location"]) 
+            logger.debug('Donation created id=%s; address=%s', donation.id, getattr(donation.address, 'id', None))
         return donation
 
 
@@ -230,11 +429,15 @@ class DonationDetailSerializer(serializers.ModelSerializer):
     photos = DonationPhotoSerializer(many=True, read_only=True)
     donor_name = serializers.CharField(source="donor.username", read_only=True)
     created_pet_id = serializers.IntegerField(source="created_pet.id", read_only=True)
+    # expose location id and coordinates (read-only) so clients can render map even when address is null
+    location = serializers.IntegerField(source='location.id', read_only=True)
+    latitude = serializers.DecimalField(source='location.latitude', max_digits=9, decimal_places=6, read_only=True)
+    longitude = serializers.DecimalField(source='location.longitude', max_digits=9, decimal_places=6, read_only=True)
 
     class Meta:
         model = Donation
         fields = ["id", "donor", "donor_name", "name", "species", "breed", "sex", "age_years", "age_months",
-                  "description", "address", "dewormed", "vaccinated", "microchipped", "is_stray", "contact_phone",
+              "description", "address", "location", "latitude", "longitude", "dewormed", "vaccinated", "microchipped", "is_stray", "contact_phone",
                   "status", "reviewer", "review_note", "created_pet_id", "photos", "add_date", "pub_date"]
         read_only_fields = ["status", "reviewer", "review_note", "created_pet_id", "add_date", "pub_date"]
 
