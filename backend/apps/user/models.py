@@ -14,6 +14,18 @@ phone_validator = RegexValidator(
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=32, blank=True, validators=[phone_validator])
+    
+    # Pet adoption preferences
+    preferred_species = models.CharField(max_length=50, blank=True, help_text="偏好的物种（如：dog, cat）")
+    preferred_size = models.CharField(max_length=50, blank=True, help_text="偏好的大小（如：small, medium, large）")
+    preferred_age_min = models.IntegerField(null=True, blank=True, help_text="偏好的最小年龄（月）")
+    preferred_age_max = models.IntegerField(null=True, blank=True, help_text="偏好的最大年龄（月）")
+    preferred_gender = models.CharField(max_length=20, blank=True, help_text="偏好的性别（male/female）")
+    has_experience = models.BooleanField(default=False, help_text="是否有养宠经验")
+    living_situation = models.CharField(max_length=100, blank=True, help_text="居住环境（如：apartment, house）")
+    has_yard = models.BooleanField(default=False, help_text="是否有院子")
+    other_pets = models.CharField(max_length=200, blank=True, help_text="家中其他宠物")
+    additional_notes = models.TextField(blank=True, help_text="其他偏好说明")
 
     def __str__(self):
         return f'Profile<{self.user.username}>'

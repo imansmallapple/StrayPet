@@ -38,6 +38,7 @@ export const authApi = {
 
   getMe: () => http.get<UserMe>(ENDPOINTS.me),
   getProfile: () => http.get<UserMe>(ENDPOINTS.detail),
+  updateProfile: (data: Partial<UserMe>) => http.patch<UserMe>(ENDPOINTS.me, data),
 }
 
 export type LoginBody = {
@@ -64,4 +65,14 @@ export type UserMe = {
   first_name?: string
   last_name?: string
   phone?: string
+  preferred_species?: string
+  preferred_size?: string
+  preferred_age_min?: number
+  preferred_age_max?: number
+  preferred_gender?: string
+  has_experience?: boolean
+  living_situation?: string
+  has_yard?: boolean
+  other_pets?: string
+  additional_notes?: string
 }

@@ -39,10 +39,23 @@ class VerifyEmailCodeSerializer(serializers.Serializer):
     
 class UserMeSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+    preferred_species = serializers.CharField(source='profile.preferred_species', allow_blank=True, required=False)
+    preferred_size = serializers.CharField(source='profile.preferred_size', allow_blank=True, required=False)
+    preferred_age_min = serializers.IntegerField(source='profile.preferred_age_min', allow_null=True, required=False)
+    preferred_age_max = serializers.IntegerField(source='profile.preferred_age_max', allow_null=True, required=False)
+    preferred_gender = serializers.CharField(source='profile.preferred_gender', allow_blank=True, required=False)
+    has_experience = serializers.BooleanField(source='profile.has_experience', required=False)
+    living_situation = serializers.CharField(source='profile.living_situation', allow_blank=True, required=False)
+    has_yard = serializers.BooleanField(source='profile.has_yard', required=False)
+    other_pets = serializers.CharField(source='profile.other_pets', allow_blank=True, required=False)
+    additional_notes = serializers.CharField(source='profile.additional_notes', allow_blank=True, required=False)
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name", "phone")
+        fields = ("id", "username", "email", "first_name", "last_name", "phone", 
+                  "preferred_species", "preferred_size", "preferred_age_min", "preferred_age_max",
+                  "preferred_gender", "has_experience", "living_situation", "has_yard", 
+                  "other_pets", "additional_notes")
         extra_kwargs = {
             "username": {"required": False},
             "email": {"required": False},
@@ -52,16 +65,16 @@ class UserMeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
-        phone = profile_data.get('phone')
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        if phone is not None:
+        if profile_data:
             profile = getattr(instance, 'profile', None)
             if profile:
-                profile.phone = phone
+                for attr, value in profile_data.items():
+                    setattr(profile, attr, value)
                 profile.save()
 
         return instance
