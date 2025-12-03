@@ -41,6 +41,21 @@ type PetDetail = Pet & {
   traits?: string[]
   photos?: string[]
   
+  // Health and traits from backend
+  dewormed?: boolean
+  vaccinated?: boolean
+  microchipped?: boolean
+  child_friendly?: boolean
+  trained?: boolean
+  loves_play?: boolean
+  loves_walks?: boolean
+  good_with_dogs?: boolean
+  good_with_cats?: boolean
+  affectionate?: boolean
+  needs_attention?: boolean
+  sterilized?: boolean
+  contact_phone?: string
+  
   shelter_name?: string
   shelter_address?: string
   shelter_city?: string
@@ -121,15 +136,49 @@ export default function AdoptDetail() {
   }
 
   const ageText = (() => {
-    if (pet.age_years || pet.age_months) {
-      const yy = pet.age_years ? `${pet.age_years}y` : ''
-      const mm = pet.age_months ? `${pet.age_months}m` : ''
-      return [yy, mm].filter(Boolean).join(' ')
+    const y = pet.age_years || 0
+    const m = pet.age_months || 0
+    
+    // Determine age label based on form mapping
+    if (y === 0 && m <= 3) {
+      return 'Baby (0\u20133 months)'
+    } else if (y === 0 && m <= 6) {
+      return 'Very young (3\u20136 months)'
+    } else if (y === 1 && m === 0) {
+      return 'Young / Junior (6\u201312 months)'
+    } else if (y >= 1 && y < 7) {
+      return 'Adult (1\u20137 years)'
+    } else if (y >= 7) {
+      return 'Senior (7+ years)'
     }
+    
     return 'Age N/A'
   })()
 
-  const traits = pet.traits ?? []
+  // Map sex to Boy/Girl
+  const sexText = (() => {
+    const sex = (pet.sex || '').toLowerCase()
+    if (sex === 'male') return 'Boy'
+    if (sex === 'female') return 'Girl'
+    return 'Unknown'
+  })()
+
+  // Build traits array from backend boolean fields
+  const healthTraits: string[] = []
+  if (pet.sterilized) healthTraits.push('Sterilized/Neutered')
+  if (pet.vaccinated) healthTraits.push('Vaccinated')
+  if (pet.dewormed) healthTraits.push('Dewormed')
+  if (pet.microchipped) healthTraits.push('Microchipped')
+  if (pet.child_friendly) healthTraits.push('Good with children')
+  if (pet.trained) healthTraits.push('House trained')
+  if (pet.loves_play) healthTraits.push('Loves to play')
+  if (pet.loves_walks) healthTraits.push('Loves walks')
+  if (pet.good_with_dogs) healthTraits.push('Good with other dogs')
+  if (pet.good_with_cats) healthTraits.push('Good with cats')
+  if (pet.affectionate) healthTraits.push('Affectionate')
+  if (pet.needs_attention) healthTraits.push('Needs lots of attention')
+
+  const traits = pet.traits && pet.traits.length > 0 ? pet.traits : healthTraits
   // Prefer the `address_display` string returned by backend pet serializer (PetListSerializer)
   // Fallbacks: `pet.address` (id or string) -> `pet.city` -> empty
   const _rawAddr = (pet.address_display || pet.address || pet.city || '').trim()
@@ -208,7 +257,7 @@ export default function AdoptDetail() {
                     </tr>
                     <tr>
                       <th>Sex:</th>
-                      <td>{pet.sex || 'Unknown'}</td>
+                      <td>{sexText}</td>
                     </tr>
                     <tr>
                       <th>Age:</th>
@@ -218,6 +267,12 @@ export default function AdoptDetail() {
                       <th>City/Address:</th>
                       <td className="address-cell">{(pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : (pet.city || pet.shelter_city || '—')}</td>
                     </tr>
+                    {pet.contact_phone && (
+                      <tr>
+                        <th>Contact Phone:</th>
+                        <td>{pet.contact_phone}</td>
+                      </tr>
+                    )}
                     <tr>
                       <th>Added:</th>
                       <td>{pet.add_date?.slice(0, 10) || '—'}</td>
@@ -265,18 +320,6 @@ export default function AdoptDetail() {
                 />
 
                 <div className="shelter-actions">
-                  {pet.shelter_phone && (
-                    <Button
-                      type="button"
-                      variant="success"
-                      className="w-100 mb-2"
-                      as="a"
-                      href={`tel:${pet.shelter_phone}`}
-                    >
-                      📞 Call shelter
-                    </Button>
-                  )}
-
                   <Button
                     type="button"
                     variant="outline-warning"

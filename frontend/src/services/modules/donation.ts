@@ -27,6 +27,16 @@ export type DonationCreatePayload = {
   is_stray?: boolean
   contact_phone?: string
   photos?: File[]
+  // Additional traits
+  sterilized?: boolean
+  child_friendly?: boolean
+  trained?: boolean
+  loves_play?: boolean
+  loves_walks?: boolean
+  good_with_dogs?: boolean
+  good_with_cats?: boolean
+  affectionate?: boolean
+  needs_attention?: boolean
 }
 
 export function buildDonationFormData(p: DonationCreatePayload): FormData {
@@ -43,6 +53,15 @@ export function buildDonationFormData(p: DonationCreatePayload): FormData {
   if (p.vaccinated !== undefined) fd.append('vaccinated', p.vaccinated ? 'true' : 'false')
   if (p.microchipped !== undefined) fd.append('microchipped', p.microchipped ? 'true' : 'false')
   if (p.is_stray !== undefined) fd.append('is_stray', p.is_stray ? 'true' : 'false')
+  if (p.sterilized !== undefined) fd.append('sterilized', p.sterilized ? 'true' : 'false')
+  if (p.child_friendly !== undefined) fd.append('child_friendly', p.child_friendly ? 'true' : 'false')
+  if (p.trained !== undefined) fd.append('trained', p.trained ? 'true' : 'false')
+  if (p.loves_play !== undefined) fd.append('loves_play', p.loves_play ? 'true' : 'false')
+  if (p.loves_walks !== undefined) fd.append('loves_walks', p.loves_walks ? 'true' : 'false')
+  if (p.good_with_dogs !== undefined) fd.append('good_with_dogs', p.good_with_dogs ? 'true' : 'false')
+  if (p.good_with_cats !== undefined) fd.append('good_with_cats', p.good_with_cats ? 'true' : 'false')
+  if (p.affectionate !== undefined) fd.append('affectionate', p.affectionate ? 'true' : 'false')
+  if (p.needs_attention !== undefined) fd.append('needs_attention', p.needs_attention ? 'true' : 'false')
   if (p.contact_phone) fd.append('contact_phone', p.contact_phone)
   if (Array.isArray(p.photos)) {
     p.photos.forEach(f => fd.append('photos', f))

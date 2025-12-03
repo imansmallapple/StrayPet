@@ -28,7 +28,7 @@ import { donationApi, buildDonationFormData } from '@/services/modules/donation'
 type AgeOption = 'baby' | 'very_young' | 'young' | 'adult' | 'senior'
 type SizeOption = 'small' | 'medium' | 'large'
 type ActivityOption = 'couch' | 'normal' | 'active'
-type SexOption = 'he' | 'she' | 'unknown'
+type SexOption = 'boy' | 'girl'
 
 interface TraitDef {
   key: string
@@ -36,18 +36,18 @@ interface TraitDef {
 }
 
 const TRAITS: TraitDef[] = [
-  { key: 'sterilized', label: 'sterilization/castration' },
-  { key: 'vaccinated', label: 'vaccination' },
-  { key: 'dewormed', label: 'dewormed' },
-  { key: 'microchipped', label: 'microchipped' },
-  { key: 'child_friendly', label: 'Child-friendly' },
-  { key: 'trained', label: 'Trained' },
-  { key: 'loves_play', label: 'loves to play' },
-  { key: 'loves_walks', label: 'loves walks' },
-  { key: 'accepts_dogs', label: 'accepts dogs' },
-  { key: 'accepts_cats', label: 'accepts cats' },
-  { key: 'loves_cares', label: 'loves caresses' },
-  { key: 'hates_shelter', label: 'he tolerates staying in the shelter very badly' },
+  { key: 'sterilized', label: 'Sterilized/Neutered' },
+  { key: 'vaccinated', label: 'Vaccinated' },
+  { key: 'dewormed', label: 'Dewormed' },
+  { key: 'microchipped', label: 'Microchipped' },
+  { key: 'child_friendly', label: 'Good with children' },
+  { key: 'trained', label: 'House trained' },
+  { key: 'loves_play', label: 'Loves to play' },
+  { key: 'loves_walks', label: 'Loves walks' },
+  { key: 'good_with_dogs', label: 'Good with other dogs' },
+  { key: 'good_with_cats', label: 'Good with cats' },
+  { key: 'affectionate', label: 'Affectionate' },
+  { key: 'needs_attention', label: 'Needs lots of attention' },
 ]
 
 interface FormState {
@@ -80,8 +80,8 @@ export default function DonationCreate() {
     city: '',
     name: '',
     description: '',
-    sex: 'he',
-    age: 'very_young',
+    sex: 'boy',
+    age: 'young',
     size: 'small',
     activity: 'couch',
     breed: 'Hybrid',
@@ -90,6 +90,7 @@ export default function DonationCreate() {
 
   const [activeField, setActiveField] = useState<'country' | 'region' | 'city' | null>(null)
   const [species, setSpecies] = useState('dog')
+  const [customSpecies, setCustomSpecies] = useState('')
   const [addressData, setAddressData] = useState<AddressData>({
     country: '',
     region: '',
@@ -577,10 +578,9 @@ export default function DonationCreate() {
 
     setSubmitting(true)
     try {
-      const sex_map: Record<SexOption, 'male' | 'female' | 'unknown'> = {
-        he: 'male',
-        she: 'female',
-        unknown: 'unknown',
+      const sex_map: Record<SexOption, 'male' | 'female'> = {
+        boy: 'male',
+        girl: 'female',
       }
       const age_map: Record<string, { y: number; m: number }> = {
         baby: { y: 0, m: 3 },
@@ -601,9 +601,11 @@ export default function DonationCreate() {
       if (typeof addressData.longitude === 'number') addressObj.longitude = addressData.longitude
       if (addressData.country_code) addressObj.country_code = addressData.country_code
 
+      const finalSpecies = species === 'other' ? (customSpecies || 'other') : species
+
       const payload = {
         name: form.name,
-        species: species || 'dog',
+        species: finalSpecies,
         breed: form.breed,
         sex: sex_map[form.sex] ?? 'male',
         age_years: mappedAge?.y ?? 0,
@@ -613,7 +615,16 @@ export default function DonationCreate() {
         dewormed: !!form.traits['dewormed'],
         vaccinated: !!form.traits['vaccinated'],
         microchipped: !!form.traits['microchipped'],
-        is_stray: !!form.traits['loves_cares'],
+        sterilized: !!form.traits['sterilized'],
+        child_friendly: !!form.traits['child_friendly'],
+        trained: !!form.traits['trained'],
+        loves_play: !!form.traits['loves_play'],
+        loves_walks: !!form.traits['loves_walks'],
+        good_with_dogs: !!form.traits['good_with_dogs'],
+        good_with_cats: !!form.traits['good_with_cats'],
+        affectionate: !!form.traits['affectionate'],
+        needs_attention: !!form.traits['needs_attention'],
+        is_stray: false,
         contact_phone: contactPhone,
         photos: reorderPhotosWithCoverFirst(),
       }
@@ -634,6 +645,7 @@ export default function DonationCreate() {
       setPhotos([])
       setCoverPhotoIndex(0)
       setSpecies('dog')
+      setCustomSpecies('')
       setAddressData({
         country: '',
         region: '',
@@ -694,26 +706,14 @@ export default function DonationCreate() {
             </Card.Header>
             <Card.Body>
               <Row className="g-4">
-                {/* 左侧：城市 + 描述 */}
+                {/* 左侧：描述 */}
                 <Col md={6}>
-                  <Form.Group className="mb-3" controlId="city">
-                    <Form.Label>
-                      City <span className="muted">(in which city is the pet located?)</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g. Warszawa"
-                      value={form.city}
-                      onChange={e => handleChange('city', e.target.value)}
-                    />
-                  </Form.Group>
-
                   <Alert variant="warning" className="donation-hint">
                     Please do not include phone numbers in advertisements. The phone number will be
                     visible next to the pet.
                   </Alert>
 
-                  <Form.Group className="mt-3" controlId="description">
+                  <Form.Group controlId="description">
                     <Form.Label>Pet description</Form.Label>
                     <div className="donation-editor-wrapper">
                       {/* FluentEditor 挂载点 */}
@@ -744,9 +744,8 @@ export default function DonationCreate() {
                           value={form.sex}
                           onChange={e => handleChange('sex', e.target.value as SexOption)}
                         >
-                          <option value="he">He</option>
-                          <option value="she">She</option>
-                          <option value="unknown">Unknown</option>
+                          <option value="boy">Boy</option>
+                          <option value="girl">Girl</option>
                         </Form.Select>
                       </Form.Group>
                     </Col>
@@ -758,11 +757,11 @@ export default function DonationCreate() {
                           value={form.age}
                           onChange={e => handleChange('age', e.target.value as AgeOption)}
                         >
-                          <option value="baby">Baby</option>
-                          <option value="very_young">Very young</option>
-                          <option value="young">Young</option>
-                          <option value="adult">Adult</option>
-                          <option value="senior">Senior</option>
+                          <option value="baby">Baby (0–3 months)</option>
+                          <option value="very_young">Very young (3–6 months)</option>
+                          <option value="young">Young / Junior (6–12 months)</option>
+                          <option value="adult">Adult (1–7 years)</option>
+                          <option value="senior">Senior (7+ years)</option>
                         </Form.Select>
                       </Form.Group>
                     </Col>
@@ -795,13 +794,46 @@ export default function DonationCreate() {
                       </Form.Group>
                     </Col>
                     <Col xs={12} className="mt-3">
-                      <Form.Group controlId="species">
+                      <Form.Group>
                         <Form.Label>Species</Form.Label>
-                        <Form.Select value={species} onChange={e => setSpecies(e.target.value)}>
-                          <option value="dog">Dog</option>
-                          <option value="cat">Cat</option>
-                          <option value="other">Other</option>
-                        </Form.Select>
+                        <div className="d-flex align-items-center gap-3 flex-wrap">
+                          <Form.Check
+                            inline
+                            type="radio"
+                            id="species-dog"
+                            label="Dog"
+                            name="species"
+                            checked={species === 'dog'}
+                            onChange={() => setSpecies('dog')}
+                          />
+                          <Form.Check
+                            inline
+                            type="radio"
+                            id="species-cat"
+                            label="Cat"
+                            name="species"
+                            checked={species === 'cat'}
+                            onChange={() => setSpecies('cat')}
+                          />
+                          <Form.Check
+                            inline
+                            type="radio"
+                            id="species-other"
+                            label="Other"
+                            name="species"
+                            checked={species === 'other'}
+                            onChange={() => setSpecies('other')}
+                          />
+                          {species === 'other' && (
+                            <Form.Control
+                              type="text"
+                              placeholder="Enter species"
+                              value={customSpecies}
+                              onChange={e => setCustomSpecies(e.target.value)}
+                              style={{ width: '200px', display: 'inline-block' }}
+                            />
+                          )}
+                        </div>
                       </Form.Group>
                     </Col>
 

@@ -17,6 +17,7 @@ export type Pet = {
   description?: string
   status?: 'AVAILABLE' | 'PENDING' | 'ADOPTED' | 'LOST' | 'DRAFT' | 'ARCHIVED' | string
   photo?: string | null
+  photos?: string[]
   add_date?: string
   pub_date?: string
   created_by?: { id?: number; username?: string } | number
@@ -24,6 +25,21 @@ export type Pet = {
   address_lon?: number
   is_favorited?: boolean
   favorites_count?: number
+  
+  // Health and traits
+  dewormed?: boolean
+  vaccinated?: boolean
+  microchipped?: boolean
+  child_friendly?: boolean
+  trained?: boolean
+  loves_play?: boolean
+  loves_walks?: boolean
+  good_with_dogs?: boolean
+  good_with_cats?: boolean
+  affectionate?: boolean
+  needs_attention?: boolean
+  sterilized?: boolean
+  contact_phone?: string
 }
 
 export type PetListParams = {

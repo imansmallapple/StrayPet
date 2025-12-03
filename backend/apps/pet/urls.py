@@ -23,6 +23,17 @@ urlpatterns = [
 		LostViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}),
 		name='pet_lost_detail'
 	),
+	# Explicit donation routes to ensure /pet/donation/ resolves
+	path(
+		'donation/',
+		DonationViewSet.as_view({'get': 'list', 'post': 'create'}),
+		name='pet_donation'
+	),
+	path(
+		'donation/<int:pk>/',
+		DonationViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}),
+		name='pet_donation_detail'
+	),
 	# Router-generated routes
 	*router.urls
 ]

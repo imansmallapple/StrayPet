@@ -42,6 +42,22 @@ class Pet(models.Model):
     age_years = models.PositiveIntegerField("Age (years)", default=0)
     age_months = models.PositiveIntegerField("Age (months)", default=0)
     description = models.TextField("Description", blank=True, default="")
+    
+    # Health and traits
+    dewormed = models.BooleanField("Dewormed", default=False)
+    vaccinated = models.BooleanField("Vaccinated", default=False)
+    microchipped = models.BooleanField("Microchipped", default=False)
+    child_friendly = models.BooleanField("Child Friendly", default=False)
+    trained = models.BooleanField("House Trained", default=False)
+    loves_play = models.BooleanField("Loves to Play", default=False)
+    loves_walks = models.BooleanField("Loves Walks", default=False)
+    good_with_dogs = models.BooleanField("Good with Dogs", default=False)
+    good_with_cats = models.BooleanField("Good with Cats", default=False)
+    affectionate = models.BooleanField("Affectionate", default=False)
+    needs_attention = models.BooleanField("Needs Attention", default=False)
+    sterilized = models.BooleanField("Sterilized/Neutered", default=False)
+    contact_phone = models.CharField("Contact Phone", max_length=30, blank=True, default="")
+    
     address = models.ForeignKey(
         "pet.Address", on_delete=models.SET_NULL, null=True, blank=True, related_name="pets", verbose_name="Address"
     )
@@ -136,6 +152,15 @@ class Donation(models.Model):
     dewormed = models.BooleanField("Dewormed", default=False)
     vaccinated = models.BooleanField("Vaccinated", default=False)
     microchipped = models.BooleanField("Microchipped", default=False)
+    sterilized = models.BooleanField("Sterilized/Neutered", default=False)
+    child_friendly = models.BooleanField("Child Friendly", default=False)
+    trained = models.BooleanField("House Trained", default=False)
+    loves_play = models.BooleanField("Loves to Play", default=False)
+    loves_walks = models.BooleanField("Loves Walks", default=False)
+    good_with_dogs = models.BooleanField("Good with Dogs", default=False)
+    good_with_cats = models.BooleanField("Good with Cats", default=False)
+    affectionate = models.BooleanField("Affectionate", default=False)
+    needs_attention = models.BooleanField("Needs Attention", default=False)
     is_stray = models.BooleanField("Found as Stray", default=False)
     contact_phone = models.CharField("Contact Phone", max_length=30, blank=True, default="")
 
@@ -179,6 +204,19 @@ class Donation(models.Model):
                 age_years=self.age_years, age_months=self.age_months,
                 description=self.description,
                 address=self.address,
+                dewormed=self.dewormed,
+                vaccinated=self.vaccinated,
+                microchipped=self.microchipped,
+                sterilized=self.sterilized,
+                child_friendly=self.child_friendly,
+                trained=self.trained,
+                loves_play=self.loves_play,
+                loves_walks=self.loves_walks,
+                good_with_dogs=self.good_with_dogs,
+                good_with_cats=self.good_with_cats,
+                affectionate=self.affectionate,
+                needs_attention=self.needs_attention,
+                contact_phone=self.contact_phone,
                 status=Pet.Status.AVAILABLE,
                 created_by=self.donor,  # 或 reviewer/机构账号
             )

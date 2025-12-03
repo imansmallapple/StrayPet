@@ -248,6 +248,9 @@ class PetListSerializer(serializers.ModelSerializer):
             "age_years", "age_months", "age_display",
             "description", "address_display", "cover", 'photo', 'photos',
             "address_lat", "address_lon",
+            "dewormed", "vaccinated", "microchipped", "child_friendly", "trained",
+            "loves_play", "loves_walks", "good_with_dogs", "good_with_cats",
+            "affectionate", "needs_attention", "sterilized", "contact_phone",
             "status", "created_by", "applications_count",
             "add_date", "pub_date",
             "is_favorited", "favorites_count",
@@ -433,6 +436,8 @@ class DonationCreateSerializer(serializers.ModelSerializer):
         model = Donation
         fields = ["name", "species", "breed", "sex", "age_years", "age_months",
                   "description", "address", "address_data", "location_data", "dewormed", "vaccinated", "microchipped",
+                  "sterilized", "child_friendly", "trained", "loves_play", "loves_walks",
+                  "good_with_dogs", "good_with_cats", "affectionate", "needs_attention",
                   "is_stray", "contact_phone", "photos"]
 
     def create(self, validated_data):
