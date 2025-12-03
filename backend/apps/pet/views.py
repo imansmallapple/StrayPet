@@ -7,7 +7,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, AllowAny, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from .models import Pet, Adoption, Lost, Donation
+from .models import Pet, Adoption, Lost, Donation, PetFavorite
 from django.core.exceptions import FieldDoesNotExist
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
     AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer,\
@@ -118,6 +118,26 @@ class PetViewSet(viewsets.ModelViewSet):
             pet.status = Pet.Status.PENDING
             pet.save(update_fields=["status", "pub_date"])
         return Response({"ok": True, "application_id": app.id})
+
+    # —— Favorites —— #
+    @decorators.action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def favorite(self, request, pk=None):
+        pet = self.get_object()
+        fav, created = PetFavorite.objects.get_or_create(user=request.user, pet=pet)
+        return Response({"favorited": True, "created": created, "count": pet.favorites.count()})
+
+    @decorators.action(detail=True, methods=["delete"], permission_classes=[permissions.IsAuthenticated])
+    def unfavorite(self, request, pk=None):
+        pet = self.get_object()
+        PetFavorite.objects.filter(user=request.user, pet=pet).delete()
+        return Response({"favorited": False, "count": pet.favorites.count()})
+
+    @decorators.action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def favorites(self, request):
+        qs = Pet.objects.filter(favorites__user=request.user).order_by("-favorites__add_date")
+        page = self.paginate_queryset(qs)
+        ser = PetListSerializer(page, many=True, context={"request": request})
+        return self.get_paginated_response(ser.data)
 
 
 class AdoptionViewSet(viewsets.ModelViewSet):

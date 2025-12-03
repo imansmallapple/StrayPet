@@ -407,3 +407,19 @@ class Lost(models.Model):
             loc = ", ".join([p for p in parts if p])
             return f"[{self.get_status_display()}] {base}" + (f" @ {loc}" if loc else "")
         return f"[{self.get_status_display()}] {base}"
+
+
+class PetFavorite(models.Model):
+    """User favorites a pet (bookmark). Unique per (user, pet)."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="pet_favorites")
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="favorites")
+    add_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "pet")
+        indexes = [models.Index(fields=["user", "pet"])]
+        verbose_name = "Pet Favorite"
+        verbose_name_plural = "Pet Favorites"
+
+    def __str__(self):
+        return f"{self.user} ❤ {self.pet}"

@@ -88,6 +88,39 @@ def geocode_address(address: str, *, context: Optional[Dict[str, Any]] = None) -
     if cached:
         return cached
 
+    # When structured context is available, build a normalized address string
+    def _normalize_street(s: str) -> str:
+        s = str(s).strip()
+        # strip any trailing apartment/room info after a comma
+        if ',' in s:
+            s = s.split(',')[0].strip()
+        # reorder patterns like "12/16 Kopińska" -> "Kopińska 12/16"
+        try:
+            import re
+            m = re.match(r"^(\d+[\w\/-]*)\s+(.+)$", s)
+            if m:
+                return f"{m.group(2).strip()} {m.group(1).strip()}"
+        except Exception:
+            pass
+        return s
+
+    if context:
+        street = context.get('street')
+        city = context.get('city')
+        postal = context.get('postal_code') or context.get('postal')
+        country = context.get('country')
+        parts = []
+        if street:
+            parts.append(_normalize_street(street))
+        if city:
+            parts.append(str(city).strip())
+        if postal:
+            parts.append(str(postal).strip())
+        if country:
+            parts.append(str(country).strip())
+        if parts:
+            addr = ", ".join([p for p in parts if p])
+
     # Try Mapbox Geocoding API
     token = getattr(settings, 'MAPBOX_TOKEN', None) or getattr(settings, 'MAPBOX_ACCESS_TOKEN', None)
     if token:
@@ -108,17 +141,25 @@ def geocode_address(address: str, *, context: Optional[Dict[str, Any]] = None) -
                 feats = (data or {}).get('features', [])
                 if feats:
                     feat0 = feats[0]
-                    # 要求足够相关且类型为 address/poi 才接受
-                    if feat0.get('relevance', 0) >= 0.8 and any(t in ('address','poi') for t in feat0.get('place_type', [])):
+                    # 要求足够相关且类型为 address/poi 才接受（略微放宽阈值以适配复杂门牌）
+                    if feat0.get('relevance', 0) >= 0.7 and any(t in ('address','poi') for t in feat0.get('place_type', [])):
                         center = feat0.get('center')
                         if isinstance(center, list) and len(center) >= 2:
                             lon, lat = float(center[0]), float(center[1])
                             _cache_set(cache_key, (lon, lat))
                             return lon, lat
-            # 额外尝试将 “12/16” 简化为 “12” 再查一次
-            if context.get('street') and '/' in str(context['street']):
-                simple_street = str(context['street']).split('/')[0].strip()
-                alt_addr = simple_street
+            # 额外尝试将 “12/16” 简化为 “12”，并确保街道名在前
+            if context.get('street'):
+                s = _normalize_street(context['street'])
+                simple_s = s
+                if '/' in s:
+                    # reduce 12/16 -> 12
+                    try:
+                        simple_s = s.replace('/', ' ').split()[-1]
+                    except Exception:
+                        simple_s = s.split('/')[0]
+                # build alt address with city/postal
+                alt_addr = simple_s
                 if context.get('city'):
                     alt_addr += f", {context['city']}"
                 if context.get('postal_code'):
@@ -131,7 +172,7 @@ def geocode_address(address: str, *, context: Optional[Dict[str, Any]] = None) -
                     feats2 = (data2 or {}).get('features', [])
                     if feats2:
                         f0 = feats2[0]
-                        if f0.get('relevance', 0) >= 0.8 and any(t in ('address','poi') for t in f0.get('place_type', [])):
+                        if f0.get('relevance', 0) >= 0.7 and any(t in ('address','poi') for t in f0.get('place_type', [])):
                             center = f0.get('center')
                             if isinstance(center, list) and len(center) >= 2:
                                 lon, lat = float(center[0]), float(center[1])

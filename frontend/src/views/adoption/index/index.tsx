@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
@@ -22,6 +22,9 @@ export default function Adopt() {
   const pageSize = Number(sp.get('page_size') || 24)
   const species = sp.get('species') || ''
   const sort = sp.get('sort') || 'longest_stay'
+  
+  const [favStates, setFavStates] = useState<Record<number, boolean>>({})
+  const [favLoading, setFavLoading] = useState<Record<number, boolean>>({})
 
   const params = useMemo(
     () => ({
@@ -30,8 +33,8 @@ export default function Adopt() {
       ...(species ? { species } : {}),
       ...(sort ? { ordering: sort } : {}),
     }),
-    [page, pageSize, species, sort],
-  )
+    [page, pageSize, species, sort]
+  );
 
   const { data, loading } = useRequest(
     () => adoptApi.list(params).then(res => res.data as Paginated<Pet>),
@@ -41,7 +44,6 @@ export default function Adopt() {
   const list = data?.results ?? []
   const count = data?.count ?? 0
   const totalPages = Math.max(1, Math.ceil(count / pageSize))
-
   // ✅ 生成唯一的 skeleton key（避免用 index）
   const skeletonKeys = useMemo(
     () => Array.from({ length: 8 }, () =>
@@ -87,6 +89,48 @@ export default function Adopt() {
       return [yy, mm].filter(Boolean).join(' ')
     }
     return 'Age N/A'
+  }
+
+  const handleToggleFav = async (pet: Pet, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Prevent double-click
+    if (favLoading[pet.id]) return
+    
+    const currentState = favStates[pet.id] ?? pet.is_favorited ?? false
+    const newState = !currentState
+    
+    // Optimistic update
+    setFavLoading(prev => ({ ...prev, [pet.id]: true }))
+    setFavStates(prev => ({ ...prev, [pet.id]: newState }))
+    
+    try {
+      const result = newState 
+        ? await adoptApi.favorite(pet.id) 
+        : await adoptApi.unfavorite(pet.id)
+      
+      // Update from server response
+      setFavStates(prev => ({ ...prev, [pet.id]: result.data.favorited }))
+    }
+    catch (err: any) {
+      console.error('Toggle favorite failed:', err)
+      console.error('Error response:', err?.response)
+      console.error('Error data:', err?.response?.data)
+      console.error('Error status:', err?.response?.status)
+      
+      // Revert on error
+      setFavStates(prev => ({ ...prev, [pet.id]: currentState }))
+      if (err?.response?.status === 401) {
+        alert('请先登录后再收藏')
+      } else {
+        const errorMsg = err?.response?.data?.detail || err?.response?.data?.error || '收藏操作失败'
+        alert(`${errorMsg}\n\n请打开浏览器控制台(F12)查看详细错误信息`)
+      }
+    }
+    finally {
+      setFavLoading(prev => ({ ...prev, [pet.id]: false }))
+    }
   }
 
   return (
@@ -164,34 +208,48 @@ export default function Adopt() {
         ) : (
           <>
             <Row className="g-4">
-              {list.map((pet) => (
-                <Col key={pet.id} xs={12} sm={6} md={4} lg={3}>
-                  <Card className="pf3-card h-100 border-0 shadow-lg rounded-4">
-                    <Link to={`/adopt/${pet.id}`} className="text-decoration-none">
-                      <Card.Img
-                        variant="top"
-                        src={pet.photo || '/images/pet-placeholder.jpg'}
-                        alt={pet.name}
-                        style={{ objectFit: 'cover', height: 220 }}
-                      />
-                      <Card.Body>
-                        <Card.Title className="pf3-name text-primary fw-bolder">
-                          {pet.name}
-                        </Card.Title>
-                        <div className="text-secondary fw-semibold">A{String(pet.id).padStart(6, '0')}</div>
-                        <div className="small text-muted mt-1 d-flex justify-content-between align-items-center">
-                          <div className="d-inline-block">
-                            {(pet.species ?? 'Pet').toString()} • {ageText(pet)}
+              {list.map((pet) => {
+                const isFav = favStates[pet.id] ?? pet.is_favorited ?? false
+                return (
+                  <Col key={pet.id} xs={12} sm={6} md={4} lg={3}>
+                    <Card className="pf3-card h-100 border-0 shadow-lg rounded-4">
+                      <button
+                        type="button"
+                        className={`pf3-fav-btn ${isFav ? 'is-on' : ''}`}
+                        disabled={favLoading[pet.id]}
+                        onClick={(e) => handleToggleFav(pet, e)}
+                        aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        <span className="pf3-fav-icon">
+                          {favLoading[pet.id] ? '⋯' : (isFav ? '★' : '☆')}
+                        </span>
+                      </button>
+                      <Link to={`/adopt/${pet.id}`} className="text-decoration-none">
+                        <Card.Img
+                          variant="top"
+                          src={pet.photo || '/images/pet-placeholder.jpg'}
+                          alt={pet.name}
+                          style={{ objectFit: 'cover', height: 220 }}
+                        />
+                        <Card.Body>
+                          <Card.Title className="pf3-name text-primary fw-bolder">
+                            {pet.name}
+                          </Card.Title>
+                          <div className="text-secondary fw-semibold">A{String(pet.id).padStart(6, '0')}</div>
+                          <div className="small text-muted mt-1 d-flex justify-content-between align-items-center">
+                            <div className="d-inline-block">
+                              {(pet.species ?? 'Pet').toString()} • {ageText(pet)}
+                            </div>
+                            <div className="pf3-location text-truncate ms-2 d-inline-block" style={{ maxWidth: '40%' }} title={pet.address_display || pet.city || ''}>
+                              {((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : pet.city) || ''}
+                            </div>
                           </div>
-                          <div className="pf3-location text-truncate ms-2 d-inline-block" style={{ maxWidth: '40%' }} title={pet.address_display || pet.city || ''}>
-                            {((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : pet.city) || ''}
-                          </div>
-                        </div>
-                      </Card.Body>
-                    </Link>
-                  </Card>
-                </Col>
-              ))}
+                        </Card.Body>
+                      </Link>
+                    </Card>
+                  </Col>
+                )
+              })}
             </Row>
 
             {/* 分页 */}

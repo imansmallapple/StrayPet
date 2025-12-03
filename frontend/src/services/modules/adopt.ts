@@ -22,6 +22,8 @@ export type Pet = {
   created_by?: { id?: number; username?: string } | number
   address_lat?: number
   address_lon?: number
+  is_favorited?: boolean
+  favorites_count?: number
 }
 
 export type PetListParams = {
@@ -62,4 +64,10 @@ export const adoptApi = {
     const body = message ? { message } : {} // exactOptionalPropertyTypes 下不要传 undefined
     return http.post<{ ok: boolean; application_id: number }>(`${ENDPOINTS.pets}${id}/apply/`, body)
   },
+  favorite: (id: number) =>
+    http.post<{ favorited: boolean; count: number }>(`${ENDPOINTS.pets}${id}/favorite/`, {}),
+  unfavorite: (id: number) =>
+    http.delete<{ favorited: boolean; count: number }>(`${ENDPOINTS.pets}${id}/unfavorite/`),
+  myFavorites: (params?: PetListParams) =>
+    http.get<Paginated<Pet>>(`${ENDPOINTS.pets}favorites/`, { params }),
 }

@@ -20,10 +20,11 @@
     background: #f1f5f9;
 }
 
-/* 卡片 */
+/* 卡牁E*/
 .pf3-card {
     transition: transform .15s ease, box-shadow .15s ease;
     border-radius: 16px !important;
+    position: relative;
 }
 
 .pf3-card:hover {
@@ -41,4 +42,44 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Favorite button */
+.pf3-fav-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: transform .1s ease, background .2s ease;
+    cursor: pointer;
+}
+.pf3-fav-btn:hover { 
+    transform: translateY(-1px); 
+    background: #fff; 
+}
+.pf3-fav-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.pf3-fav-btn:hover:disabled { 
+    transform: none;
+}
+.pf3-fav-btn:active { 
+    transform: translateY(0); 
+}
+.pf3-fav-icon { 
+    color: #999; 
+    font-size: 18px; 
+}
+.pf3-fav-btn.is-on .pf3-fav-icon { 
+    color: #f59e0b; 
 }

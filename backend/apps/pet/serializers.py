@@ -2,7 +2,7 @@ from __future__ import annotations
 # apps/pet/serializers.py
 from rest_framework import serializers
 import json
-from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City
+from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite
 from django.contrib.gis.geos import Point
 from typing import TYPE_CHECKING
 from common.utils import geocode_address
@@ -238,6 +238,8 @@ class PetListSerializer(serializers.ModelSerializer):
     address_lon = serializers.SerializerMethodField()
     photo = serializers.ImageField(source='cover', read_only=True)
     photos = serializers.SerializerMethodField()  # 多张照片数组
+    is_favorited = serializers.SerializerMethodField()
+    favorites_count = serializers.IntegerField(source='favorites.count', read_only=True)
 
     class Meta:
         model = Pet
@@ -247,7 +249,8 @@ class PetListSerializer(serializers.ModelSerializer):
             "description", "address_display", "cover", 'photo', 'photos',
             "address_lat", "address_lon",
             "status", "created_by", "applications_count",
-            "add_date", "pub_date"
+            "add_date", "pub_date",
+            "is_favorited", "favorites_count",
         )
         read_only_fields = ("status", "created_by", "applications_count", "add_date", "pub_date")
 
@@ -266,6 +269,13 @@ class PetListSerializer(serializers.ModelSerializer):
                 else:
                     urls.append(photo.image.url)
         return urls
+
+    def get_is_favorited(self, obj: Pet) -> bool:
+        request = self.context.get('request')
+        u = getattr(request, 'user', None)
+        if not (u and u.is_authenticated):
+            return False
+        return PetFavorite.objects.filter(user=u, pet=obj).exists()
 
     def get_age_display(self, obj: Pet) -> str:
         y = obj.age_years or 0
