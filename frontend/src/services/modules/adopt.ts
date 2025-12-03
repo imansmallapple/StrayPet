@@ -70,4 +70,6 @@ export const adoptApi = {
     http.delete<{ favorited: boolean; count: number }>(`${ENDPOINTS.pets}${id}/unfavorite/`),
   myFavorites: (params?: PetListParams) =>
     http.get<Paginated<Pet>>(`${ENDPOINTS.pets}favorites/`, { params }),
+  myPets: (params?: PetListParams) =>
+    http.get<Paginated<Pet>>(`${ENDPOINTS.pets}my_pets/`, { params }),
 }

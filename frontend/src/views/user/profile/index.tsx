@@ -127,7 +127,7 @@ export default function Profile() {
           {activeTab === 'favorite-pets' && <FavoritesList />}
           {activeTab === 'favorite-articles' && <PlaceholderView title="收藏的文章" icon="bookmark-star" />}
           {activeTab === 'my-articles' && <PlaceholderView title="我的文章" icon="file-earmark-text" />}
-          {activeTab === 'my-pets' && <PlaceholderView title="我的宠物" icon="heart" />}
+          {activeTab === 'my-pets' && <MyPetsList />}
           {activeTab === 'replies' && <PlaceholderView title="回复我的" icon="chat-dots" />}
         </Col>
       </Row>
@@ -302,6 +302,152 @@ function PlaceholderView({ title, icon }: { title: string; icon: string }) {
         <i className={`bi bi-${icon} text-muted`} style={{ fontSize: '4rem' }}></i>
         <h5 className="mt-3 text-muted">{title}</h5>
         <p className="text-muted">功能开发中，敬请期待</p>
+      </Card.Body>
+    </Card>
+  )
+}
+
+function MyPetsList() {
+  const [pets, setPets] = useState<Pet[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const { data } = await adoptApi.myPets({})
+        if (!alive) return
+        setPets(data.results || [])
+      } catch (e: any) {
+        if (!alive) return
+        setError(e?.response?.data?.detail || '加载我的宠物失败')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <Spinner animation="border" variant="primary" />
+        <div className="mt-3">加载中…</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return <Alert variant="danger">{error}</Alert>
+  }
+
+  if (pets.length === 0) {
+    return (
+      <Card className="shadow-sm text-center py-5">
+        <Card.Body>
+          <i className="bi bi-heart text-muted" style={{ fontSize: '4rem' }}></i>
+          <h5 className="mt-3 text-muted">还没有发布宠物</h5>
+          <p className="text-muted">去 <Link to="/adopt">领养页面</Link> 发布您的宠物吧</p>
+        </Card.Body>
+      </Card>
+    )
+  }
+
+  return (
+    <div>
+      <Card className="shadow-sm mb-3">
+        <Card.Header className="bg-white border-bottom">
+          <h4 className="mb-0">我的宠物 ({pets.length})</h4>
+        </Card.Header>
+      </Card>
+      <Row className="g-4">
+        {pets.map((pet) => (
+          <Col key={pet.id} xs={12} sm={6} md={4}>
+            <MyPetCard pet={pet} onRemove={(id) => setPets(prev => prev.filter(p => p.id !== id))} />
+          </Col>
+        ))}
+      </Row>
+    </div>
+  )
+}
+
+function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }) {
+  const [removing, setRemoving] = useState(false)
+
+  const handleRemove = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (removing) return
+    
+    if (!confirm('确定要删除这只宠物吗？')) return
+
+    setRemoving(true)
+    try {
+      await adoptApi.remove(pet.id)
+      onRemove(pet.id)
+    } catch (err) {
+      console.error('Remove pet failed:', err)
+      alert('删除宠物失败')
+      setRemoving(false)
+    }
+  }
+
+  const ageText = () => {
+    if (pet.age_years || pet.age_months) {
+      const yy = pet.age_years ? `${pet.age_years}岁` : ''
+      const mm = pet.age_months ? `${pet.age_months}月` : ''
+      return [yy, mm].filter(Boolean).join(' ')
+    }
+    return '年龄未知'
+  }
+
+  const statusBadge = () => {
+    const statusMap: Record<string, { text: string; variant: string }> = {
+      AVAILABLE: { text: '可领养', variant: 'success' },
+      PENDING: { text: '待审核', variant: 'warning' },
+      ADOPTED: { text: '已领养', variant: 'secondary' },
+      LOST: { text: '走失', variant: 'danger' },
+      DRAFT: { text: '草稿', variant: 'light' },
+      ARCHIVED: { text: '已下架', variant: 'dark' }
+    }
+    const status = statusMap[pet.status || 'AVAILABLE'] || statusMap.AVAILABLE
+    return <span className={`badge bg-${status.variant} me-2`}>{status.text}</span>
+  }
+
+  return (
+    <Card className="pet-card h-100 border-0 shadow-sm">
+      <div className="position-relative">
+        <button
+          type="button"
+          className="pet-card-remove-btn"
+          onClick={handleRemove}
+          disabled={removing}
+          aria-label="删除宠物"
+        >
+          {removing ? '⋯' : '×'}
+        </button>
+        <Link to={`/adopt/${pet.id}`}>
+          <Card.Img
+            variant="top"
+            src={pet.photo || '/images/pet-placeholder.jpg'}
+            alt={pet.name}
+            style={{ height: 200, objectFit: 'cover' }}
+          />
+        </Link>
+      </div>
+      <Card.Body>
+        <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
+          <Card.Title className="fs-5 fw-bold">{pet.name}</Card.Title>
+          <Card.Text className="text-muted small">
+            <i className="bi bi-geo-alt me-1"></i>
+            {pet.address_display || pet.city || '位置未知'}
+          </Card.Text>
+          <Card.Text className="small">
+            {statusBadge()}
+            <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
+            <span className="text-muted">{ageText()}</span>
+          </Card.Text>
+        </Link>
       </Card.Body>
     </Card>
   )

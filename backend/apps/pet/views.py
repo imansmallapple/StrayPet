@@ -139,6 +139,14 @@ class PetViewSet(viewsets.ModelViewSet):
         ser = PetListSerializer(page, many=True, context={"request": request})
         return self.get_paginated_response(ser.data)
 
+    @decorators.action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def my_pets(self, request):
+        """Get all pets created by current user"""
+        qs = Pet.objects.filter(created_by=request.user).order_by("-add_date")
+        page = self.paginate_queryset(qs)
+        ser = PetListSerializer(page, many=True, context={"request": request})
+        return self.get_paginated_response(ser.data)
+
 
 class AdoptionViewSet(viewsets.ModelViewSet):
     queryset = Adoption.objects.select_related("pet", "applicant", "pet__created_by").order_by("-pub_date")
