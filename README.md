@@ -1,189 +1,270 @@
-# DRF
+# 🐾 StrayPet - Pet Adoption Platform
 
-- install pip
-- install django
-- pip install djangorestframework
-- using django-admin.exe create project like: django-admin.exe startproject storeProject
+A comprehensive platform for stray pet adoption, helping homeless animals find loving homes. Features include pet listings, adoption applications, lost pet tracking, and user preference matching.
 
-=>
-In project settings.py => INSTALL_APP => Add 'rest_framework'
+## ✨ Features
 
-- Under project directory, run server via: python manage.py runserver
+### 🏠 Core Functionality
 
-=> Create api directory with 2 files(**init**.py views.py)
+- **Pet Adoption**: Browse adoptable pets, view detailed information, submit adoption applications
+- **Pet Donation**: Users can list pets for adoption, subject to review before publishing
+- **Lost Pet Tracking**: Post and view lost pet information with map-based location display
+- **Smart Matching**: Recommend suitable pets based on user preferences
 
-Under views.py import Response
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
+### 👤 User System
 
-Response 可以让我们将相应以 Json 的格式输出
+- **Account Management**: Registration, login, password reset
+- **User Profile**: Personal information, favorite pets, my pets, preferences
+- **Favorites**: Save pets of interest for easy access later
+- **Adoption Preferences**: Set ideal pet characteristics (species, size, age, etc.)
 
-AIPView 装饰器用于将基于函数的试图转为基于 Restful 请求的视图
+### 🔍 Search & Filtering
 
-创建 API 视图：
+- **Multi-criteria Filtering**: Filter by species, age, gender, location, etc.
+- **Map Search**: Find nearby pets based on geographic location
+- **Keyword Search**: Quickly search for specific pets
+
+### 📝 Pet Management
+
+- **Detailed Information**: Name, breed, age, gender, health status
+- **Trait Tags**: Markers for spayed/neutered, vaccinated, friendly, etc.
+- **Multi-photo Display**: Support for multiple photo uploads with carousel display
+- **Location Information**: Precise address and map positioning
+
+## 🛠️ Tech Stack
+
+### Backend
+
+- **Framework**: Django 5.1 + Django REST Framework 3.15
+- **Database**: PostgreSQL + PostGIS (Geographic Information Extension)
+- **Authentication**: JWT (djangorestframework-simplejwt)
+- **Image Processing**: Pillow
+- **Deployment**: Docker + Gunicorn + Nginx
+
+### Frontend
+
+- **Framework**: React 19 + TypeScript
+- **Build Tool**: Vite 6
+- **UI Components**: React Bootstrap
+- **Routing**: React Router v6
+- **State Management**: ahooks (useRequest)
+- **Maps**: Mapbox GL + Leaflet (fallback)
+- **Rich Text**: FluentEditor
+
+## 📦 Project Structure
 
 ```
-@api_view(['GET'])
-def get_data(request):
-    goods = {'name': "test goods", 'price': "2.3"}
-    return Response(goods)
+strayPet/
+├── backend/                 # Django backend
+│   ├── apps/
+│   │   ├── pet/            # Pet-related modules
+│   │   ├── user/           # User module
+│   │   ├── blog/           # Blog module
+│   │   └── comment/        # Comment module
+│   ├── server/             # Project configuration
+│   ├── manage.py
+│   ├── requirements.txt
+│   └── docker-compose.yml
+│
+└── frontend/               # React frontend
+    ├── src/
+    │   ├── views/          # Page components
+    │   ├── components/     # Shared components
+    │   ├── services/       # API services
+    │   ├── router/         # Route configuration
+    │   └── utils/          # Utility functions
+    ├── package.json
+    └── vite.config.ts
 ```
 
-这样可以创建 url 完成视图的绑定：
-创建 url.py
-from django.urls import path
-from . import views
-完成 url 映射关系配置：
-urlpatterns = [
-path('', views.get_data)
-]
+## 🚀 Quick Start
 
-然后在项目根目录 urls.py 导入我们的 api.urls 模块, 注意这里需要引入 include
-from django.urls import path, include
+### Requirements
 
-urlpatterns = [
-path('admin/', admin.site.urls),
-path('', include('api.urls'))
-]
+- **Backend**: Python 3.10+, PostgreSQL 14+, Docker (optional)
+- **Frontend**: Node.js 18+, pnpm 9+
+- **Map Service**: Mapbox Token (optional)
 
-python manage.py runserver
-worked!
+### Backend Installation & Running
 
-接下来尝试创建 app 名为 goods
-python manage.py startapp goods
-=> storeProject.py /settings.py INSTALLED_APP add app: 'goods'
+#### Using Docker (Recommended)
 
-define goods model
+```bash
+cd backend
+docker-compose up -d
+```
 
-class Goods(models.Model):
-name = models.CharField(max_length=100)
-price = models.FloatField()
-description = models.TextField()
-created_at = models.DateTimeField(auto_now_add=True)
+#### Manual Installation
 
-    def __str__(self):
-        return self.name
+```bash
+cd backend
 
-然后进行数据迁移
-django 中数据迁移是一种用于管理数据变化的模式
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-python manage.py makemigrations
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure database (in server/settings.py for PostgreSQL)
+
+# Run migrations
 python manage.py migrate
 
-完成了模型创建和数据迁移操作，接下来创建超级管理员来添加数据(admin console)
-
+# Create superuser
 python manage.py createsuperuser
-admin 123123
 
-进入 goods/admin.py 注册数据模型
-from . import models
-
-# Register your models here.
-
-admin.site.register(models.Goods)
-
-重新启动服务可以看到 admin 页面了
+# Start development server
 python manage.py runserver
-http://127.0.0.1:8000/admin/
+```
 
-添加完测试数据可以写增删改查接口了
-
-在 api 创建 serializers.py 用于处理复杂数据的转换工具
-
-from rest_framework import serializers
-from goods.models import Goods
-
-class GoodsSerializer(serializers.ModelSerializer):
-class Meta:
-model = Goods
-fields = '**all**'
-
-当我们的 API 返回模型时会用到这个文件对我们的数据进行序列化
-然后尝试修改 api/views.py
-from goods.models import Goods
-from api.serializers import GoodsSerializer
-
-@api_view(['GET'])
-def goods_list(request):
-goods = Goods.objects.all()
-serializer = GoodsSerializer(goods, many=True)
-return Response(serializer.data)
-
-然后点开 api/urls.py
-urlpatterns = [
-path('goods/', views.goods_list)
-]
-可以看到了商品列表返回了
-http://127.0.0.1:8000/goods/
-
-下一步尝试添加 POST 方法
-使一个接口处理多个请求
-@api_view(['GET', 'POST'])
-def goods_list(request):
-if request.method == 'GET':
-goods = Goods.objects.all()
-serializer = GoodsSerializer(goods, many=True)
-return Response(serializer.data)
-if request.method == 'POST':
-serializer = GoodsSerializer(data=request.data)
-if serializer.is_valid():
-serializer.save()
-return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-商品详情 API:
-@api_view(['GET', 'POST', 'DELETE'])
-def goods_detail(request, id):
-try:
-goods = Goods.objects.get(id=id)
-except Goods.DoesNotExist:
-return Response(status=status.HTTP_404_NOT_FOUND)
-if request.method == 'GET':
-serializer = GoodsSerializer(goods)
-return Response(serializer.data)
-if request.method == 'PUT':
-serializer = GoodsSerializer(goods, data=request.data)
-if serializer.is_valid():
-serializer.save()
-return Response(serializer.data)
-return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-if request.method == 'DELETE':
-goods.delete()
-return Response(status=status.HTTP_204_NO_CONTENT)
-写完之后配置 url 映射 api/urls
-urlpatterns = [
-path('goods/', views.goods_list),
-path('goods/<int:id>', views.goods_detail)
-]
-
-## 用户注册的接口，注册成功之后返回 token 给前端（前端直接登录成功，不需要跳转到登陆页面）
-
-![image1.png](images%2Fimage1.png)
-
-### How to start?
-
-**Install project required packages**
-run the following script:
+### Frontend Installation & Running
 
 ```bash
-pip install -r requirements.txt
+cd frontend
+
+# Install dependencies
+pnpm install
+
+# Configure environment variables (copy .env.example to .env.local)
+# Set VITE_MAPBOX_TOKEN (optional)
+
+# Start development server
+pnpm dev
 ```
 
-Frontend install pnpm
+Access:
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Admin Panel: http://localhost:8000/admin
+
+## 📖 API Documentation
+
+### Main Endpoints
+
+#### Pet Related
+
+- `GET /pet/` - Get pet list
+- `GET /pet/{id}/` - Get pet details
+- `POST /pet/{id}/apply/` - Submit adoption application
+- `POST /pet/{id}/favorite/` - Favorite a pet
+- `DELETE /pet/{id}/unfavorite/` - Unfavorite a pet
+- `GET /pet/favorites/` - Get favorites list
+- `GET /pet/my_pets/` - Get my pets
+
+#### User Related
+
+- `POST /user/token/` - Login to get token
+- `POST /user/token/refresh/` - Refresh token
+- `POST /user/register/` - User registration
+- `GET /user/me/` - Get current user info
+- `PATCH /user/me/` - Update user info and preferences
+
+#### Donation Related
+
+- `POST /pet/donation/` - Submit pet donation
+- `GET /pet/donation/` - Get donation list
+- `GET /pet/donation/{id}/` - Get donation details
+
+#### Lost Pet Related
+
+- `POST /pet/lost/` - Post lost pet
+- `GET /pet/lost/` - Get lost pets list
+
+## 🗄️ Data Models
+
+### Pet
+
+- Basic Info: Name, species, breed, gender, age
+- Health Traits: Spayed/neutered, vaccinated, dewormed, microchipped
+- Behavioral Traits: Affectionate, loves to play, good with other pets, etc.
+- Status: Available, pending review, adopted, etc.
+
+### User
+
+- Account Info: Username, email, password
+- Profile: Phone number
+- Adoption Preferences: Preferred species, size, age, experience, etc.
+
+### Adoption
+
+- Application details: Applicant, pet, message
+- Status: Submitted, processing, approved, rejected
+
+### Donation
+
+- Donation details: Donor, pet information, photos
+- Review Status: Pending, reviewing, approved, rejected
+
+## 🔧 Configuration
+
+### Environment Variables
+
+#### Backend (backend/.env)
+
+```env
+DEBUG=True
+SECRET_KEY=your-secret-key
+DATABASE_URL=postgresql://user:password@localhost:5432/strayPet
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+```
+
+#### Frontend (frontend/.env.local)
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_MAPBOX_TOKEN=your-mapbox-token
+```
+
+## 📝 Development Guidelines
+
+### Code Style
+
+- **Backend**: Follow PEP 8 conventions
+- **Frontend**: Use ESLint + Prettier
+
+### Git Commit Conventions
 
 ```
-npm install -g pnpm
-pnpm -v
+feat: New feature
+fix: Bug fix
+docs: Documentation update
+style: Code formatting
+refactor: Code refactoring
+test: Testing related
+chore: Build/toolchain related
 ```
 
-### Backend Address Geocoding
+## 🤝 Contributing
 
-- Set environment variable `MAPBOX_TOKEN` for server-side geocoding. When an address (street/city/region/country/postal_code) is submitted without coordinates, the backend will geocode to `latitude/longitude` and persist a geometry Point.
-- Fallback: If Mapbox is not configured, OpenStreetMap Nominatim is used.
-- Caching: geocoding results are cached for 24h via Django cache.
-- Backfill existing addresses:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-```bash
-python backend/manage.py geocode_addresses --limit 1000
-```
+## 📄 License
 
-Add `--dry-run` to preview without writing.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+## 👥 Authors
+
+- **imansmallapple** - Initial work - [GitHub](https://github.com/imansmallapple)
+
+## 🙏 Acknowledgments
+
+- Django REST Framework team
+- React and Vite community
+- Mapbox mapping service
+- All contributors to the open source community
+
+## 📮 Contact
+
+- Repository: [https://github.com/imansmallapple/strayPet_server](https://github.com/imansmallapple/strayPet_server)
+- Issue Tracker: [GitHub Issues](https://github.com/imansmallapple/strayPet_server/issues)
+
+---
+
+**Helping every stray animal find a warm home 🏡💕**
