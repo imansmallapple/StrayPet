@@ -447,6 +447,76 @@ class Lost(models.Model):
         return f"[{self.get_status_display()}] {base}"
 
 
+class Shelter(models.Model):
+    """Animal shelter organization"""
+    name = models.CharField("Shelter Name", max_length=150, unique=True)
+    description = models.TextField("Description", blank=True, default="")
+    
+    # Contact information
+    email = models.EmailField("Email", blank=True, default="")
+    phone = models.CharField("Phone", max_length=30, blank=True, default="")
+    website = models.URLField("Website", blank=True, default="")
+    
+    # Address
+    address = models.ForeignKey(
+        "pet.Address", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="shelters", verbose_name="Address"
+    )
+    
+    # Images
+    logo = models.ImageField("Logo", upload_to="shelters/logos/", blank=True, null=True)
+    cover_image = models.ImageField("Cover Image", upload_to="shelters/covers/", blank=True, null=True)
+    
+    # Capacity and statistics
+    capacity = models.PositiveIntegerField("Capacity", default=0, help_text="Maximum number of animals")
+    current_animals = models.PositiveIntegerField("Current Animals", default=0)
+    
+    # Operation details
+    founded_year = models.PositiveIntegerField("Founded Year", null=True, blank=True)
+    is_verified = models.BooleanField("Verified", default=False, help_text="Verified by admin")
+    is_active = models.BooleanField("Active", default=True)
+    
+    # Social media
+    facebook_url = models.URLField("Facebook", blank=True, default="")
+    instagram_url = models.URLField("Instagram", blank=True, default="")
+    twitter_url = models.URLField("Twitter/X", blank=True, default="")
+    
+    # Management
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="created_shelters", verbose_name="Created By"
+    )
+    
+    created_at = models.DateTimeField("Created At", auto_now_add=True)
+    updated_at = models.DateTimeField("Updated At", auto_now=True)
+
+    class Meta:
+        verbose_name = "Shelter"
+        verbose_name_plural = "Shelters"
+        ordering = ["-is_verified", "name"]
+        indexes = [
+            models.Index(fields=["is_active", "is_verified"]),
+            models.Index(fields=["name"]),
+        ]
+
+    def __str__(self):
+        return self.name
+    
+    @property
+    def available_capacity(self):
+        """Calculate available capacity"""
+        if self.capacity > 0:
+            return max(0, self.capacity - self.current_animals)
+        return 0
+    
+    @property
+    def occupancy_rate(self):
+        """Calculate occupancy rate as percentage"""
+        if self.capacity > 0:
+            return (self.current_animals / self.capacity) * 100
+        return 0
+
+
 class PetFavorite(models.Model):
     """User favorites a pet (bookmark). Unique per (user, pet)."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="pet_favorites")

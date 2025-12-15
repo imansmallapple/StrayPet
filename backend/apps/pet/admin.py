@@ -1,7 +1,7 @@
 # apps/pet/admin.py
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto
+from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto, Shelter
 from django.contrib.gis.admin import GISModelAdmin
 from django.contrib.gis.forms.widgets import OSMWidget
 from django import forms
@@ -223,4 +223,72 @@ class LostAdmin(admin.ModelAdmin):
         return obj.address.city.name if obj.address_id and obj.address.city_id else ""
 
     city_name.short_description = "City"
+
+
+@admin.register(Shelter)
+class ShelterAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'logo_thumb', 'name', 'city_name', 'region_name', 'country_name',
+        'capacity', 'current_animals', 'occupancy_display', 'is_verified', 'is_active', 'created_at'
+    )
+    list_filter = ('is_verified', 'is_active', 'address__country', 'address__region', 'created_at')
+    search_fields = (
+        'name', 'description', 'email', 'phone',
+        'address__city__name', 'address__region__name', 'address__country__name'
+    )
+    autocomplete_fields = ('address', 'created_by')
+    readonly_fields = ('created_at', 'updated_at', 'available_capacity', 'occupancy_rate')
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'logo', 'cover_image')
+        }),
+        ('Contact Information', {
+            'fields': ('email', 'phone', 'website', 'address')
+        }),
+        ('Capacity & Statistics', {
+            'fields': ('capacity', 'current_animals', 'available_capacity', 'occupancy_rate')
+        }),
+        ('Operation Details', {
+            'fields': ('founded_year', 'is_verified', 'is_active')
+        }),
+        ('Social Media', {
+            'fields': ('facebook_url', 'instagram_url', 'twitter_url'),
+            'classes': ('collapse',)
+        }),
+        ('System Information', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def logo_thumb(self, obj):
+        if obj.logo:
+            return format_html('<img src="{}" style="height:45px;width:45px;object-fit:cover;border-radius:50%;" />', obj.logo.url)
+        return '—'
+    logo_thumb.short_description = "Logo"
+
+    def country_name(self, obj):
+        return obj.address.country.name if obj.address_id and obj.address.country_id else "—"
+    country_name.short_description = "Country"
+
+    def region_name(self, obj):
+        return obj.address.region.name if obj.address_id and obj.address.region_id else "—"
+    region_name.short_description = "Region"
+
+    def city_name(self, obj):
+        return obj.address.city.name if obj.address_id and obj.address.city_id else "—"
+    city_name.short_description = "City"
+    
+    def occupancy_display(self, obj):
+        if obj.capacity > 0:
+            rate = obj.occupancy_rate
+            color = '#28a745' if rate < 70 else '#ffc107' if rate < 90 else '#dc3545'
+            return format_html(
+                '<span style="color:{};">{:.1f}%</span>',
+                color, rate
+            )
+        return '—'
+    occupancy_display.short_description = "Occupancy"
 

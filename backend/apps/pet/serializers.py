@@ -2,7 +2,7 @@ from __future__ import annotations
 # apps/pet/serializers.py
 from rest_framework import serializers
 import json
-from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite
+from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite, Shelter
 from django.contrib.gis.geos import Point
 from typing import TYPE_CHECKING
 from common.utils import geocode_address
@@ -654,3 +654,138 @@ class LostSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
+
+
+class ShelterListSerializer(serializers.ModelSerializer):
+    """Serializer for shelter list view"""
+    city = serializers.CharField(source='address.city.name', read_only=True)
+    region = serializers.CharField(source='address.region.name', read_only=True)
+    country = serializers.CharField(source='address.country.name', read_only=True)
+    logo_url = serializers.SerializerMethodField(read_only=True)
+    cover_url = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Shelter
+        fields = [
+            'id', 'name', 'description', 'email', 'phone', 'website',
+            'city', 'region', 'country',
+            'logo_url', 'cover_url',
+            'capacity', 'current_animals', 'available_capacity', 'occupancy_rate',
+            'is_verified', 'is_active', 'created_at', 'updated_at'
+        ]
+
+    def get_logo_url(self, obj):
+        try:
+            if obj.logo and hasattr(obj.logo, 'url'):
+                request = self.context.get('request')
+                url = obj.logo.url
+                return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+        return None
+
+    def get_cover_url(self, obj):
+        try:
+            if obj.cover_image and hasattr(obj.cover_image, 'url'):
+                request = self.context.get('request')
+                url = obj.cover_image.url
+                return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+        return None
+
+
+class ShelterDetailSerializer(serializers.ModelSerializer):
+    """Serializer for shelter detail view"""
+    city = serializers.CharField(source='address.city.name', read_only=True)
+    region = serializers.CharField(source='address.region.name', read_only=True)
+    country = serializers.CharField(source='address.country.name', read_only=True)
+    street = serializers.CharField(source='address.street', read_only=True)
+    postal_code = serializers.CharField(source='address.postal_code', read_only=True)
+    logo_url = serializers.SerializerMethodField(read_only=True)
+    cover_url = serializers.SerializerMethodField(read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = Shelter
+        fields = [
+            'id', 'name', 'description', 'email', 'phone', 'website',
+            'address', 'street', 'city', 'region', 'country', 'postal_code',
+            'logo_url', 'cover_url',
+            'capacity', 'current_animals', 'available_capacity', 'occupancy_rate',
+            'founded_year', 'is_verified', 'is_active',
+            'facebook_url', 'instagram_url', 'twitter_url',
+            'created_by', 'created_by_username',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ('created_by', 'created_at', 'updated_at')
+
+    def get_logo_url(self, obj):
+        try:
+            if obj.logo and hasattr(obj.logo, 'url'):
+                request = self.context.get('request')
+                url = obj.logo.url
+                return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+        return None
+
+    def get_cover_url(self, obj):
+        try:
+            if obj.cover_image and hasattr(obj.cover_image, 'url'):
+                request = self.context.get('request')
+                url = obj.cover_image.url
+                return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+        return None
+
+
+class ShelterCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating shelters"""
+    address_data = serializers.DictField(write_only=True, required=False)
+
+    class Meta:
+        model = Shelter
+        fields = [
+            'id', 'name', 'description', 'email', 'phone', 'website',
+            'address', 'address_data',
+            'logo', 'cover_image',
+            'capacity', 'current_animals',
+            'founded_year', 'is_verified', 'is_active',
+            'facebook_url', 'instagram_url', 'twitter_url',
+        ]
+        read_only_fields = ('id',)
+
+    def create(self, validated_data):
+        address_data = validated_data.pop('address_data', None)
+        if address_data:
+            if isinstance(address_data, str):
+                try:
+                    address_data = json.loads(address_data)
+                except Exception:
+                    address_data = None
+            if address_data:
+                address = _create_or_resolve_address(address_data)
+                validated_data['address'] = address
+        
+        # Set created_by from request user
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            validated_data['created_by'] = request.user
+        
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        address_data = validated_data.pop('address_data', None)
+        if address_data:
+            if isinstance(address_data, str):
+                try:
+                    address_data = json.loads(address_data)
+                except Exception:
+                    address_data = None
+            if address_data:
+                address = _create_or_resolve_address(address_data)
+                validated_data['address'] = address
+        
+        return super().update(instance, validated_data)

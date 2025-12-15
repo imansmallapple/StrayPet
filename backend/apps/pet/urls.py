@@ -1,6 +1,6 @@
 # apps/pet/urls.py
 from rest_framework.routers import DefaultRouter
-from .views import PetViewSet, AdoptionViewSet, LostViewSet, DonationViewSet
+from .views import PetViewSet, AdoptionViewSet, LostViewSet, DonationViewSet, ShelterViewSet
 from django.urls import path, include
 from apps.pet.views import LostGeoViewSet
 
@@ -10,6 +10,7 @@ router.register(r'adoption', AdoptionViewSet, basename='pet-application')
 router.register(r'lost', LostViewSet, basename='lost')
 router.register(r'donation', DonationViewSet, basename='donation')
 router.register(r"lost_geo", LostGeoViewSet, basename="lost-geo")
+router.register(r'shelter', ShelterViewSet, basename='shelter')
 
 urlpatterns = [
 	# Explicit lost routes to ensure /pet/lost/ resolves
@@ -33,6 +34,17 @@ urlpatterns = [
 		'donation/<int:pk>/',
 		DonationViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}),
 		name='pet_donation_detail'
+	),
+	# Explicit shelter routes
+	path(
+		'shelter/',
+		ShelterViewSet.as_view({'get': 'list', 'post': 'create'}),
+		name='shelter_list'
+	),
+	path(
+		'shelter/<int:pk>/',
+		ShelterViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}),
+		name='shelter_detail'
 	),
 	# Router-generated routes
 	*router.urls

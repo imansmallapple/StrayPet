@@ -7,11 +7,12 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, AllowAny, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from .models import Pet, Adoption, Lost, Donation, PetFavorite
+from .models import Pet, Adoption, Lost, Donation, PetFavorite, Shelter
 from django.core.exceptions import FieldDoesNotExist
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
     AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer,\
-    DonationDetailSerializer, DonationCreateSerializer, DonationDetailSerializer
+    DonationDetailSerializer, DonationCreateSerializer, DonationDetailSerializer, \
+    ShelterListSerializer, ShelterDetailSerializer, ShelterCreateUpdateSerializer
 from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -340,3 +341,79 @@ class LostGeoViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = LostGeoSerializer
     filter_backends = (InBBoxFilter,)
     bbox_filter_field = "address__location" 
+
+
+class ShelterViewSet(viewsets.ModelViewSet):
+    """ViewSet for Shelter CRUD operations"""
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    authentication_classes = [JWTAuthentication]
+    parser_classes = [MultiPartParser, FormParser]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    ordering_fields = ['name', 'created_at', 'capacity', 'current_animals']
+    ordering = ['name']
+    
+    def get_queryset(self):
+        # Build select_related list based on actual fields
+        _shelter_related = ['address', 'address__country', 'address__region', 'address__city', 'created_by']
+        _valid_related = []
+        for _f in _shelter_related:
+            root = _f.split('__')[0]
+            try:
+                fld = Shelter._meta.get_field(root)
+                if getattr(fld, 'is_relation', False):
+                    _valid_related.append(_f)
+            except FieldDoesNotExist:
+                pass
+        
+        qs = Shelter.objects.select_related(*_valid_related)
+        
+        # Filter by active status by default
+        if self.action == 'list':
+            # Allow filtering by is_active parameter
+            is_active = self.request.query_params.get('is_active')
+            if is_active is None:
+                qs = qs.filter(is_active=True)
+            elif is_active.lower() in ('true', '1'):
+                qs = qs.filter(is_active=True)
+            elif is_active.lower() in ('false', '0'):
+                qs = qs.filter(is_active=False)
+        
+        return qs
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ShelterListSerializer
+        elif self.action == 'retrieve':
+            return ShelterDetailSerializer
+        else:
+            return ShelterCreateUpdateSerializer
+    
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        elif self.action == 'create':
+            return [permissions.IsAuthenticated()]
+        elif self.action in ('update', 'partial_update', 'destroy'):
+            # Only admin or creator can update/delete
+            return [permissions.IsAuthenticated(), IsOwnerOrAdmin()]
+        return super().get_permissions()
+    
+    def list(self, request, *args, **kwargs):
+        try:
+            qs = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(qs)
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        except Exception as exc:
+            logger.exception('ShelterViewSet.list encountered error')
+            return Response({'detail': 'Internal Server Error', 'error': str(exc)}, status=500)
+    
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            obj = self.get_object()
+            serializer = self.get_serializer(obj, context={'request': request})
+            return Response(serializer.data)
+        except Exception as exc:
+            logger.exception('ShelterViewSet.retrieve encountered error')
+            return Response({'detail': 'Internal Server Error', 'error': str(exc)}, status=500)
+ 
