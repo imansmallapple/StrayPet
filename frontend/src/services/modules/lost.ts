@@ -12,6 +12,9 @@ export type LostPet = {
   size?: string
 
   address?: number | string | { id?: number; full?: string }
+  city?: string
+  region?: string
+  country?: string
 
   lost_time: string
   description?: string
@@ -23,6 +26,8 @@ export type LostPet = {
   status?: 'open' | 'found' | 'closed'
   reporter?: number
   reporter_username?: string
+  contact_phone?: string
+  contact_email?: string
   created_at?: string
   updated_at?: string
 }
