@@ -69,15 +69,15 @@ const router: RouteObject[] = [
       },
       {
         path: '/lost',
-          element: LazyLoad(lazyWithFallback(() => import('@/views/lost/list'))),
+          element: LazyLoad(lazyWithFallback(() => import('@/views/lost'))),
       },
       {
         path: '/lost/:id',
           element: LazyLoad(lazyWithFallback(() => import('@/views/lost/detail'))),
       },
       {
-        path: '/lost/report',
-          element: LazyLoad(lazyWithFallback(() => import('@/views/lost/post'))),
+        path: '/found',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/found'))),
       },
       {
         path: '/donation',

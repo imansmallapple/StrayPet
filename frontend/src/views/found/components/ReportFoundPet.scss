@@ -1,0 +1,108 @@
+// src/views/found/components/ReportFoundPet.scss
+.report-found-pet {
+  .report-card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-subtitle {
+    color: #64748b;
+    margin-bottom: 2rem;
+  }
+
+  .form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e2e8f0;
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+  }
+
+  .subsection-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.5rem;
+  }
+
+  .info-text {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .required {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  .form-label {
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-control,
+  .form-select {
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 0.625rem 0.875rem;
+
+    &:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+  }
+
+  .photo-preview {
+    img {
+      max-width: 300px;
+      max-height: 300px;
+      border-radius: 8px;
+      border: 2px solid #d1fae5;
+      object-fit: cover;
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+
+    .submit-btn {
+      min-width: 250px;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: none;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .alert {
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+  }
+}
