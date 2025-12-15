@@ -20,21 +20,14 @@ export default function FoundPetsList({ onReportClick }: FoundPetsListProps) {
     try {
       setLoading(true)
       setError('')
-      // Filter for found pets (status = 'found')
+      // Filter for found pets (status = 'found') on server side
       const { data } = await lostApi.list({
         page: currentPage,
         page_size: pageSize,
         ordering: '-created_at',
-        // Add status filter when backend supports it
-        // status: 'found'
+        status: 'found'  // Server-side filter
       })
-      // Client-side filter for found pets
-      const foundPets = {
-        ...data,
-        results: data.results.filter(pet => pet.status === 'found'),
-        count: data.results.filter(pet => pet.status === 'found').length
-      }
-      setData(foundPets)
+      setData(data)
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Failed to load found pets')
     } finally {

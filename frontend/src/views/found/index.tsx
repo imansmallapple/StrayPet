@@ -15,6 +15,11 @@ export default function FoundPetsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const handleReportSuccess = () => {
+    setActiveTab('found')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <Container fluid className="found-pets-page">
       <div className="page-header">
@@ -55,7 +60,7 @@ export default function FoundPetsPage() {
 
       <div className="tab-content">
         {activeTab === 'found' && <FoundPetsList onReportClick={handleReportClick} />}
-        {activeTab === 'report' && <ReportFoundPet />}
+        {activeTab === 'report' && <ReportFoundPet onSuccess={handleReportSuccess} />}
       </div>
     </Container>
   )

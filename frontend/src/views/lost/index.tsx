@@ -1,6 +1,6 @@
 // src/views/lost/index.tsx
 import { useState } from 'react'
-import { Container, Nav, Button } from 'react-bootstrap'
+import { Container, Nav } from 'react-bootstrap'
 import LostPetsList from './components/LostPetsList'
 import ReportLostPet from './components/ReportLostPet'
 import './index.scss'
@@ -12,6 +12,11 @@ export default function LostPetsPage() {
 
   const handleReportClick = () => {
     setActiveTab('report')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleReportSuccess = () => {
+    setActiveTab('lost')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -39,23 +44,11 @@ export default function LostPetsPage() {
             📝 Report Lost Pet
           </Nav.Link>
         </Nav.Item>
-        {activeTab === 'lost' && (
-          <div className="tab-action-button">
-            <Button 
-              variant="primary" 
-              className="report-pet-btn"
-              onClick={handleReportClick}
-            >
-              <span className="btn-icon">📢</span>
-              Report Lost Pet
-            </Button>
-          </div>
-        )}
       </Nav>
 
       <div className="tab-content">
         {activeTab === 'lost' && <LostPetsList onReportClick={handleReportClick} />}
-        {activeTab === 'report' && <ReportLostPet />}
+        {activeTab === 'report' && <ReportLostPet onSuccess={handleReportSuccess} />}
       </div>
     </Container>
   )

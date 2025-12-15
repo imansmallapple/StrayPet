@@ -1,12 +1,14 @@
 // src/views/found/components/ReportFoundPet.tsx
 import { useState } from 'react'
 import { Form, Button, Row, Col, Card, Alert } from 'react-bootstrap'
-import { useNavigate } from 'react-router-dom'
 import { lostApi, buildLostFormData } from '@/services/modules/lost'
 import './ReportFoundPet.scss'
 
-export default function ReportFoundPet() {
-  const navigate = useNavigate()
+interface ReportFoundPetProps {
+  onSuccess?: () => void
+}
+
+export default function ReportFoundPet({ onSuccess }: ReportFoundPetProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -93,7 +95,9 @@ export default function ReportFoundPet() {
       
       setSuccess(true)
       setTimeout(() => {
-        navigate('/found')
+        if (onSuccess) {
+          onSuccess()
+        }
       }, 2000)
     } catch (err: any) {
       setError(err?.response?.data?.detail || err?.message || 'Failed to submit report')

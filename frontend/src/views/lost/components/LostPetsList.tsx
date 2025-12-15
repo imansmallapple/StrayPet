@@ -24,7 +24,8 @@ export default function LostPetsList({ onReportClick }: LostPetsListProps) {
       const { data } = await lostApi.list({
         page: currentPage,
         page_size: pageSize,
-        ordering: '-created_at'
+        ordering: '-created_at',
+        status: 'open'  // Only show open (lost) pets
       })
       setData(data)
     } catch (err: any) {

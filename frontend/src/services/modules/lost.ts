@@ -48,6 +48,17 @@ export type LostCreatePayload = {
   description?: string
   reward?: string | number
   photo?: File | null
+  status?: 'open' | 'found' | 'closed'
+  address_data?: {
+    country?: string | null
+    region?: string | null
+    city?: string | null
+    street?: string | null
+    building_number?: string | null
+    postal_code?: string | null
+    lat?: number | null
+    lng?: number | null
+  }
 }
 
 export type LostUpdatePayload = Partial<LostCreatePayload>
@@ -61,18 +72,31 @@ export function buildLostFormData(p: LostCreatePayload | LostUpdatePayload): For
   if (p.color) fd.append('color', p.color)
   if (p.sex) fd.append('sex', p.sex)
   if (p.size) fd.append('size', p.size)
-  if (typeof p.address === 'number') fd.append('address', String(p.address))
+  
+  // Handle address or address_data
+  if (typeof p.address === 'number') {
+    fd.append('address', String(p.address))
+  } else if ((p as any).address_data) {
+    fd.append('address_data', JSON.stringify((p as any).address_data))
+  }
+  
   if (p.lost_time) fd.append('lost_time', p.lost_time)
   if (p.description) fd.append('description', p.description)
   if (p.reward !== undefined && p.reward !== null && p.reward !== '') {
     fd.append('reward', String(p.reward))
   }
   if (p.photo instanceof File) fd.append('photo', p.photo)
+  
+  // Handle status field
+  if ((p as any).status) {
+    fd.append('status', (p as any).status)
+  }
+  
   return fd
 }
 
 export const lostApi = {
-  list: (params: { page?: number; page_size?: number; ordering?: string; search?: string } = {}) =>
+  list: (params: { page?: number; page_size?: number; ordering?: string; search?: string; status?: string } = {}) =>
     http.get<PageResp<LostPet>>(BASE, { params }),
 
   retrieve: (id: number) => http.get<LostPet>(`${BASE}${id}/`),
