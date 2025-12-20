@@ -83,6 +83,14 @@ const router: RouteObject[] = [
         path: '/donation',
           element: LazyLoad(lazyWithFallback(() => import('@/views/donation'))),
       },
+      {
+        path: '/shelters',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/shelters'))),
+      },
+      {
+        path: '/shelters/:id',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/shelters/detail'))),
+      },
       ...routes, // modules 路由
     ],
   },

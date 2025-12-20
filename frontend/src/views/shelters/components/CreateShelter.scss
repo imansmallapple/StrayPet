@@ -1,0 +1,150 @@
+// src/views/shelters/components/CreateShelter.scss
+.create-shelter-modal {
+  .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+
+    .modal-title {
+      font-weight: 700;
+      font-size: 1.5rem;
+    }
+
+    .btn-close {
+      filter: brightness(0) invert(1);
+    }
+  }
+
+  .modal-body {
+    padding: 2rem;
+    max-height: 70vh;
+    overflow-y: auto;
+
+    .form-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #e9ecef;
+
+      &:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+
+        &:before {
+          content: '';
+          display: inline-block;
+          width: 4px;
+          height: 1.2em;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          margin-right: 0.75rem;
+          border-radius: 2px;
+        }
+      }
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.5rem;
+
+      i {
+        color: #667eea;
+      }
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 8px;
+      border: 1px solid #ced4da;
+      padding: 0.6rem 1rem;
+      transition: all 0.3s ease;
+
+      &:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+      }
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .image-preview {
+      margin-top: 0.75rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #e9ecef;
+
+      img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+      }
+    }
+  }
+
+  .modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1.25rem 2rem;
+
+    .btn {
+      border-radius: 8px;
+      padding: 0.6rem 1.5rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+
+      &.btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+
+      &.btn-secondary {
+        background: #6c757d;
+        border: none;
+
+        &:hover:not(:disabled) {
+          background: #5a6268;
+        }
+      }
+    }
+  }
+}
+
+// Scrollbar styling
+.create-shelter-modal .modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.create-shelter-modal .modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.create-shelter-modal .modal-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+}
+
+.create-shelter-modal .modal-body::-webkit-scrollbar-thumb:hover {
+  background: #5568d3;
+}

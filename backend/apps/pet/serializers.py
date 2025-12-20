@@ -658,9 +658,11 @@ class LostSerializer(serializers.ModelSerializer):
 
 class ShelterListSerializer(serializers.ModelSerializer):
     """Serializer for shelter list view"""
-    city = serializers.CharField(source='address.city.name', read_only=True)
-    region = serializers.CharField(source='address.region.name', read_only=True)
-    country = serializers.CharField(source='address.country.name', read_only=True)
+    street = serializers.CharField(source='address.street', read_only=True, allow_null=True)
+    city = serializers.CharField(source='address.city.name', read_only=True, allow_null=True)
+    region = serializers.CharField(source='address.region.name', read_only=True, allow_null=True)
+    country = serializers.CharField(source='address.country.name', read_only=True, allow_null=True)
+    postal_code = serializers.CharField(source='address.postal_code', read_only=True, allow_null=True)
     logo_url = serializers.SerializerMethodField(read_only=True)
     cover_url = serializers.SerializerMethodField(read_only=True)
 
@@ -668,7 +670,7 @@ class ShelterListSerializer(serializers.ModelSerializer):
         model = Shelter
         fields = [
             'id', 'name', 'description', 'email', 'phone', 'website',
-            'city', 'region', 'country',
+            'street', 'city', 'region', 'country', 'postal_code',
             'logo_url', 'cover_url',
             'capacity', 'current_animals', 'available_capacity', 'occupancy_rate',
             'is_verified', 'is_active', 'created_at', 'updated_at'
@@ -758,15 +760,41 @@ class ShelterCreateUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
     def create(self, validated_data):
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Try to get address_data from validated_data first
         address_data = validated_data.pop('address_data', None)
+        
+        # If not in validated_data, try to get it from request.data
+        if not address_data:
+            request = self.context.get('request')
+            if request and hasattr(request, 'data'):
+                address_data_str = request.data.get('address_data')
+                logger.warning(f"Got address_data from request.data: {address_data_str}")
+                if address_data_str:
+                    try:
+                        address_data = json.loads(address_data_str)
+                        logger.warning(f"Parsed address_data: {address_data}")
+                    except Exception as e:
+                        logger.error(f"Failed to parse address_data: {e}")
+                        address_data = None
+        
+        logger.warning(f"Creating shelter with address_data: {address_data}")
+        
         if address_data:
             if isinstance(address_data, str):
                 try:
                     address_data = json.loads(address_data)
-                except Exception:
+                    logger.warning(f"Parsed address_data from JSON: {address_data}")
+                except Exception as e:
+                    logger.error(f"Failed to parse address_data JSON: {e}")
                     address_data = None
             if address_data:
+                # Don't catch exceptions - let them propagate
+                logger.warning(f"Calling _create_or_resolve_address with: {address_data}")
                 address = _create_or_resolve_address(address_data)
+                logger.warning(f"Created address: {address}, ID: {address.id if address else None}")
                 validated_data['address'] = address
         
         # Set created_by from request user
