@@ -88,12 +88,20 @@ def _create_or_resolve_address(address_data: dict) -> Address:
         addr_kwargs['building_number'] = _norm(address_data.get('building_number'))
     if address_data.get('postal_code'):
         addr_kwargs['postal_code'] = _norm(address_data.get('postal_code'))
+    
     # optional lat/lng
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Address data latitude: {address_data.get('latitude')}, type: {type(address_data.get('latitude'))}")
+    logger.warning(f"Address data longitude: {address_data.get('longitude')}, type: {type(address_data.get('longitude'))}")
+    
     if address_data.get('latitude') is not None:
         try:
             lat_val = float(address_data.get('latitude'))
             addr_kwargs['latitude'] = lat_val
-        except Exception:
+            logger.warning(f"Set latitude to: {lat_val}")
+        except Exception as e:
+            logger.error(f"Failed to convert latitude: {e}")
             lat_val = None
     else:
         lat_val = None
@@ -101,10 +109,14 @@ def _create_or_resolve_address(address_data: dict) -> Address:
         try:
             lon_val = float(address_data.get('longitude'))
             addr_kwargs['longitude'] = lon_val
-        except Exception:
+            logger.warning(f"Set longitude to: {lon_val}")
+        except Exception as e:
+            logger.error(f"Failed to convert longitude: {e}")
             lon_val = None
     else:
         lon_val = None
+    
+    logger.warning(f"Final addr_kwargs: {addr_kwargs}")
 
     # If coordinates were not provided, try geocoding from the textual address
     if (lat_val is None or lon_val is None):
@@ -663,6 +675,8 @@ class ShelterListSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='address.region.name', read_only=True, allow_null=True)
     country = serializers.CharField(source='address.country.name', read_only=True, allow_null=True)
     postal_code = serializers.CharField(source='address.postal_code', read_only=True, allow_null=True)
+    latitude = serializers.FloatField(source='address.latitude', read_only=True, allow_null=True)
+    longitude = serializers.FloatField(source='address.longitude', read_only=True, allow_null=True)
     logo_url = serializers.SerializerMethodField(read_only=True)
     cover_url = serializers.SerializerMethodField(read_only=True)
 
@@ -670,7 +684,7 @@ class ShelterListSerializer(serializers.ModelSerializer):
         model = Shelter
         fields = [
             'id', 'name', 'description', 'email', 'phone', 'website',
-            'street', 'city', 'region', 'country', 'postal_code',
+            'street', 'city', 'region', 'country', 'postal_code', 'latitude', 'longitude',
             'logo_url', 'cover_url',
             'capacity', 'current_animals', 'available_capacity', 'occupancy_rate',
             'is_verified', 'is_active', 'created_at', 'updated_at'

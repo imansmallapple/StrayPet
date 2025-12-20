@@ -82,10 +82,8 @@ export default function CreateShelter({ show, onHide, onSuccess }: CreateShelter
       try {
         const q = encodeURIComponent(countrySearch)
         const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${token}&types=country&autocomplete=true&limit=6`
-        console.warn('Fetching Mapbox suggestions for:', countrySearch)
         const r = await fetch(url)
         const j = await r.json()
-        console.warn('Mapbox response:', j)
         const feats: any[] = j.features ?? []
         setCountrySuggestions(feats)
         setShowCountrySuggestions(feats.length > 0)
@@ -233,8 +231,7 @@ export default function CreateShelter({ show, onHide, onSuccess }: CreateShelter
     const postcodeCtx = ctx.find(c => (c.id || '').startsWith('postcode.'))
     const postcode = postcodeCtx?.text || ''
 
-    const lon = feature.geometry?.coordinates?.[0]
-    const lat = feature.geometry?.coordinates?.[1]
+    // 不再从前端获取坐标，让后端的 geocode_address 函数处理
 
     if (!country && placeTypes.includes('country')) {
       country = feature.text || feature.place_name || country
@@ -277,8 +274,8 @@ export default function CreateShelter({ show, onHide, onSuccess }: CreateShelter
       }
 
       if (postcode) addr.postal_code = postcode
-      if (typeof lat === 'number') addr.latitude = lat
-      if (typeof lon === 'number') addr.longitude = lon
+      // 不在前端保存坐标，让后端的 geocode_address 函数来处理
+      // 后端会使用更准确的地理编码逻辑（包括波兰语支持、门牌号处理等）
 
       next.address_data = addr
       return next
@@ -370,8 +367,14 @@ export default function CreateShelter({ show, onHide, onSuccess }: CreateShelter
       setLoading(true)
       setError(null)
 
+      // 让后端负责地理编码，不在前端处理
       const payload: ShelterCreatePayload = {
         ...formData
+      }
+
+      // 只在有地址数据时才设置 address_data
+      if (formData.address_data && Object.keys(formData.address_data).length > 0) {
+        payload.address_data = formData.address_data
       }
       
       if (logoFile) {
@@ -380,12 +383,6 @@ export default function CreateShelter({ show, onHide, onSuccess }: CreateShelter
       if (coverFile) {
         payload.cover_image = coverFile
       }
-
-      console.warn('Form data before submit:', formData)
-      console.warn('Payload before submit:', payload)
-      console.warn('Submitting shelter with address_data:', payload.address_data)
-      console.warn('Address data keys:', Object.keys(payload.address_data || {}))
-      console.warn('Address data values:', Object.values(payload.address_data || {}))
 
       await shelterApi.create(payload)
       

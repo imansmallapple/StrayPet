@@ -19,6 +19,8 @@ export type Shelter = {
   region?: string
   country?: string
   postal_code?: string
+  latitude?: number
+  longitude?: number
   
   // Images
   logo_url?: string | null
@@ -94,11 +96,6 @@ export type ShelterCreatePayload = {
 export function buildShelterFormData(payload: ShelterCreatePayload): FormData {
   const fd = new FormData()
   
-  console.warn('buildShelterFormData received payload:', payload)
-  console.warn('buildShelterFormData address_data type:', typeof payload.address_data)
-  console.warn('buildShelterFormData address_data is array?', Array.isArray(payload.address_data))
-  console.warn('buildShelterFormData address_data:', payload.address_data)
-  
   if (payload.name) fd.append('name', payload.name)
   if (payload.description) fd.append('description', payload.description)
   if (payload.email) fd.append('email', payload.email)
@@ -110,9 +107,7 @@ export function buildShelterFormData(payload: ShelterCreatePayload): FormData {
   }
   
   if (payload.address_data) {
-    const addressDataStr = JSON.stringify(payload.address_data)
-    console.warn('Stringified address_data:', addressDataStr)
-    fd.append('address_data', addressDataStr)
+    fd.append('address_data', JSON.stringify(payload.address_data))
   }
   
   if (payload.logo) fd.append('logo', payload.logo)

@@ -1,10 +1,179 @@
 // src/views/shelters/index.tsx
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Container, Row, Col, Card, Button, Spinner, Alert, Badge, Form } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { shelterApi, type Shelter } from '@/services/modules/shelter'
 import CreateShelter from './components/CreateShelter'
+import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import './index.scss'
+
+// Compact MapboxMap component for shelter cards
+type MapboxMapProps = {
+  lon?: number
+  lat?: number
+  className?: string
+  width?: string | number
+  height?: number
+}
+
+function ShelterMapPreview({ lon, lat, className, width = '100%', height = 180 }: MapboxMapProps) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
+
+  // 点击地图打开 Google Maps
+  const handleMapClick = useCallback(() => {
+    if (typeof lon === 'number' && typeof lat === 'number') {
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+      window.open(googleMapsUrl, '_blank')
+    }
+  }, [lat, lon])
+
+  useEffect(() => {
+    if (!ref.current || typeof lon !== 'number' || typeof lat !== 'number') return
+    
+    const token = import.meta.env.VITE_MAPBOX_TOKEN
+    if (!token) {
+      console.warn('Mapbox token missing: set VITE_MAPBOX_TOKEN')
+      return
+    }
+
+    // Check WebGL support before creating map
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+    if (!gl) {
+      console.warn('WebGL not supported, will use static image fallback')
+      return
+    }
+
+    try {
+      mapboxgl.accessToken = token
+
+      const map = new mapboxgl.Map({
+        container: ref.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [lon, lat],
+        zoom: 13,
+        interactive: true, // 允许交互
+      })
+
+      // 添加导航控件
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right')
+
+      // 创建标记
+      new mapboxgl.Marker()
+        .setLngLat([lon, lat])
+        .addTo(map)
+      
+      // 地图点击打开 Google Maps
+      map.on('click', handleMapClick)
+      
+      mapInstanceRef.current = map
+    } catch (error) {
+      console.error('Failed to initialize Mapbox map, will use static fallback:', error)
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove()
+        } catch (e) {
+          console.warn('Error removing map:', e)
+        }
+        mapInstanceRef.current = null
+      }
+    }
+  }, [lat, lon, handleMapClick])
+
+  // If no coordinates, show placeholder
+  if (typeof lon !== 'number' || typeof lat !== 'number') {
+    return (
+      <div 
+        className={className} 
+        style={{ 
+          width, 
+          height, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#f8f9fa',
+          color: '#6c757d'
+        }}
+      >
+        <i className="bi bi-map fs-3"></i>
+      </div>
+    )
+  }
+
+  // Show static map image as fallback
+  const token = import.meta.env.VITE_MAPBOX_TOKEN
+  if (!token) {
+    return (
+      <div 
+        className={className} 
+        style={{ 
+          width, 
+          height, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#f8f9fa',
+          color: '#6c757d'
+        }}
+      >
+        <i className="bi bi-map fs-3"></i>
+      </div>
+    )
+  }
+
+  const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+7c3aed(${lon},${lat})/${lon},${lat},13,0/400x${height}@2x?access_token=${token}`
+  
+  return (
+    <div 
+      style={{ position: 'relative', width, height, cursor: 'pointer' }}
+      onClick={handleMapClick}
+      title="Click to view in Google Maps"
+    >
+      {/* Static map as background/fallback */}
+      <img 
+        src={staticMapUrl} 
+        alt="Map location"
+        className={className}
+        style={{ 
+          width, 
+          height, 
+          objectFit: 'cover',
+          position: 'absolute',
+          top: 0,
+          left: 0
+        }}
+      />
+      {/* Interactive map container overlays the static image */}
+      <div ref={ref} className={className} style={{ width, height, position: 'relative', zIndex: 1 }} />
+      
+      {/* Google Maps 图标提示 */}
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: 8,
+          right: 8,
+          backgroundColor: 'white',
+          borderRadius: '4px',
+          padding: '4px 8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          fontSize: '12px',
+          zIndex: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}
+      >
+        <i className="bi bi-box-arrow-up-right"></i>
+        <span>View in Maps</span>
+      </div>
+    </div>
+  )
+}
 
 export default function SheltersPage() {
   const [shelters, setShelters] = useState<Shelter[]>([])
@@ -22,9 +191,8 @@ export default function SheltersPage() {
       const response = await shelterApi.list({ 
         is_active: true,
         page: currentPage,
-        page_size: 100  // 每页显示 100 条
+        page_size: 12  // 每页显示 12 条
       })
-      console.warn('API Response:', response.data.results)
       setShelters(response.data.results)
       setTotalCount(response.data.count)
     } catch (err: any) {
@@ -51,6 +219,7 @@ export default function SheltersPage() {
   }
 
   const handleCreateSuccess = () => {
+    setCurrentPage(1) // Reset to first page
     loadShelters() // Refresh the list after creating a new shelter
   }
 
@@ -140,26 +309,31 @@ export default function SheltersPage() {
           {filteredShelters.map((shelter) => (
             <Col key={shelter.id} xs={12} sm={6} lg={4} xl={3}>
               <Card className="shelter-card h-100">
-                {/* Cover Image */}
-                <div className="shelter-cover">
-                  {shelter.cover_url ? (
-                    <Card.Img 
-                      variant="top" 
-                      src={shelter.cover_url} 
-                      alt={shelter.name}
-                      className="cover-image"
-                    />
-                  ) : (
-                    <div className="cover-placeholder">
-                      <i className="bi bi-house-heart fs-1"></i>
-                    </div>
-                  )}
-                  {shelter.is_verified && (
-                    <Badge bg="success" className="verified-badge">
-                      ✓ Verified
-                    </Badge>
-                  )}
-                </div>
+                {/* Map Preview */}
+                {shelter.latitude && shelter.longitude ? (
+                  <ShelterMapPreview
+                    lon={shelter.longitude}
+                    lat={shelter.latitude}
+                    className="shelter-map"
+                    height={180}
+                  />
+                ) : shelter.cover_url ? (
+                  <Card.Img 
+                    variant="top" 
+                    src={shelter.cover_url} 
+                    alt={shelter.name}
+                    className="cover-image"
+                  />
+                ) : (
+                  <div className="cover-placeholder">
+                    <i className="bi bi-house-heart fs-1"></i>
+                  </div>
+                )}
+                {shelter.is_verified && (
+                  <Badge bg="success" className="verified-badge">
+                    ✓ Verified
+                  </Badge>
+                )}
 
                 <Card.Body className="d-flex flex-column">
                   {/* Logo and Name */}
