@@ -1,0 +1,128 @@
+// src/views/blog/index.scss
+.blog-list-page {
+  .blog-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 0;
+    }
+  }
+
+  .article-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .article-title-link {
+      text-decoration: none;
+      color: inherit;
+
+      h4 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0;
+        transition: color 0.2s;
+
+        &:hover {
+          color: #667eea;
+        }
+      }
+    }
+
+    .article-meta {
+      color: #6c757d;
+      font-size: 0.9rem;
+
+      i {
+        opacity: 0.7;
+      }
+    }
+
+    .article-description {
+      color: #495057;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .article-tags {
+      .badge {
+        font-weight: 500;
+        padding: 0.35rem 0.65rem;
+      }
+    }
+
+    .read-more {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #764ba2;
+      }
+
+      i {
+        transition: transform 0.2s;
+      }
+
+      &:hover i {
+        transform: translateX(4px);
+      }
+    }
+  }
+
+  .tag-cloud {
+    .tag-badge {
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid #dee2e6;
+
+      &:hover {
+        background-color: #667eea !important;
+        color: white !important;
+        border-color: #667eea;
+      }
+    }
+  }
+
+  .archive-list {
+    .archive-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      color: #495057;
+      text-decoration: none;
+      transition: color 0.2s;
+      border-bottom: 1px solid #f0f0f0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        color: #667eea;
+      }
+
+      .badge {
+        font-size: 0.75rem;
+      }
+    }
+  }
+}

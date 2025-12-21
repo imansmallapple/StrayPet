@@ -12,6 +12,7 @@ export default function TopNavbar() {
         <NavLink to="/lost">Lost Pet</NavLink>
         <NavLink to="/donation">Found/Stray</NavLink>
         <NavLink to="/shelters">Shelters</NavLink>
+        <NavLink to="/blog">Blog</NavLink>
         <NavLink
           to="/home"
           className={({ isActive }) => (isActive ? 'active' : undefined)}

@@ -7,10 +7,15 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.core.files.storage import default_storage
+from django.conf import settings
+import os
 from apps.user.models import ViewStatistics
 from common import pagination
 from .models import Article, Tag, Category
-from .serializers import ArticleSerializer, TagSerializer, CategorySerializer
+from .serializers import ArticleSerializer, ArticleCreateUpdateSerializer, TagSerializer, CategorySerializer
 from django.db.models import Sum, F
 from apps.comment.serializers import CommentSerializer, CommentListSerializer
 
@@ -30,9 +35,13 @@ class CategoryViewSet(mixins.ListModelMixin,
 
 class ArticleViewSet(mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
+                     mixins.CreateModelMixin,
+                     mixins.UpdateModelMixin,
                      viewsets.GenericViewSet):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [
         filters.DjangoFilterBackend,
         SearchFilter, OrderingFilter
@@ -44,6 +53,8 @@ class ArticleViewSet(mixins.ListModelMixin,
     def get_serializer_class(self):
         if self.action == 'add_comment':
             return CommentSerializer
+        elif self.action in ['create', 'update', 'partial_update']:
+            return ArticleCreateUpdateSerializer
         return super().get_serializer_class()
 
     def get_queryset(self):
@@ -113,3 +124,48 @@ class TagViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Generi
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name']
     ordering_fields = ['add_date']
+
+    @action(methods=['get'], detail=False)
+    def popular(self, request):
+        """返回按使用次数排序的热门标签"""
+        from django.db.models import Count
+        # 按关联的文章数量排序，返回前20个
+        tags = Tag.objects.annotate(
+            article_count=Count('article')
+        ).filter(
+            article_count__gt=0  # 只返回至少被使用过一次的标签
+        ).order_by('-article_count', '-add_date')[:20]
+        
+        serializer = self.get_serializer(tags, many=True)
+        return Response(serializer.data)
+
+
+@csrf_exempt
+def upload_image(request):
+    """处理Django Admin Markdown编辑器的图片上传"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST method allowed'}, status=405)
+    
+    if 'image' not in request.FILES:
+        return JsonResponse({'error': 'No image file provided'}, status=400)
+    
+    image_file = request.FILES['image']
+    
+    # 验证文件类型
+    allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    file_ext = os.path.splitext(image_file.name)[1].lower()
+    if file_ext not in allowed_extensions:
+        return JsonResponse({'error': 'Invalid file type. Allowed: jpg, jpeg, png, gif, webp'}, status=400)
+    
+    # 保存文件
+    upload_dir = 'blog_images'
+    file_path = os.path.join(upload_dir, image_file.name)
+    saved_path = default_storage.save(file_path, image_file)
+    
+    # 返回URL
+    file_url = os.path.join(settings.MEDIA_URL, saved_path).replace('\\', '/')
+    
+    return JsonResponse({
+        'url': file_url,
+        'text': image_file.name
+    })

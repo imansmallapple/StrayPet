@@ -91,6 +91,26 @@ const router: RouteObject[] = [
         path: '/shelters/:id',
           element: LazyLoad(lazyWithFallback(() => import('@/views/shelters/detail'))),
       },
+      {
+        path: '/blog',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/blog'))),
+      },
+      {
+        path: '/blog/create',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/blog/create'))),
+      },
+      {
+        path: '/blog/:id',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/blog/detail'))),
+      },
+      {
+        path: '/blog/:id/edit',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/blog/create'))),
+      },
+      {
+        path: '/blog/archive/:year/:month',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/blog/archive'))),
+      },
       ...routes, // modules 路由
     ],
   },

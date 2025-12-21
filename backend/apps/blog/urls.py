@@ -12,5 +12,6 @@ urlpatterns = [
          views.ArticleViewSet.as_view({'get': 'archive_detail'}),
          name='archive_detail'
          ),
+    path('upload-image/', views.upload_image, name='upload_image'),
     *router.urls
 ]
