@@ -16,9 +16,10 @@ export default function BlogDetail() {
   const [commentContent, setCommentContent] = useState('')
   const [replyTo, setReplyTo] = useState<number | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [favoriting, setFavoriting] = useState(false)
 
   // 加载文章详情
-  const { data: articleData, loading: articleLoading } = useRequest(
+  const { data: articleData, loading: articleLoading, refresh: refreshArticle } = useRequest(
     () => blogApi.getArticle(Number(id)),
     {
       ready: !!id,
@@ -62,6 +63,27 @@ export default function BlogDetail() {
   const handleReply = (commentId: number) => {
     setReplyTo(commentId)
     document.getElementById('comment-form')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleToggleFavorite = async () => {
+    if (!isAuthenticated) {
+      navigate('/auth/login')
+      return
+    }
+
+    try {
+      setFavoriting(true)
+      if (article?.is_favorited) {
+        await blogApi.unfavoriteArticle(Number(id))
+      } else {
+        await blogApi.favoriteArticle(Number(id))
+      }
+      refreshArticle()
+    } catch (_error) {
+      alert('操作失败，请稍后重试')
+    } finally {
+      setFavoriting(false)
+    }
   }
 
   const formatDate = (dateStr: string) => {
@@ -144,6 +166,22 @@ export default function BlogDetail() {
               <i className="bi bi-eye me-1"></i>
               {article.count || 0} views
             </span>
+            {article.author_username && (
+              <span className="me-3">
+                <i className="bi bi-person me-1"></i>
+                {article.author_username}
+              </span>
+            )}
+            <Button
+              variant={article.is_favorited ? "danger" : "outline-danger"}
+              size="sm"
+              onClick={handleToggleFavorite}
+              disabled={favoriting}
+              className="ms-2"
+            >
+              <i className={`bi bi-${article.is_favorited ? 'bookmark-fill' : 'bookmark'} me-1`}></i>
+              {article.is_favorited ? '已收藏' : '收藏'}
+            </Button>
           </div>
           <div className="article-tags mt-3">
             {article.tags.map((tag) => (

@@ -29,6 +29,8 @@ export type Article = {
   count: number
   add_date: string
   pub_date: string
+  author_username?: string
+  is_favorited?: boolean
 }
 
 export type ArticleListItem = {
@@ -40,6 +42,8 @@ export type ArticleListItem = {
   count: number
   add_date: string
   pub_date: string
+  author_username?: string
+  is_favorited?: boolean
 }
 
 export type ArchiveItem = {
@@ -127,4 +131,21 @@ export const blogApi = {
     content: string
     parent?: number
   }) => http.post<Comment>(`${BASE}/article/${articleId}/add_comment/`, data),
+
+  // 我的文章和收藏
+  getMyArticles: (params?: {
+    page?: number
+    page_size?: number
+  }) => http.get<PageResp<ArticleListItem>>(`${BASE}/article/my_articles/`, { params }),
+
+  getFavoriteArticles: (params?: {
+    page?: number
+    page_size?: number
+  }) => http.get<PageResp<ArticleListItem>>(`${BASE}/article/favorites/`, { params }),
+
+  favoriteArticle: (articleId: number) => 
+    http.post(`${BASE}/article/${articleId}/favorite/`),
+
+  unfavoriteArticle: (articleId: number) => 
+    http.post(`${BASE}/article/${articleId}/unfavorite/`),
 }

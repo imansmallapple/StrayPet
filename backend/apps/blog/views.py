@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models.functions import ExtractYear, ExtractMonth
 from django_filters import rest_framework as filters
-from rest_framework import viewsets, mixins, permissions
+from rest_framework import viewsets, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
@@ -14,7 +14,7 @@ from django.conf import settings
 import os
 from apps.user.models import ViewStatistics
 from common import pagination
-from .models import Article, Tag, Category
+from .models import Article, Tag, Category, FavoriteArticle
 from .serializers import ArticleSerializer, ArticleCreateUpdateSerializer, TagSerializer, CategorySerializer
 from django.db.models import Sum, F
 from apps.comment.serializers import CommentSerializer, CommentListSerializer
@@ -116,6 +116,54 @@ class ArticleViewSet(mixins.ListModelMixin,
         page = paginator.paginate_queryset(serializer.data, request)
         response = paginator.get_paginated_response(page)
         return response
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_articles(self, request):
+        """获取当前用户发布的文章列表"""
+        queryset = Article.objects.filter(author=request.user).order_by('-add_date')
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        paginator = pagination.PageNumberPagination()
+        page = paginator.paginate_queryset(serializer.data, request)
+        return paginator.get_paginated_response(page)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def favorites(self, request):
+        """获取当前用户收藏的文章列表"""
+        favorite_articles = FavoriteArticle.objects.filter(
+            user=request.user
+        ).select_related('article').order_by('-add_date')
+        
+        articles = [fav.article for fav in favorite_articles]
+        serializer = self.get_serializer(articles, many=True, context={'request': request})
+        paginator = pagination.PageNumberPagination()
+        page = paginator.paginate_queryset(serializer.data, request)
+        return paginator.get_paginated_response(page)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def favorite(self, request, pk=None):
+        """收藏文章"""
+        article = self.get_object()
+        favorite, created = FavoriteArticle.objects.get_or_create(
+            user=request.user,
+            article=article
+        )
+        if created:
+            return Response({'status': 'favorited', 'message': '收藏成功'})
+        else:
+            return Response({'status': 'already_favorited', 'message': '已经收藏过了'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def unfavorite(self, request, pk=None):
+        """取消收藏文章"""
+        article = self.get_object()
+        deleted_count, _ = FavoriteArticle.objects.filter(
+            user=request.user,
+            article=article
+        ).delete()
+        if deleted_count > 0:
+            return Response({'status': 'unfavorited', 'message': '已取消收藏'})
+        else:
+            return Response({'status': 'not_favorited', 'message': '还未收藏'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class TagViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):

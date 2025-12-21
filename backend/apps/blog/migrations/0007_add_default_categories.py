@@ -41,7 +41,7 @@ def remove_default_categories(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('blog', '0001_initial'),
+        ('blog', '0006_alter_article_tags'),
     ]
 
     operations = [

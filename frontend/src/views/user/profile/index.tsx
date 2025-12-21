@@ -3,6 +3,8 @@ import { adoptApi, type Pet } from '@/services/modules/adopt'
 import { useEffect, useState } from 'react'
 import { Container, Row, Col, Nav, Card, Spinner, Alert } from 'react-bootstrap'
 import { Link, useLocation } from 'react-router-dom'
+import MyArticlesList from './MyArticlesList'
+import FavoriteArticlesList from './FavoriteArticlesList'
 import './index.scss'
 
 type TabKey = 'info' | 'preferences' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'replies'
@@ -134,8 +136,8 @@ export default function Profile() {
           {activeTab === 'info' && <ProfileInfo me={me} />}
           {activeTab === 'preferences' && <PreferencesForm />}
           {activeTab === 'favorite-pets' && <FavoritesList />}
-          {activeTab === 'favorite-articles' && <PlaceholderView title="收藏的文章" icon="bookmark-star" />}
-          {activeTab === 'my-articles' && <PlaceholderView title="我的文章" icon="file-earmark-text" />}
+          {activeTab === 'favorite-articles' && <FavoriteArticlesList />}
+          {activeTab === 'my-articles' && <MyArticlesList />}
           {activeTab === 'my-pets' && <MyPetsList />}
           {activeTab === 'replies' && <PlaceholderView title="回复我的" icon="chat-dots" />}
         </Col>

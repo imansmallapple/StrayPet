@@ -173,3 +173,26 @@
         grid-template-columns: 1fr;
     }
 }
+// ï∂èÕ?ï–?éÆ
+.article-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    .article-title {
+        color: #1f2937;
+        font-weight: 600;
+        transition: color 0.2s;
+        &:hover { color: #3b82f6; }
+    }
+    .article-description {
+        line-height: 1.5;
+        color: #6b7280;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+}

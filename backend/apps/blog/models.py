@@ -3,6 +3,7 @@ from django.db.models import CharField
 from django.utils.text import Truncator
 from django.utils.html import strip_tags
 from django.contrib.contenttypes.fields import GenericRelation
+from django.conf import settings
 from apps.user.models import ViewStatistics
 from apps.comment.models import Comment
 
@@ -40,6 +41,14 @@ class Article(BaseModel):
     title = models.CharField("title", max_length=100)
     description = models.CharField('description', max_length=200, blank=True, default="")
     content = models.TextField('content')
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='articles',
+        verbose_name='作者'
+    )
     category = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,
@@ -97,3 +106,29 @@ class Tag(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.id}:{self.name}"
+
+
+class FavoriteArticle(models.Model):
+    """用户收藏的文章"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='favorite_articles',
+        verbose_name='用户'
+    )
+    article = models.ForeignKey(
+        Article,
+        on_delete=models.CASCADE,
+        related_name='favorited_by',
+        verbose_name='文章'
+    )
+    add_date = models.DateTimeField('收藏时间', auto_now_add=True)
+
+    class Meta:
+        verbose_name = '收藏的文章'
+        verbose_name_plural = '收藏的文章'
+        ordering = ['-add_date']
+        unique_together = ('user', 'article')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.article.title}"

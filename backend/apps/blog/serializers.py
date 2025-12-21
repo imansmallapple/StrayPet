@@ -27,10 +27,23 @@ class ArticleSerializer(serializers.ModelSerializer):
     count = serializers.IntegerField(read_only=True, default=0)
     content = serializers.CharField(source='get_markdown', read_only=True)
     toc = serializers.CharField(source='get_toc', read_only=True)
+    author_username = serializers.CharField(source='author.username', read_only=True, default=None)
+    is_favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
         fields = '__all__'
+
+    def get_is_favorited(self, obj):
+        """判断当前用户是否收藏了该文章"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            from .models import FavoriteArticle
+            return FavoriteArticle.objects.filter(
+                user=request.user,
+                article=obj
+            ).exists()
+        return False
 
 
 class ArticleCreateUpdateSerializer(serializers.ModelSerializer):
@@ -62,6 +75,11 @@ class ArticleCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         tags_data = validated_data.pop('tags', [])
         content = validated_data.get('content', '')
+        
+        # 自动设置作者为当前登录用户
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['author'] = request.user
         
         # 如果没有提供category，使用默认的"未分类"
         if 'category' not in validated_data or validated_data.get('category') is None:
