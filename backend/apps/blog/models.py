@@ -72,8 +72,9 @@ class Article(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.description:
+            # 从HTML内容中提取纯文本作为描述
             self.description = strip_tags(
-                Truncator(self.get_markdown()).chars(190)
+                Truncator(self.content).chars(190)
             ).replace("\n", "").replace("\r", "").replace(" ", "")
         super().save(*args, **kwargs)
 

@@ -25,8 +25,7 @@ class ArticleSerializer(serializers.ModelSerializer):
     )
     tags = serializers.StringRelatedField(many=True, read_only=True)
     count = serializers.IntegerField(read_only=True, default=0)
-    content = serializers.CharField(source='get_markdown', read_only=True)
-    toc = serializers.CharField(source='get_toc', read_only=True)
+    # 直接返回HTML内容，不转换为Markdown
     author_username = serializers.CharField(source='author.username', read_only=True, default=None)
     is_favorited = serializers.SerializerMethodField()
 

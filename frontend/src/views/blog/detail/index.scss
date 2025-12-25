@@ -68,6 +68,18 @@
         margin-bottom: 1rem;
       }
 
+      strong {
+        font-weight: 700;
+      }
+
+      em {
+        font-style: italic;
+      }
+
+      u {
+        text-decoration: underline;
+      }
+
       img {
         max-width: 100%;
         height: auto;

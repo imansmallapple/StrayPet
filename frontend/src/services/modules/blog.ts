@@ -148,4 +148,15 @@ export const blogApi = {
 
   unfavoriteArticle: (articleId: number) => 
     http.post(`${BASE}/article/${articleId}/unfavorite/`),
+
+  // 图片上传
+  uploadImage: (file: File) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return http.post<{ url: string; text: string }>(`${BASE}/upload-image/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 }

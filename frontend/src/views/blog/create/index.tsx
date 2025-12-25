@@ -47,8 +47,33 @@ export default function CreateEditArticle() {
     const instance = new (FluentEditor as any)(editorContainerRef.current, {
       theme: 'snow',
       modules: {
-        file: true,
+        file: {
+          upload: async (file: File) => {
+            try {
+              const response = await blogApi.uploadImage(file)
+              return response.data.url
+            } catch (error) {
+              console.error('Image upload failed:', error)
+              setError('Image upload failed. Please try again.')
+              throw error
+            }
+          },
+        },
         'emoji-toolbar': true,
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ header: 1 }, { header: 2 }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          [{ indent: '-1' }, { indent: '+1' }],
+          [{ size: ['small', false, 'large', 'huge'] }],
+          [{ header: [1, 2, 3, 4, 5, 6, false] }],
+          [{ color: [] }, { background: [] }],
+          [{ align: [] }],
+          ['link', 'image', 'video'],
+          ['emoji'],
+          ['clean'],
+        ],
       },
       placeholder: 'Write your article content here...',
     })
@@ -203,7 +228,8 @@ export default function CreateEditArticle() {
                 </div>
                 <Form.Text className="text-muted">
                   Use the rich text editor to format your content. 
-                  <strong> Tip: Use #hashtag in your content to automatically create and tag topics!</strong>
+                  You can add <strong>images</strong> 📷, <strong>emojis</strong> 😊, and <strong>rich formatting</strong>.
+                  {' '}<strong>Tip: Use #hashtag in your content to automatically create and tag topics!</strong>
                   {' '}For example: #猫咪护理 #宠物训练
                 </Form.Text>
               </Form.Group>
