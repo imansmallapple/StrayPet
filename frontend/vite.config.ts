@@ -42,23 +42,11 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
         },
       },
     },
-    // 反向代理解决跨域问题
+    // 反向代理解决跨域问题 - 已禁用，使用直接请求（CORS启用）
     server: {
       // open: true,// 运行时自动打开浏览器
       host: '0.0.0.0', // 局域网别人也可访问
       port: Number(env.VITE_APP_PORT), //端口号
-      proxy: {
-        [env.VITE_API_BASE_URL]: {
-          target: env.VITE_SERVER_URL,
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(new RegExp('^' + env.VITE_API_BASE_URL), ''),
-        },
-          '/dev-api': {
-          target: 'http://127.0.0.1:8000',
-          changeOrigin: true,
-          rewrite: p => p.replace(/^\/dev-api/, ''), // 前缀去掉，最终到后端是 /user
-        },
-      },
     },
     build: {
       target: 'esnext', // 最低 es2015/es6

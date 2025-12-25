@@ -5,14 +5,16 @@ import base64
 import uuid
 from django.core.cache import cache
 from django.contrib.auth import get_user_model, logout
-from rest_framework import viewsets, mixins, filters, permissions, authentication
+from rest_framework import viewsets, mixins, filters, permissions, authentication, status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
+from common import pagination
 from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
     UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer, \
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer, UserMeSerializer, UserListSerializer, \
-    UserDetailSerializer
+    UserDetailSerializer, NotificationSerializer
+from apps.user.models import Notification
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.utils import generate_catcha_image
 from django.core.files.storage import default_storage
@@ -331,3 +333,158 @@ class UserOpsViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         obj = self.get_object()  # 按 pk 取用户
         ser = UserDetailSerializer(obj, context={'request': request})
         return Response(ser.data)
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    """用户通知 API"""
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    pagination_class = pagination.PageNumberPagination
+    
+    def get_queryset(self):
+        # 只返回当前用户的通知
+        queryset = Notification.objects.filter(user=self.request.user).order_by('-created_at')
+        
+        # 按类型过滤
+        notification_type = self.request.query_params.get('notification_type')
+        if notification_type:
+            queryset = queryset.filter(notification_type=notification_type)
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """获取未读通知数"""
+        count = Notification.objects.filter(user=request.user, is_read=False).count()
+        return Response({'unread_count': count})
+    
+    @action(detail=False, methods=['get'])
+    def unread(self, request):
+        """获取所有未读通知"""
+        notifications = Notification.objects.filter(user=request.user, is_read=False)
+        serializer = self.get_serializer(notifications, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def mark_all_as_read(self, request):
+        """标记所有通知为已读"""
+        from django.utils import timezone
+        Notification.objects.filter(user=request.user, is_read=False).update(
+            is_read=True,
+            read_at=timezone.now()
+        )
+        return Response({'message': 'All notifications marked as read'})
+    
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        """标记单个通知为已读"""
+        from django.utils import timezone
+        notification = self.get_object()
+        notification.is_read = True
+        notification.read_at = timezone.now()
+        notification.save()
+        return Response({'message': 'Notification marked as read'})
+
+class AvatarViewSet(viewsets.ViewSet):
+    """
+    User avatar management
+    - GET  /user/avatars/{user_id}/          - Get user avatar
+    - GET  /user/avatars/{user_id}/default/  - Get default avatar (initials)
+    - POST /user/avatars/upload/              - Upload custom avatar
+    - DELETE /user/avatars/delete/            - Delete custom avatar (revert to default)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    @action(detail=False, methods=['post'], url_path='upload', url_name='upload-avatar')
+    def upload_avatar(self, request):
+        """Upload a custom avatar for current user"""
+        if 'avatar' not in request.FILES:
+            return Response(
+                {'error': 'No avatar file provided'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        avatar_file = request.FILES['avatar']
+        user = request.user
+        
+        # Validate file size (max 5MB)
+        if avatar_file.size > 5 * 1024 * 1024:
+            return Response(
+                {'error': 'Avatar file too large (max 5MB)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file type
+        valid_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        file_ext = avatar_file.name.split('.')[-1].lower()
+        if file_ext not in valid_extensions:
+            return Response(
+                {'error': f'Invalid file type. Allowed: {", ".join(valid_extensions)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Save avatar
+            user.profile.avatar = avatar_file
+            user.profile.save()
+            
+            serializer = UserMeSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to upload avatar: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], url_path='delete', url_name='delete-avatar')
+    def delete_avatar(self, request):
+        """Delete custom avatar and revert to default"""
+        user = request.user
+        
+        try:
+            # Delete the custom avatar file
+            if user.profile.avatar:
+                user.profile.avatar.delete()
+                user.profile.avatar = None
+                user.profile.save()
+            
+            return Response(
+                {'message': 'Avatar deleted, reverting to default'},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to delete avatar: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'], url_path='reset', url_name='reset-avatar')
+    def reset_to_default(self, request):
+        """Reset to default avatar"""
+        user = request.user
+        
+        try:
+            from .avatar_utils import generate_default_avatar
+            
+            # Delete existing custom avatar
+            if user.profile.avatar:
+                user.profile.avatar.delete()
+            
+            # Generate and save default avatar
+            default_avatar = generate_default_avatar(user.username)
+            user.profile.avatar.save(
+                f'{user.username}_avatar.png',
+                default_avatar,
+                save=True
+            )
+            
+            serializer = UserMeSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to reset avatar: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

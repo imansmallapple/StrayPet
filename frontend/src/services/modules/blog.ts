@@ -18,6 +18,12 @@ export type Tag = {
   article_count?: number
 }
 
+export type AuthorInfo = {
+  id: number
+  username: string
+  avatar?: string | null
+}
+
 export type Article = {
   id: number
   title: string
@@ -29,6 +35,7 @@ export type Article = {
   count: number
   add_date: string
   pub_date: string
+  author?: AuthorInfo
   author_username?: string
   is_favorited?: boolean
 }
@@ -42,6 +49,7 @@ export type ArticleListItem = {
   count: number
   add_date: string
   pub_date: string
+  author?: AuthorInfo
   author_username?: string
   is_favorited?: boolean
 }
@@ -66,6 +74,7 @@ export type Comment = {
   user: {
     id: number
     username: string
+    avatar?: string | null
   }
   add_date: string
   replies?: Comment[]
@@ -148,6 +157,18 @@ export const blogApi = {
 
   unfavoriteArticle: (articleId: number) => 
     http.post(`${BASE}/article/${articleId}/unfavorite/`),
+
+  // 获取用户的所有评论
+  getMyComments: (params?: {
+    page?: number
+    page_size?: number
+  }) => http.get<PageResp<Comment & { article_id?: number; article_title?: string }>>(`${BASE}/article/my_comments/`, { params }),
+
+  // 获取对我的评论的回复
+  getRepliesToMe: (params?: {
+    page?: number
+    page_size?: number
+  }) => http.get<PageResp<Comment & { article_id?: number; article_title?: string; parent_comment?: Comment }>>(`${BASE}/article/replies_to_me/`, { params }),
 
   // 图片上传
   uploadImage: (file: File) => {

@@ -15,6 +15,14 @@ class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=32, blank=True, validators=[phone_validator])
     
+    # User avatar
+    avatar = models.ImageField(
+        upload_to='avatars/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        help_text='User avatar image'
+    )
+    
     # Pet adoption preferences
     preferred_species = models.CharField(max_length=50, blank=True, help_text="偏好的物种（如：dog, cat）")
     preferred_size = models.CharField(max_length=50, blank=True, help_text="偏好的大小（如：small, medium, large）")
@@ -101,3 +109,44 @@ class ViewStatistics(models.Model):
                 content_type=ct,
                 object_id=obj_id
             ).aggregate(models.Sum('count'))['count__sum']
+
+
+class Notification(models.Model):
+    """用户通知模型 - 记录评论回复和其他通知"""
+    NOTIFICATION_TYPES = (
+        ('reply', '有人回复了我的评论'),
+        ('mention', '有人提到了我'),
+        ('system', '系统通知'),
+    )
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='reply')
+    
+    # 关联的评论
+    comment = models.ForeignKey('comment.Comment', on_delete=models.CASCADE, null=True, blank=True)
+    
+    # 触发通知的用户（谁回复了我）
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='sent_notifications')
+    
+    # 通知内容
+    title = models.CharField(max_length=255, blank=True)
+    content = models.TextField(blank=True)
+    
+    # 是否已读
+    is_read = models.BooleanField(default=False)
+    
+    # 时间戳
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Notification'
+        verbose_name_plural = 'Notifications'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'is_read']),
+        ]
+    
+    def __str__(self):
+        return f'{self.user.username} - {self.get_notification_type_display()}'

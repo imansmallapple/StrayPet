@@ -1,19 +1,17 @@
 // src/services/modules/auth.ts
 import http from '@/services/http'
 
-const baseURL = 'http://localhost:8000/user/'
-
 export const ENDPOINTS = {
-  login:   baseURL + 'token/',
-  refresh: baseURL + 'token/refresh/',
-  register: baseURL + 'register/',
-  resetRequest: baseURL + 'password/reset/request/',
-  resetConfirm: baseURL + 'password/reset/confirm/',
-  sendEmailCode: baseURL + 'send_email_code/',
-  captcha: baseURL + 'captcha/',
-  me: baseURL + 'me/',
-  // 你后端当前返回“个人详情”的路由（若不同，自行改为你后端真实可用的）
-  detail: baseURL + 'detail/',   // ← 这里用于 Profile 页面
+  login:   '/user/token/',
+  refresh: '/user/token/refresh/',
+  register: '/user/register/',
+  resetRequest: '/user/password/reset/request/',
+  resetConfirm: '/user/password/reset/confirm/',
+  sendEmailCode: '/user/send_email_code/',
+  captcha: '/user/captcha/',
+  me: '/user/me/',
+  // 你后端当前返回"个人详情"的路由（若不同，自行改为你后端真实可用的）
+  detail: '/user/detail/',   // ← 这里用于 Profile 页面
 }
 
 export function setAccessHeader(token?: string) {
@@ -39,6 +37,34 @@ export const authApi = {
   getMe: () => http.get<UserMe>(ENDPOINTS.me),
   getProfile: () => http.get<UserMe>(ENDPOINTS.detail),
   updateProfile: (data: Partial<UserMe>) => http.patch<UserMe>(ENDPOINTS.me, data),
+
+  // 通知相关
+  getNotifications: (params?: {
+    notification_type?: 'reply' | 'mention' | 'system'
+    page?: number
+    page_size?: number
+  }) => http.get<{ count: number; results: any[] }>('/user/notifications/', { params }),
+
+  markNotificationAsRead: (notificationId: number) => 
+    http.post(`/user/notifications/${notificationId}/mark_as_read/`),
+
+  deleteNotification: (notificationId: number) => 
+    http.delete(`/user/notifications/${notificationId}/`),
+
+  getUnreadCount: () => http.get<{ count: number }>('/user/notifications/unread_count/'),
+
+  // 头像相关
+  uploadAvatar: (file: File) => {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    return http.post<UserMe>('/user/avatars/upload/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+
+  deleteAvatar: () => http.post<{ message: string }>('/user/avatars/delete/'),
+
+  resetAvatarToDefault: () => http.get<UserMe>('/user/avatars/reset/'),
 }
 
 export type LoginBody = {
@@ -65,6 +91,7 @@ export type UserMe = {
   first_name?: string
   last_name?: string
   phone?: string
+  avatar?: string | File
   preferred_species?: string
   preferred_size?: string
   preferred_age_min?: number

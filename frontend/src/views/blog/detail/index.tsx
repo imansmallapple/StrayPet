@@ -19,7 +19,7 @@ type DialogModalProps = {
   formatCommentDate: (dateStr: string) => string
 }
 const DialogModal = ({ show, onHide, dialogComments, dialogActiveId, findParentUsername, formatCommentDate }: DialogModalProps) => (
-  <Modal show={show} onHide={onHide} centered size="lg" backdrop="static">
+  <Modal show={show} onHide={onHide} centered size="lg">
     <Modal.Header closeButton>
       <Modal.Title>对话列表</Modal.Title>
     </Modal.Header>
@@ -28,7 +28,7 @@ const DialogModal = ({ show, onHide, dialogComments, dialogActiveId, findParentU
         <div className="text-center text-muted">暂无对话</div>
       ) : (
         <div>
-          {dialogComments.map((c) => (
+          {dialogComments.map((c, index) => (
             <div
               key={c.id}
               id={`dialog-comment-${c.id}`}
@@ -42,14 +42,43 @@ const DialogModal = ({ show, onHide, dialogComments, dialogActiveId, findParentU
                 boxShadow: c.id === dialogActiveId ? '0 0 0 2px #667eea22' : 'none',
               }}
             >
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                {c.user.username}
-                {c.parent && (
-                  <span style={{ color: '#aaa', fontWeight: 400, marginLeft: 8, fontSize: 13 }}>
-                    回复
-                    <span style={{ color: '#67e', marginLeft: 2 }}>@{findParentUsername(c.parent)}</span>
-                  </span>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                <div
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    backgroundColor: '#667eea',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '12px',
+                    marginRight: '8px',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}
+                >
+                  {c.user.avatar ? (
+                    <img 
+                      src={c.user.avatar} 
+                      alt={c.user.username}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    c.user.username.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div style={{ fontWeight: 600 }}>
+                  {c.user.username}
+                  {c.parent && index > 0 && (
+                    <span style={{ color: '#aaa', fontWeight: 400, marginLeft: 8, fontSize: 13 }}>
+                      回复
+                      <span style={{ color: '#67e', marginLeft: 2 }}>@{findParentUsername(c.parent)}</span>
+                    </span>
+                  )}
+                </div>
               </div>
               <div style={{ fontSize: 15, marginBottom: 6 }}>{c.content}</div>
               <div style={{ fontSize: 12, color: '#aaa' }}>
@@ -70,7 +99,6 @@ export default function BlogDetail() {
   const isAuthenticated = !!user
   const [commentContent, setCommentContent] = useState('')
   const [replyTo, setReplyTo] = useState<number | null>(null)
-  const [replyToUsername, setReplyToUsername] = useState<string>('')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [favoriting, setFavoriting] = useState(false)
   const [expandedComments, setExpandedComments] = useState<Set<number>>(() => new Set())
@@ -82,25 +110,69 @@ export default function BlogDetail() {
   const [dialogActiveId, setDialogActiveId] = useState<number | null>(null)
   // 查找一条评论的对话链（主评论到当前评论的链路）
   function findDialogChain(commentId: number): Comment[] {
-    // 递归查找主评论和所有子评论
-    function dfs(list: Comment[], targetId: number, path: Comment[]): boolean {
+    // 找到评论对象本身
+    function findComment(list: Comment[], targetId: number): Comment | null {
       for (const c of list) {
-        if (c.id === targetId) {
-          path.unshift(c)
-          return true
-        }
+        if (c.id === targetId) return c
         if (c.replies && c.replies.length > 0) {
-          if (dfs(c.replies, targetId, path)) {
-            path.unshift(c)
+          const found = findComment(c.replies, targetId)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    // 沿着 parent 链往上走，但停止在对主评论的直接回复
+    function findChainRoot(comment: Comment): Comment {
+      if (!comment.parent) {
+        // 这是主评论本身，不应该返回
+        return comment
+      }
+      const parentComment = findComment(comments, comment.parent)
+      if (!parentComment) {
+        return comment
+      }
+      
+      // 如果父评论没有parent，说明父评论是主评论，当前评论就是链的起点
+      if (!parentComment.parent) {
+        return comment
+      }
+      
+      // 否则继续往上
+      return findChainRoot(parentComment)
+    }
+
+    // 从根开始，递归收集所有后代直到目标
+    function collectToTarget(comment: Comment, targetId: number, result: Comment[]): boolean {
+      result.push(comment)
+      
+      if (comment.id === targetId) {
+        return true
+      }
+
+      if (comment.replies && comment.replies.length > 0) {
+        for (const reply of comment.replies) {
+          if (collectToTarget(reply, targetId, result)) {
             return true
           }
         }
       }
+
+      result.pop()
       return false
     }
-    const path: Comment[] = []
-    dfs(comments, commentId, path)
-    return path
+
+    const targetComment = findComment(comments, commentId)
+    if (!targetComment) return []
+
+    // 找到对话链的起点
+    const rootComment = findChainRoot(targetComment)
+
+    // 从起点收集到目标的对话链
+    const result: Comment[] = []
+    collectToTarget(rootComment, commentId, result)
+
+    return result
   }
 
   // 打开对话弹窗
@@ -159,7 +231,6 @@ export default function BlogDetail() {
       await blogApi.addComment(Number(id), commentData)
       setCommentContent('')
       setReplyTo(null)
-      setReplyToUsername('')
       refreshComments()
     } catch (error: any) {
       setSubmitError(error.response?.data?.detail || 'Failed to post comment')
@@ -180,12 +251,6 @@ export default function BlogDetail() {
             <i className="bi bi-chat-left-text me-2"></i>
             Leave a Comment
           </h5>
-        )}
-        {isReply && (
-          <Alert variant="info" dismissible onClose={handleCancelReply} className="mb-2">
-            <i className="bi bi-reply me-2"></i>
-            Replying to <strong>@{replyToUsername}</strong>
-          </Alert>
         )}
         {submitError && (
           <Alert variant="danger" dismissible onClose={() => setSubmitError(null)}>
@@ -240,15 +305,13 @@ export default function BlogDetail() {
     )
   }
 
-  const handleReply = (commentId: number, username: string) => {
+  const handleReply = (commentId: number, _username: string) => {
     setReplyTo(commentId)
-    setReplyToUsername(username)
     // 不需要滚动，回复表单会显示在评论下方
   }
 
   const handleCancelReply = () => {
     setReplyTo(null)
-    setReplyToUsername('')
     setCommentContent('')
   }
 
@@ -385,11 +448,37 @@ export default function BlogDetail() {
     return (
       <div key={comment.id} className="comment-item" id={`comment-${comment.id}`}>
         <div className="comment-avatar">
-          <i className="bi bi-person-circle"></i>
+          {comment.user.avatar ? (
+            <img 
+              src={comment.user.avatar} 
+              alt={comment.user.username}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                borderRadius: '50%',
+                objectFit: 'cover'
+              }}
+            />
+          ) : (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              backgroundColor: '#667eea',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold',
+              fontSize: '18px'
+            }}>
+              {comment.user.username.charAt(0).toUpperCase()}
+            </div>
+          )}
         </div>
         <div className="comment-body">
           <div className="comment-header">
-            <div className="comment-author">
+            <div className="comment-author-line">
               <strong>{comment.user.username}</strong>
               {isReply && parentUsername && (
                 <span className="reply-to">
@@ -397,21 +486,20 @@ export default function BlogDetail() {
                 </span>
               )}
             </div>
-            <span className="comment-date">{formatCommentDate(comment.add_date)}</span>
+            <div className="comment-meta-line">
+              <span className="comment-date">{formatCommentDate(comment.add_date)}</span>
+              {isAuthenticated && (
+                <span
+                  className="reply-btn"
+                  onClick={() => handleReply(comment.id, comment.user.username)}
+                >
+                  回复
+                </span>
+              )}
+            </div>
           </div>
           <div className="comment-content">{comment.content}</div>
           <div className="comment-actions">
-            {isAuthenticated && (
-              <Button
-                variant="link"
-                size="sm"
-                className="reply-btn"
-                onClick={() => handleReply(comment.id, comment.user.username)}
-              >
-                <i className="bi bi-reply me-1"></i>
-                回复
-              </Button>
-            )}
             {hasContext && parentId && showDialogBtn && (
               <span
                 className="view-context-btn"
@@ -464,10 +552,11 @@ export default function BlogDetail() {
                 )}
                 <div className="flat-replies">
                   {allReplies.map(({ reply, parentUsername }) => {
-                    // 检查是否需要显示"查看对话"
-                    // 只要这条回复有父评论，就显示"查看对话"（用于查看完整对话链）
-                    const hasContext = !!reply.parent
-                    return renderSingleComment(reply, parentUsername, hasContext, reply.parent ?? undefined, true)
+                    // 如果回复是直接回复主评论（parentUsername === 主评论作者），则不显示回复信息和查看对话
+                    const shouldShowReply = parentUsername !== comment.user.username
+                    // 检查是否需要显示"查看对话" - 只有当回复链不是直接回复主评论时才显示
+                    const hasContext = !!reply.parent && shouldShowReply
+                    return renderSingleComment(reply, shouldShowReply ? parentUsername : undefined, hasContext, reply.parent ?? undefined, true)
                   })}
                 </div>
               </>
@@ -518,6 +607,43 @@ export default function BlogDetail() {
           </Button>
           <h1>{article.title}</h1>
           <div className="article-meta">
+            {article.author && (
+              <div className="author-section d-flex align-items-center me-4 mb-3">
+                <div 
+                  className="author-avatar"
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    backgroundColor: '#667eea',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '20px',
+                    marginRight: '12px',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}
+                >
+                  {article.author.avatar ? (
+                    <img 
+                      src={article.author.avatar} 
+                      alt={article.author.username}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    article.author.username.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="author-info">
+                  <div style={{ fontWeight: '600', fontSize: '1rem' }}>
+                    {article.author.username}
+                  </div>
+                </div>
+              </div>
+            )}
             <span className="me-3">
               <i className="bi bi-calendar3 me-1"></i>
               {formatDate(article.add_date)}
@@ -526,12 +652,6 @@ export default function BlogDetail() {
               <i className="bi bi-eye me-1"></i>
               {article.count || 0} views
             </span>
-            {article.author_username && (
-              <span className="me-3">
-                <i className="bi bi-person me-1"></i>
-                {article.author_username}
-              </span>
-            )}
             <Button
               variant={article.is_favorited ? "danger" : "outline-danger"}
               size="sm"

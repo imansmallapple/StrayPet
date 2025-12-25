@@ -152,6 +152,71 @@ class ArticleViewSet(mixins.ListModelMixin,
         page = paginator.paginate_queryset(serializer.data, request)
         return paginator.get_paginated_response(page)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_comments(self, request):
+        """获取当前用户的所有评论"""
+        from apps.comment.models import Comment
+        
+        # 获取当前用户发表的所有评论
+        comments = Comment.objects.filter(owner=request.user).order_by('-add_date')
+        
+        # 为每个评论添加所属文章信息
+        comments_data = []
+        for comment in comments:
+            serializer = BlogCommentListSerializer(comment, context={'request': request})
+            data = serializer.data
+            
+            # 获取评论所属的文章
+            if hasattr(comment, 'content_object') and comment.content_object:
+                if isinstance(comment.content_object, Article):
+                    data['article_id'] = comment.content_object.id
+                    data['article_title'] = comment.content_object.title
+            
+            comments_data.append(data)
+        
+        paginator = pagination.PageNumberPagination()
+        page = paginator.paginate_queryset(comments_data, request)
+        return paginator.get_paginated_response(page)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def replies_to_me(self, request):
+        """获取别人对我的评论的回复（不包括我自己回复自己）"""
+        from apps.comment.models import Comment
+        
+        # 获取所有对当前用户评论的回复
+        # 1. 找到当前用户的所有评论
+        my_comments = Comment.objects.filter(owner=request.user).values_list('id', flat=True)
+        
+        # 2. 找到这些评论的所有回复，但排除当前用户自己的回复
+        replies = Comment.objects.filter(
+            parent_id__in=my_comments
+        ).exclude(
+            owner=request.user
+        ).order_by('-add_date').select_related('owner__profile')
+        
+        # 为每个回复添加所属文章和被回复评论的信息
+        replies_data = []
+        for reply in replies:
+            serializer = BlogCommentListSerializer(reply, context={'request': request})
+            data = serializer.data
+            
+            # 添加被回复的评论信息（当前用户的评论）
+            if reply.parent:
+                parent_serializer = BlogCommentListSerializer(reply.parent, context={'request': request})
+                data['parent_comment'] = parent_serializer.data
+            
+            # 获取回复所属的文章
+            if hasattr(reply, 'content_object') and reply.content_object:
+                if isinstance(reply.content_object, Article):
+                    data['article_id'] = reply.content_object.id
+                    data['article_title'] = reply.content_object.title
+            
+            replies_data.append(data)
+        
+        paginator = pagination.PageNumberPagination()
+        page = paginator.paginate_queryset(replies_data, request)
+        return paginator.get_paginated_response(page)
+
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
         """收藏文章"""

@@ -7,6 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.permissions import AllowAny
 from django.core.cache import cache
+from .models import Notification
 
 User = get_user_model()
 
@@ -39,6 +40,7 @@ class VerifyEmailCodeSerializer(serializers.Serializer):
     
 class UserMeSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+    avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
     preferred_species = serializers.CharField(source='profile.preferred_species', allow_blank=True, required=False)
     preferred_size = serializers.CharField(source='profile.preferred_size', allow_blank=True, required=False)
     preferred_age_min = serializers.IntegerField(source='profile.preferred_age_min', allow_null=True, required=False)
@@ -52,7 +54,7 @@ class UserMeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name", "phone", 
+        fields = ("id", "username", "email", "first_name", "last_name", "phone", "avatar",
                   "preferred_species", "preferred_size", "preferred_age_min", "preferred_age_max",
                   "preferred_gender", "has_experience", "living_situation", "has_yard", 
                   "other_pets", "additional_notes")
@@ -260,10 +262,11 @@ from rest_framework import serializers
 
 class UserListSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+    avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone', 'avatar')
 
 
 class DynamicFieldsModelSerializer(serializers.ModelSerializer):
@@ -286,11 +289,12 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
 class UserDetailSerializer(DynamicFieldsModelSerializer):
     # 把 phone 映射到 profile.phone
     phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+    avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
 
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name',
-                  'phone', 'is_staff', 'date_joined', 'last_login')
+                  'phone', 'avatar', 'is_staff', 'date_joined', 'last_login')
         extra_kwargs = {
             'username': {'required': False},
             'email': {'required': False},
@@ -322,13 +326,38 @@ class UserDetailSerializer(DynamicFieldsModelSerializer):
             if attr in validated_data:
                 setattr(instance, attr, validated_data[attr])
         instance.save()
-        # 更新 phone
-        if 'phone' in profile_data:
+        # 更新 phone 和 avatar
+        if profile_data:
             profile = getattr(instance, 'profile', None)
             if profile is None:
                 from .models import UserProfile
                 profile = UserProfile.objects.create(user=instance)
-            profile.phone = profile_data.get('phone') or ''
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
             profile.full_clean()
             profile.save()
         return instance
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """通知序列化器"""
+    from_user = serializers.SerializerMethodField()
+    comment_content = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Notification
+        fields = ['id', 'notification_type', 'title', 'content', 'from_user', 'comment_content', 'is_read', 'created_at', 'read_at']
+        read_only_fields = ['id', 'created_at', 'read_at']
+    
+    def get_from_user(self, obj):
+        if obj.from_user:
+            return {
+                'id': obj.from_user.id,
+                'username': obj.from_user.username
+            }
+        return None
+    
+    def get_comment_content(self, obj):
+        if obj.comment:
+            return obj.comment.content
+        return None

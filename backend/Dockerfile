@@ -1,9 +1,10 @@
 FROM python:3.12-slim
 
-# 系统库（GeoDjango 依赖）
+# 系统库（GeoDjango 依赖 + 字体支持）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils gdal-bin libgdal-dev libgeos-dev libproj-dev \
     gcc libpq-dev postgresql-client \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -23,12 +24,4 @@ ENV DJANGO_SETTINGS_MODULE=server.settings \
 RUN python manage.py collectstatic --noinput
 
 # 迁移 + 启动 gunicorn
-CMD ["bash", "-lc", "python manage.py migrate && \
-    gunicorn server.wsgi:application \
-    -b 0.0.0.0:8000 \
-    --workers 3 \
-    --timeout 120 \
-    --graceful-timeout 30 \
-    --keep-alive 5 \
-    --access-logfile - \
-    --error-logfile -"]
+CMD ["bash", "-lc", "python manage.py migrate && gunicorn server.wsgi:application -b 0.0.0.0:8000 --workers 3 --timeout 120 --graceful-timeout 30 --keep-alive 5 --access-logfile - --error-logfile -"]

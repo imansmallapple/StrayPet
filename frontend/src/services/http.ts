@@ -1,9 +1,12 @@
 // src/services/http.ts
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { ENDPOINTS } from './modules/auth';
+
+// Use full URL for direct cross-origin requests (CORS is enabled on backend)
+const baseURL = 'http://localhost:8000';
+console.warn('HTTP Client initialized with baseURL:', baseURL);
 
 const http: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // 建议设为 'http://localhost:8000'
+  baseURL,
   timeout: 10000,
   // ⚠️ 不要在这里写死 'Content-Type': 'application/json'
 });
@@ -54,7 +57,7 @@ http.interceptors.response.use(
 
       refreshing =
         refreshing ||
-        axios.post<{ access: string }>(ENDPOINTS.refresh, { refresh }) // 注意：用 axios 直发，避免被同一实例再拦截
+        http.post<{ access: string }>('/user/token/refresh/', { refresh })
              .then(({ data }) => {
                setAccess(data.access);
                return data.access;

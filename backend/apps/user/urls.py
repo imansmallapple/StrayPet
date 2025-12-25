@@ -13,6 +13,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 app_name = 'user'
 
+# 用户路由
+router = DefaultRouter()
+router.register(r'', views.UserViewSet, basename='user-list')
+
+# 通知路由
+notification_router = DefaultRouter()
+notification_router.register(r'notifications', views.NotificationViewSet, basename='notification')
+
 class UserDefaultRouter(DefaultRouter):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -68,11 +76,12 @@ class UserRootAPIView(APIView):
         ])
         return Response(data)
     
-router = UserDefaultRouter()
-router.register('register', views.RegisterViewSet, basename='register')
-router.register('userinfo', views.UserInfoViewSet, basename='userinfo')
-router.register('list',      views.UserListViewSet,basename='user-list')
-router.register('',         views.UserOpsViewSet,  basename='user')
+user_router = UserDefaultRouter()
+user_router.register('register', views.RegisterViewSet, basename='register')
+user_router.register('userinfo', views.UserInfoViewSet, basename='userinfo')
+user_router.register('list',      views.UserListViewSet,basename='user-list')
+user_router.register('avatars',   views.AvatarViewSet, basename='avatar')
+user_router.register('',         views.UserOpsViewSet,  basename='user')
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -117,5 +126,6 @@ urlpatterns = [
         UserRootAPIView.as_view(),
         name='api-root'
     ),    
-    * router.urls,
+    * user_router.urls,
+    * notification_router.urls,
 ]

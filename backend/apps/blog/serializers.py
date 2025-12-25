@@ -19,6 +19,23 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'add_date', 'pub_date', 'article_count']
 
 
+class AuthorInfoSerializer(serializers.Serializer):
+    """作者信息序列化器 - 用于在文章中显示"""
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    avatar = serializers.SerializerMethodField()
+    
+    def get_avatar(self, obj):
+        """获取用户头像"""
+        if hasattr(obj, 'profile') and obj.profile and hasattr(obj.profile, 'avatar'):
+            if obj.profile.avatar:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.profile.avatar.url)
+                return obj.profile.avatar.url
+        return None
+
+
 class ArticleSerializer(serializers.ModelSerializer):
     category = serializers.HyperlinkedRelatedField(
         view_name='category-detail',
@@ -33,6 +50,16 @@ class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = '__all__'
+
+    def to_representation(self, instance):
+        """自定义输出，将 author FK 转换为完整的作者信息"""
+        data = super().to_representation(instance)
+        # 将 author ID 替换为完整的作者信息
+        if instance.author:
+            data['author'] = AuthorInfoSerializer(instance.author, context=self.context).data
+        else:
+            data['author'] = None
+        return data
 
     def get_is_favorited(self, obj):
         """判断当前用户是否收藏了该文章"""
@@ -159,12 +186,26 @@ class BlogCommentListSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'content', 'add_date', 'pub_date', 'parent', 'replies']
 
     def get_user(self, obj):
-        return {
+        """返回用户信息，包括头像"""
+        user_data = {
             'id': obj.owner.id,
             'username': obj.owner.username
         }
+        # 添加用户头像
+        if hasattr(obj.owner, 'profile') and obj.owner.profile:
+            if hasattr(obj.owner.profile, 'avatar') and obj.owner.profile.avatar:
+                request = self.context.get('request')
+                if request:
+                    user_data['avatar'] = request.build_absolute_uri(obj.owner.profile.avatar.url)
+                else:
+                    user_data['avatar'] = obj.owner.profile.avatar.url
+            else:
+                user_data['avatar'] = None
+        else:
+            user_data['avatar'] = None
+        return user_data
 
     def get_replies(self, obj):
         # 获取该评论的所有回复
         replies = Comment.objects.filter(parent=obj)
-        return BlogCommentListSerializer(replies, many=True).data
+        return BlogCommentListSerializer(replies, many=True, context=self.context).data

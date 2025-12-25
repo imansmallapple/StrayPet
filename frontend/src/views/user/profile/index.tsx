@@ -1,8 +1,9 @@
 import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
-import { useEffect, useState } from 'react'
-import { Container, Row, Col, Nav, Card, Spinner, Alert } from 'react-bootstrap'
-import { Link, useLocation } from 'react-router-dom'
+import { blogApi, type Comment } from '@/services/modules/blog'
+import { useEffect, useState, useRef } from 'react'
+import { Container, Row, Col, Nav, Card, Spinner, Alert, Pagination, Button } from 'react-bootstrap'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
 import './index.scss'
@@ -64,7 +65,15 @@ export default function Profile() {
             <Card.Body>
               <div className="text-center mb-3">
                 <div className="profile-avatar">
-                  {me.username.charAt(0).toUpperCase()}
+                  {me.avatar ? (
+                    <img 
+                      src={typeof me.avatar === 'string' ? me.avatar : URL.createObjectURL(me.avatar as any)}
+                      alt={me.username}
+                      className="avatar-img"
+                    />
+                  ) : (
+                    me.username.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <h5 className="mt-3 mb-0">{me.username}</h5>
                 {me.email && <small className="text-muted">{me.email}</small>}
@@ -139,7 +148,7 @@ export default function Profile() {
           {activeTab === 'favorite-articles' && <FavoriteArticlesList />}
           {activeTab === 'my-articles' && <MyArticlesList />}
           {activeTab === 'my-pets' && <MyPetsList />}
-          {activeTab === 'replies' && <PlaceholderView title="回复我的" icon="chat-dots" />}
+          {activeTab === 'replies' && <RepliesList />}
         </Col>
       </Row>
     </Container>
@@ -147,17 +156,122 @@ export default function Profile() {
 }
 
 function ProfileInfo({ me }: { me: ApiUserMe }) {
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [userData, setUserData] = useState(me)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setUploadError('')
+
+    try {
+      const { data } = await authApi.uploadAvatar(file)
+      setUserData(data)
+    } catch (error: any) {
+      setUploadError(error?.response?.data?.error || '头像上传失败')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleResetAvatar = async () => {
+    if (!window.confirm('确定要重置为默认头像吗？')) return
+    
+    setUploading(true)
+    setUploadError('')
+
+    try {
+      const { data } = await authApi.resetAvatarToDefault()
+      setUserData(data)
+    } catch (error: any) {
+      setUploadError(error?.response?.data?.error || '重置头像失败')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const avatarUrl = userData?.avatar 
+    ? typeof userData.avatar === 'string' 
+      ? userData.avatar
+      : URL.createObjectURL(userData.avatar as any)
+    : undefined
+
   return (
     <Card className="shadow-sm">
       <Card.Header className="bg-white border-bottom">
         <h4 className="mb-0">个人信息</h4>
       </Card.Header>
       <Card.Body>
-        <InfoRow label="用户名" value={me.username} />
-        <InfoRow label="姓 (Last name)" value={me.last_name ?? '—'} />
-        <InfoRow label="名 (First name)" value={me.first_name ?? '—'} />
-        <InfoRow label="邮箱" value={me.email ?? '—'} />
-        <InfoRow label="电话" value={me.phone ?? '—'} />
+        {uploadError && (
+          <Alert variant="danger" className="mb-3" dismissible onClose={() => setUploadError('')}>
+            {uploadError}
+          </Alert>
+        )}
+
+        {/* Avatar Section */}
+        <Row className="info-row py-3 border-bottom align-items-center">
+          <Col md={3}>
+            <label className="text-muted fw-semibold">头像</label>
+          </Col>
+          <Col md={9}>
+            <div className="d-flex align-items-center gap-3">
+              <div className="profile-avatar-large">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={userData?.username} className="avatar-img" />
+                ) : (
+                  <span>{userData?.username?.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="flex-grow-1">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleAvatarUpload}
+                  disabled={uploading}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm me-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      上传中…
+                    </>
+                  ) : (
+                    '上传头像'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={handleResetAvatar}
+                  disabled={uploading || !userData?.avatar}
+                >
+                  重置为默认
+                </button>
+                <div className="small text-muted mt-2">
+                  支持 JPG、PNG、GIF、WebP，最大 5MB
+                </div>
+              </div>
+            </div>
+          </Col>
+        </Row>
+
+        <InfoRow label="用户名" value={userData?.username ?? '—'} />
+        <InfoRow label="姓 (Last name)" value={userData?.last_name ?? '—'} />
+        <InfoRow label="名 (First name)" value={userData?.first_name ?? '—'} />
+        <InfoRow label="邮箱" value={userData?.email ?? '—'} />
+        <InfoRow label="电话" value={userData?.phone ?? '—'} />
       </Card.Body>
     </Card>
   )
@@ -301,18 +415,6 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
             <span className="text-muted">{ageText()}</span>
           </Card.Text>
         </Link>
-      </Card.Body>
-    </Card>
-  )
-}
-
-function PlaceholderView({ title, icon }: { title: string; icon: string }) {
-  return (
-    <Card className="shadow-sm text-center py-5">
-      <Card.Body>
-        <i className={`bi bi-${icon} text-muted`} style={{ fontSize: '4rem' }}></i>
-        <h5 className="mt-3 text-muted">{title}</h5>
-        <p className="text-muted">功能开发中，敬请期待</p>
       </Card.Body>
     </Card>
   )
@@ -702,5 +804,235 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
         </Link>
       </Card.Body>
     </Card>
+  )
+}
+
+function RepliesList() {
+  const navigate = useNavigate()
+  const [replies, setReplies] = useState<(Comment & { article_id?: number; article_title?: string; parent_comment?: Comment })[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [total, setTotal] = useState(0)
+  const [hoveredId, setHoveredId] = useState<number | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const { data } = await blogApi.getRepliesToMe({ page, page_size: pageSize })
+        if (!alive) return
+        setReplies(data.results || [])
+        setTotal(data.count || 0)
+      } catch (e: any) {
+        if (!alive) return
+        setError(e?.response?.data?.detail || '加载回复失败')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [page, pageSize])
+
+  const handleDelete = async (commentId: number) => {
+    if (!window.confirm('确定要删除这条评论吗？')) return
+    try {
+      // 在实际后端实现中，需要添加删除评论的 API
+      // 临时方案：刷新列表
+      setReplies(replies.filter(r => r.id !== commentId))
+    } catch (err) {
+      console.error('Delete comment failed:', err)
+      alert('删除评论失败')
+    }
+  }
+
+  const handleNavigateToArticle = (articleId?: number) => {
+    if (articleId) {
+      navigate(`/blog/${articleId}`)
+    }
+  }
+
+  const totalPages = Math.ceil(total / pageSize)
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <Spinner animation="border" variant="primary" />
+        <div className="mt-3">加载中…</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return <Alert variant="danger">{error}</Alert>
+  }
+
+  if (replies.length === 0) {
+    return (
+      <Card className="shadow-sm text-center py-5">
+        <Card.Body>
+          <i className="bi bi-chat-dots text-muted" style={{ fontSize: '4rem' }}></i>
+          <h5 className="mt-3 text-muted">还没有人回复你的评论</h5>
+          <p className="text-muted">去 <Link to="/blog">博客</Link> 发表有趣的评论吧</p>
+        </Card.Body>
+      </Card>
+    )
+  }
+
+  return (
+    <div>
+      <Card className="shadow-sm mb-3">
+        <Card.Header className="bg-white border-bottom">
+          <h4 className="mb-0">回复我的评论 ({total})</h4>
+        </Card.Header>
+      </Card>
+
+      {replies.map((reply) => (
+        <Card 
+          key={reply.id} 
+          className="mb-3 shadow-sm border-0"
+          onMouseEnter={() => setHoveredId(reply.id)}
+          onMouseLeave={() => setHoveredId(null)}
+        >
+          <Card.Body>
+            {/* 上方：别人的回复 */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              {/* 用户头像 */}
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '18px',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}
+              >
+                {reply.user?.avatar ? (
+                  <img
+                    src={reply.user.avatar}
+                    alt={reply.user.username}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  reply.user?.username?.charAt(0)?.toUpperCase()
+                )}
+              </div>
+
+              {/* 主体内容 */}
+              <div style={{ flex: 1 }}>
+                {/* 用户名和日期 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                  <strong style={{ fontSize: '14px', color: '#333' }}>
+                    {reply.user?.username || '用户'}
+                  </strong>
+                  <span style={{ fontSize: '12px', color: '#999' }}>
+                    回复了我的评论
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#bbb', marginLeft: 'auto' }}>
+                    {new Date(reply.add_date).toLocaleDateString('zh-CN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+
+                {/* 回复内容 */}
+                <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#333' }}>
+                  {reply.content}
+                </div>
+              </div>
+            </div>
+
+            {/* 下方：我的原评论 */}
+            {reply.parent_comment && (
+              <div
+                style={{
+                  fontSize: '13px',
+                  color: '#666',
+                  paddingLeft: '12px',
+                  borderLeft: '3px solid #667eea',
+                  backgroundColor: '#f5f7ff',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  marginBottom: '12px'
+                }}
+              >
+                <div style={{ color: '#667eea', fontWeight: '600', marginBottom: '4px', fontSize: '12px' }}>
+                  我的评论
+                </div>
+                <div style={{ color: '#333', lineHeight: '1.5' }}>
+                  {reply.parent_comment.content}
+                </div>
+              </div>
+            )}
+
+            {/* 操作按钮：放到最下面 */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {reply.article_id && (
+                <Button
+                  size="sm"
+                  variant="outline-primary"
+                  onClick={() => handleNavigateToArticle(reply.article_id)}
+                  style={{ fontSize: '12px' }}
+                >
+                  <i className="bi bi-link-45deg me-1"></i>
+                  查看文章：{reply.article_title}
+                </Button>
+              )}
+              
+              {/* 删除按钮：仅在hover时显示 */}
+              {hoveredId === reply.id && (
+                <Button
+                  size="sm"
+                  variant="outline-danger"
+                  onClick={() => handleDelete(reply.id)}
+                  style={{ fontSize: '12px' }}
+                >
+                  <i className="bi bi-trash me-1"></i>
+                  删除
+                </Button>
+              )}
+            </div>
+          </Card.Body>
+        </Card>
+      ))}
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+          <Pagination>
+            <Pagination.First disabled={page === 1} onClick={() => setPage(1)} />
+            <Pagination.Prev disabled={page === 1} onClick={() => setPage(page - 1)} />
+            
+            {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+              const pageNum = page <= 3 ? i + 1 : page - 2 + i
+              return (
+                <Pagination.Item
+                  key={pageNum}
+                  active={pageNum === page}
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum}
+                </Pagination.Item>
+              )
+            })}
+            
+            <Pagination.Next disabled={page === totalPages} onClick={() => setPage(page + 1)} />
+            <Pagination.Last disabled={page === totalPages} onClick={() => setPage(totalPages)} />
+          </Pagination>
+        </div>
+      )}
+    </div>
   )
 }

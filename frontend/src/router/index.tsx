@@ -111,6 +111,10 @@ const router: RouteObject[] = [
         path: '/blog/archive/:year/:month',
           element: LazyLoad(lazyWithFallback(() => import('@/views/blog/archive'))),
       },
+      {
+        path: '/messages',
+        element: LazyLoad(lazyWithFallback(() => import('@/views/messages'))),
+      },
       ...routes, // modules 路由
     ],
   },

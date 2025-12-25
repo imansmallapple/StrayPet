@@ -212,7 +212,38 @@ export default function BlogList() {
                           <h4>{article.title}</h4>
                         </Link>
                       </div>
-                      <div className="article-meta mb-3">
+                      <div className="article-meta mb-3 d-flex align-items-center">
+                        {article.author && (
+                          <div className="author-info me-3 d-flex align-items-center gap-2" style={{ fontSize: '0.9rem' }}>
+                            <div 
+                              className="author-avatar"
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                backgroundColor: '#667eea',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold',
+                                overflow: 'hidden',
+                                flexShrink: 0
+                              }}
+                            >
+                              {article.author.avatar ? (
+                                <img 
+                                  src={article.author.avatar} 
+                                  alt={article.author.username}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                article.author.username.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <span className="text-muted">{article.author.username}</span>
+                          </div>
+                        )}
                         <span className="me-3">
                           <i className="bi bi-calendar3 me-1"></i>
                           {formatDate(article.add_date)}

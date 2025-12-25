@@ -173,7 +173,7 @@
         grid-template-columns: 1fr;
     }
 }
-// •¶Í?•Ğ?®
+// ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½
 .article-card {
     transition: all 0.3s ease;
     border: 1px solid #e5e7eb;
@@ -194,5 +194,51 @@
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+    }
+}
+
+// å¤´åƒæ ·å¼
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: bold;
+    color: white;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.profile-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 3px solid #e5e7eb;
+
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 }

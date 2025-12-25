@@ -21,22 +21,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app # Docker will sync code from host code changing
-    command: >
-      bash -lc "
-        until pg_isready -h ${DB_HOST:-db} -p ${DB_PORT:-5432} -U ${DB_USER:-sp_user}; do
-          echo 'Waiting for Postgres...'; sleep 1;
-        done;
-        python manage.py migrate &&
-        gunicorn server.wsgi:application \
-          -b 0.0.0.0:8000 \
-          --workers 3 \
-          --timeout 120 \
-          --graceful-timeout 30 \
-          --keep-alive 5 \
-          --reload \
-          --access-logfile - \
-          --error-logfile -
-      "
+    command: bash -c "until pg_isready -h db -p 5432 -U sp_user; do echo 'Waiting for Postgres...'; sleep 1; done; python manage.py migrate && gunicorn server.wsgi:application -b 0.0.0.0:8000 --workers 1 --timeout 120 --graceful-timeout 30 --keep-alive 5 --access-logfile - --error-logfile -"
 
 
   adminer:

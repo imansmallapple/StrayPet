@@ -13,11 +13,25 @@ function Login() {
 
   async function loadCaptcha() {
     try {
-      const { data } = await authApi.getCaptcha()
+      console.warn('Loading captcha from:', authApi.getCaptcha.toString())
+      const response = await authApi.getCaptcha()
+      console.warn('Captcha response:', response)
+      const { data } = response
       setImg(data.image)
       setUid(data.uid)
       setCaptcha('')
-    } catch {
+    } catch (err: any) {
+      console.error('获取验证码失败:', err.message)
+      console.error('Full error:', {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        headers: err.response?.headers,
+        url: err.config?.url,
+        baseURL: err.config?.baseURL,
+      })
       alert('获取验证码失败，请稍后重试')
     }
   }

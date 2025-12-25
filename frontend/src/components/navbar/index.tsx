@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import SignInWidget from '@/components/sign-in-widget'
+import NotificationBell from '@/components/NotificationBell'
 import './index.scss'  // 可选
 
 export default function TopNavbar() {
@@ -22,6 +23,7 @@ export default function TopNavbar() {
       </nav>
 
       <div className="header-right">
+        <NotificationBell />
         <SignInWidget />
       </div>
     </header>
