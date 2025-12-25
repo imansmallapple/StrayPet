@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Article, Category, Tag
 from apps.user.models import ViewStatistics
+from apps.comment.models import Comment
 import re
 
 
@@ -136,3 +137,34 @@ class ArticleCreateUpdateSerializer(serializers.ModelSerializer):
             instance.tags.set(tag_objects)
         
         return instance
+
+
+class BlogCommentSerializer(serializers.ModelSerializer):
+    """博客评论序列化器 - 不需要验证码"""
+    owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'owner', 'content', 'parent', 'add_date', 'pub_date']
+        read_only_fields = ('content_type', 'object_id', 'add_date', 'pub_date')
+
+
+class BlogCommentListSerializer(serializers.ModelSerializer):
+    """博客评论列表序列化器 - 用于展示"""
+    user = serializers.SerializerMethodField()
+    replies = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'content', 'add_date', 'pub_date', 'parent', 'replies']
+
+    def get_user(self, obj):
+        return {
+            'id': obj.owner.id,
+            'username': obj.owner.username
+        }
+
+    def get_replies(self, obj):
+        # 获取该评论的所有回复
+        replies = Comment.objects.filter(parent=obj)
+        return BlogCommentListSerializer(replies, many=True).data

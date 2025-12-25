@@ -27,7 +27,15 @@ services:
           echo 'Waiting for Postgres...'; sleep 1;
         done;
         python manage.py migrate &&
-        gunicorn server.wsgi:application -b 0.0.0.0:8000 --workers 3 --reload
+        gunicorn server.wsgi:application \
+          -b 0.0.0.0:8000 \
+          --workers 3 \
+          --timeout 120 \
+          --graceful-timeout 30 \
+          --keep-alive 5 \
+          --reload \
+          --access-logfile - \
+          --error-logfile -
       "
 
 

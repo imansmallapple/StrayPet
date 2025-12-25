@@ -15,7 +15,14 @@ import os
 from apps.user.models import ViewStatistics
 from common import pagination
 from .models import Article, Tag, Category, FavoriteArticle
-from .serializers import ArticleSerializer, ArticleCreateUpdateSerializer, TagSerializer, CategorySerializer
+from .serializers import (
+    ArticleSerializer, 
+    ArticleCreateUpdateSerializer, 
+    TagSerializer, 
+    CategorySerializer,
+    BlogCommentSerializer,
+    BlogCommentListSerializer
+)
 from django.db.models import Sum, F
 from apps.comment.serializers import CommentSerializer, CommentListSerializer
 
@@ -52,7 +59,9 @@ class ArticleViewSet(mixins.ListModelMixin,
 
     def get_serializer_class(self):
         if self.action == 'add_comment':
-            return CommentSerializer
+            return BlogCommentSerializer
+        elif self.action == 'comments':
+            return BlogCommentListSerializer
         elif self.action in ['create', 'update', 'partial_update']:
             return ArticleCreateUpdateSerializer
         return super().get_serializer_class()
@@ -102,8 +111,12 @@ class ArticleViewSet(mixins.ListModelMixin,
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         content_object = self.get_object()
-        if serializer.validated_data['parent']:
-            content_object = serializer.validated_data['parent'].content_object
+        
+        # 检查是否是回复评论
+        parent = serializer.validated_data.get('parent')
+        if parent:
+            content_object = parent.content_object
+        
         serializer.save(content_object=content_object)
         return Response(serializer.data)
 
@@ -111,7 +124,7 @@ class ArticleViewSet(mixins.ListModelMixin,
     def comments(self, request, pk=None):
         article = self.get_object()
         comments = article.comments.filter(parent__isnull=True)
-        serializer = CommentListSerializer(comments, many=True)
+        serializer = BlogCommentListSerializer(comments, many=True)
         paginator = pagination.PageNumberPagination()
         page = paginator.paginate_queryset(serializer.data, request)
         response = paginator.get_paginated_response(page)

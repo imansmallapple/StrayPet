@@ -1,0 +1,77 @@
+// src/components/EmojiPicker.scss
+.emoji-picker-popover {
+  max-width: 350px;
+  
+  .popover-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.5rem;
+  }
+
+  .emoji-categories {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: space-around;
+    flex-wrap: wrap;
+  }
+
+  .emoji-category-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: #e9ecef;
+    }
+
+    &.active {
+      background-color: #667eea;
+      transform: scale(1.1);
+    }
+  }
+
+  .popover-body {
+    padding: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.25rem;
+  }
+
+  .emoji-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+
+    &:hover {
+      background-color: #e9ecef;
+      transform: scale(1.2);
+    }
+
+    &:active {
+      transform: scale(1.1);
+    }
+  }
+}
+
+.emoji-picker-trigger {
+  min-width: 40px;
+  font-size: 1.2rem;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
+}
