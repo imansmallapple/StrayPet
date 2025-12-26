@@ -526,7 +526,9 @@ export default function BlogDetail() {
     const allReplies = flattenReplies(comment)
     const replyCount = allReplies.length
     const isExpanded = expandedComments.has(comment.id)
-    const shouldCollapse = replyCount >= 3 && !isExpanded
+    // 如果回复数 > 2，默认只显示前2条，需要展开
+    const shouldCollapse = replyCount > 2 && !isExpanded
+    const visibleReplies = shouldCollapse ? allReplies.slice(0, 2) : allReplies
 
     return (
       <div key={comment.id} id={`comment-${comment.id}`} className="comment-thread">
@@ -536,30 +538,27 @@ export default function BlogDetail() {
         {/* 回复区域 */}
         {replyCount > 0 && (
           <div className="replies-container">
-            {shouldCollapse ? (
+            <div className="flat-replies">
+              {visibleReplies.map(({ reply, parentUsername }) => {
+                // 如果回复是直接回复主评论（parentUsername === 主评论作者），则不显示回复信息和查看对话
+                const shouldShowReply = parentUsername !== comment.user.username
+                // 检查是否需要显示"查看对话" - 只有当回复链不是直接回复主评论时才显示
+                const hasContext = !!reply.parent && shouldShowReply
+                return renderSingleComment(reply, shouldShowReply ? parentUsername : undefined, hasContext, reply.parent ?? undefined, true)
+              })}
+            </div>
+            {shouldCollapse && (
               <div className="replies-toggle" onClick={() => toggleReplies(comment.id)}>
                 <i className="bi bi-chevron-down me-1"></i>
                 共 {replyCount} 条回复
                 <i className="bi bi-chevron-right ms-1"></i>
               </div>
-            ) : (
-              <>
-                {replyCount >= 3 && (
-                  <div className="replies-toggle expanded" onClick={() => toggleReplies(comment.id)}>
-                    <i className="bi bi-chevron-up me-1"></i>
-                    收起回复
-                  </div>
-                )}
-                <div className="flat-replies">
-                  {allReplies.map(({ reply, parentUsername }) => {
-                    // 如果回复是直接回复主评论（parentUsername === 主评论作者），则不显示回复信息和查看对话
-                    const shouldShowReply = parentUsername !== comment.user.username
-                    // 检查是否需要显示"查看对话" - 只有当回复链不是直接回复主评论时才显示
-                    const hasContext = !!reply.parent && shouldShowReply
-                    return renderSingleComment(reply, shouldShowReply ? parentUsername : undefined, hasContext, reply.parent ?? undefined, true)
-                  })}
-                </div>
-              </>
+            )}
+            {isExpanded && replyCount > 2 && (
+              <div className="replies-toggle expanded" onClick={() => toggleReplies(comment.id)}>
+                <i className="bi bi-chevron-up me-1"></i>
+                收起回复
+              </div>
             )}
           </div>
         )}

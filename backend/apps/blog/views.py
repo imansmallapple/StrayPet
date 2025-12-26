@@ -124,7 +124,7 @@ class ArticleViewSet(mixins.ListModelMixin,
     def comments(self, request, pk=None):
         article = self.get_object()
         comments = article.comments.filter(parent__isnull=True)
-        serializer = BlogCommentListSerializer(comments, many=True)
+        serializer = BlogCommentListSerializer(comments, many=True, context={'request': request})
         paginator = pagination.PageNumberPagination()
         page = paginator.paginate_queryset(serializer.data, request)
         response = paginator.get_paginated_response(page)

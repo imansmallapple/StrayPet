@@ -187,6 +187,10 @@ class BlogCommentListSerializer(serializers.ModelSerializer):
 
     def get_user(self, obj):
         """返回用户信息，包括头像"""
+        from django.conf import settings
+        import logging
+        logger = logging.getLogger(__name__)
+        
         user_data = {
             'id': obj.owner.id,
             'username': obj.owner.username
@@ -196,13 +200,21 @@ class BlogCommentListSerializer(serializers.ModelSerializer):
             if hasattr(obj.owner.profile, 'avatar') and obj.owner.profile.avatar:
                 request = self.context.get('request')
                 if request:
-                    user_data['avatar'] = request.build_absolute_uri(obj.owner.profile.avatar.url)
+                    # 确保使用完整的绝对 URL
+                    avatar_url = request.build_absolute_uri(obj.owner.profile.avatar.url)
+                    user_data['avatar'] = avatar_url
+                    logger.info(f"Avatar URL for {obj.owner.username}: {avatar_url}")
                 else:
-                    user_data['avatar'] = obj.owner.profile.avatar.url
+                    # 如果没有 request，使用 MEDIA_URL + path
+                    avatar_url = f"{settings.MEDIA_URL}{obj.owner.profile.avatar.name}"
+                    user_data['avatar'] = avatar_url
+                    logger.info(f"Avatar URL (no request) for {obj.owner.username}: {avatar_url}")
             else:
                 user_data['avatar'] = None
+                logger.warning(f"No avatar for {obj.owner.username}")
         else:
             user_data['avatar'] = None
+            logger.warning(f"No profile for {obj.owner.username}")
         return user_data
 
     def get_replies(self, obj):
