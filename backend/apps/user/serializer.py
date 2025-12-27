@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.permissions import AllowAny
 from django.core.cache import cache
-from .models import Notification
+from .models import Notification, Friendship, PrivateMessage
 
 User = get_user_model()
 
@@ -361,3 +361,51 @@ class NotificationSerializer(serializers.ModelSerializer):
         if obj.comment:
             return obj.comment.content
         return None
+
+
+class FriendshipSerializer(serializers.ModelSerializer):
+    """好友关系序列化器"""
+    from_user = serializers.SerializerMethodField()
+    to_user = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Friendship
+        fields = ['id', 'from_user', 'to_user', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_from_user(self, obj):
+        return {
+            'id': obj.from_user.id,
+            'username': obj.from_user.username
+        }
+    
+    def get_to_user(self, obj):
+        return {
+            'id': obj.to_user.id,
+            'username': obj.to_user.username
+        }
+
+
+class PrivateMessageSerializer(serializers.ModelSerializer):
+    """私信序列化器"""
+    sender = serializers.SerializerMethodField()
+    recipient = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PrivateMessage
+        fields = ['id', 'sender', 'recipient', 'content', 'is_read', 'created_at', 'read_at']
+        read_only_fields = ['id', 'created_at', 'read_at', 'is_read']
+    
+    def get_sender(self, obj):
+        return {
+            'id': obj.sender.id,
+            'username': obj.sender.username,
+            'avatar': obj.sender.profile.avatar.url if obj.sender.profile.avatar else None
+        }
+    
+    def get_recipient(self, obj):
+        return {
+            'id': obj.recipient.id,
+            'username': obj.recipient.username,
+            'avatar': obj.recipient.profile.avatar.url if obj.recipient.profile.avatar else None
+        }

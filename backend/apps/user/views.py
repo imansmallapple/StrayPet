@@ -3,9 +3,12 @@ import string
 import io
 import base64
 import uuid
+from datetime import date
 from django.core.cache import cache
 from django.contrib.auth import get_user_model, logout
-from rest_framework import viewsets, mixins, filters, permissions, authentication, status
+from django.contrib.auth.models import User
+from django.db.models import Q
+from rest_framework import viewsets, mixins, filters, permissions, authentication, status, generics
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from common import pagination
@@ -13,20 +16,15 @@ from rest_framework.decorators import action
 from apps.user.serializer import RegisterSerializer, SendEmailCodeSerializer, VerifyEmailCodeSerializer, \
     UserInfoSerializer, UpdateEmailSerializer, ChangePasswordSerializer, UploadImageSerializer, \
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer, UserMeSerializer, UserListSerializer, \
-    UserDetailSerializer, NotificationSerializer
-from apps.user.models import Notification
+    UserDetailSerializer, NotificationSerializer, FriendshipSerializer, PrivateMessageSerializer
+from apps.user.models import Notification, Friendship, PrivateMessage
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from common.utils import generate_catcha_image
 from django.core.files.storage import default_storage
-from django.core.cache import cache
 from django.core.mail import send_mail
-from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import generics, permissions
 from rest_framework.views import APIView
-from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 User = get_user_model()
 
@@ -171,10 +169,11 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
     queryset = User.objects.all()
     serializer_class = UserInfoSerializer
     authentication_classes = [authentication.SessionAuthentication, JWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        return super().get_queryset().filter(id=self.request.user.id)
+        # 允许查询任何用户的公开信息
+        return super().get_queryset()
 
     def get_serializer_class(self):
         if self.action == 'update_email':
@@ -488,3 +487,185 @@ class AvatarViewSet(viewsets.ViewSet):
                 {'error': f'Failed to reset avatar: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class FriendshipViewSet(viewsets.ModelViewSet):
+    """好友管理 API"""
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    
+    def get_queryset(self):
+        user = self.request.user
+        # 返回与当前用户相关的所有好友关系
+        return Friendship.objects.filter(
+            models.Q(from_user=user) | models.Q(to_user=user)
+        )
+    
+    @action(detail=False, methods=['post'])
+    def add_friend(self, request):
+        """添加好友"""
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({'error': '缺少user_id参数'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'error': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if target_user == request.user:
+            return Response({'error': '不能添加自己为好友'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 检查是否已存在好友关系
+        friendship = Friendship.objects.filter(
+            models.Q(from_user=request.user, to_user=target_user) |
+            models.Q(from_user=target_user, to_user=request.user)
+        ).first()
+        
+        if friendship:
+            serializer = self.get_serializer(friendship)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # 创建新的好友请求
+        friendship = Friendship.objects.create(
+            from_user=request.user,
+            to_user=target_user,
+            status='pending'
+        )
+        serializer = self.get_serializer(friendship)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        """接受好友请求"""
+        friendship = self.get_object()
+        if friendship.to_user != request.user:
+            return Response({'error': '只有接收者能接受好友请求'}, status=status.HTTP_403_FORBIDDEN)
+        
+        friendship.status = 'accepted'
+        friendship.save()
+        serializer = self.get_serializer(friendship)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """拒绝好友请求"""
+        friendship = self.get_object()
+        if friendship.to_user != request.user:
+            return Response({'error': '只有接收者能拒绝好友请求'}, status=status.HTTP_403_FORBIDDEN)
+        
+        friendship.status = 'blocked'
+        friendship.save()
+        serializer = self.get_serializer(friendship)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def check_friendship(self, request):
+        """检查与某用户的好友关系"""
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response({'error': '缺少user_id参数'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        friendship = Friendship.objects.filter(
+            models.Q(from_user=request.user, to_user_id=user_id) |
+            models.Q(from_user_id=user_id, to_user=request.user)
+        ).first()
+        
+        if not friendship:
+            return Response({'status': None})
+        
+        serializer = self.get_serializer(friendship)
+        return Response(serializer.data)
+
+
+class PrivateMessageViewSet(viewsets.ModelViewSet):
+    """私信管理 API"""
+    serializer_class = PrivateMessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    
+    def get_queryset(self):
+        user = self.request.user
+        # 返回当前用户收到或发送的所有消息
+        return PrivateMessage.objects.filter(
+            models.Q(sender=user) | models.Q(recipient=user)
+        ).order_by('-created_at')
+    
+    def create(self, request, *args, **kwargs):
+        """发送私信"""
+        recipient_id = request.data.get('recipient_id')
+        content = request.data.get('content')
+        
+        if not recipient_id or not content:
+            return Response({'error': '缺少recipient_id或content'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            recipient = User.objects.get(id=recipient_id)
+        except User.DoesNotExist:
+            return Response({'error': '接收者不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 检查是否为好友或者检查非好友消息数量
+        friendship = Friendship.objects.filter(
+            models.Q(from_user=request.user, to_user=recipient, status='accepted') |
+            models.Q(from_user=recipient, to_user=request.user, status='accepted')
+        ).first()
+        
+        if not friendship:
+            # 非好友关系，检查消息数量限制
+            message_count = PrivateMessage.objects.filter(
+                sender=request.user,
+                recipient=recipient,
+                created_at__date=date.today()
+            ).count()
+            
+            if message_count >= 3:
+                return Response(
+                    {'error': '今日给陌生人的消息已达上限(3条)'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        message = PrivateMessage.objects.create(
+            sender=request.user,
+            recipient=recipient,
+            content=content
+        )
+        serializer = self.get_serializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['get'])
+    def conversation(self, request):
+        """获取与某用户的对话"""
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response({'error': '缺少user_id参数'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        messages = PrivateMessage.objects.filter(
+            models.Q(sender=request.user, recipient_id=user_id) |
+            models.Q(sender_id=user_id, recipient=request.user)
+        ).order_by('-created_at')
+        
+        page = self.paginate_queryset(messages, request)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(messages, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        """标记消息为已读"""
+        message = self.get_object()
+        if message.recipient != request.user:
+            return Response({'error': '只有接收者能标记消息为已读'}, status=status.HTTP_403_FORBIDDEN)
+        
+        from django.utils import timezone
+        message.is_read = True
+        message.read_at = timezone.now()
+        message.save()
+        serializer = self.get_serializer(message)
+        return Response(serializer.data)
+
+

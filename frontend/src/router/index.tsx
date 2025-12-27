@@ -30,7 +30,7 @@ const router: RouteObject[] = [
           element: LazyLoad(lazyWithFallback(() => import('@/views/test/login'))),
       },
       {
-        path: '/user/profile',
+        path: '/user/profile/:userId?',
           element: LazyLoad(lazyWithFallback(() => import('@/views/user/profile'))),
       },
       {

@@ -447,7 +447,12 @@ export default function BlogDetail() {
 
     return (
       <div key={comment.id} className="comment-item" id={`comment-${comment.id}`}>
-        <div className="comment-avatar">
+        <div 
+          className="comment-avatar"
+          onClick={() => navigate(`/user/profile/${comment.user.id}`)}
+          style={{ cursor: 'pointer' }}
+          title="Click to view user profile"
+        >
           {comment.user.avatar ? (
             <img 
               src={comment.user.avatar} 
@@ -479,7 +484,13 @@ export default function BlogDetail() {
         <div className="comment-body">
           <div className="comment-header">
             <div className="comment-author-line">
-              <strong>{comment.user.username}</strong>
+              <strong 
+                onClick={() => navigate(`/user/profile/${comment.user.id}`)}
+                style={{ cursor: 'pointer', color: '#667eea' }}
+                title="Click to view user profile"
+              >
+                {comment.user.username}
+              </strong>
               {isReply && parentUsername && (
                 <span className="reply-to">
                   {' '}回复 <span className="reply-target">@{parentUsername}</span>
@@ -607,7 +618,7 @@ export default function BlogDetail() {
           <h1>{article.title}</h1>
           <div className="article-meta">
             {article.author && (
-              <div className="author-section d-flex align-items-center me-4 mb-3">
+              <div className="author-section d-flex align-items-center me-4 mb-3" onClick={() => navigate(`/user/profile/${article.author?.id}`)} style={{ cursor: 'pointer' }}>
                 <div 
                   className="author-avatar"
                   style={{
@@ -637,7 +648,7 @@ export default function BlogDetail() {
                   )}
                 </div>
                 <div className="author-info">
-                  <div style={{ fontWeight: '600', fontSize: '1rem' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'white' }}>
                     {article.author.username}
                   </div>
                 </div>

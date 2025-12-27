@@ -36,6 +36,7 @@ export const authApi = {
 
   getMe: () => http.get<UserMe>(ENDPOINTS.me),
   getProfile: () => http.get<UserMe>(ENDPOINTS.detail),
+  getUserProfile: (userId: number) => http.get<UserMe>(`/user/userinfo/${userId}/`),
   updateProfile: (data: Partial<UserMe>) => http.patch<UserMe>(ENDPOINTS.me, data),
 
   // 通知相关
@@ -65,6 +66,31 @@ export const authApi = {
   deleteAvatar: () => http.post<{ message: string }>('/user/avatars/delete/'),
 
   resetAvatarToDefault: () => http.get<UserMe>('/user/avatars/reset/'),
+
+  // 好友相关
+  addFriend: (userId: number) => 
+    http.post('/user/friendships/add_friend/', { user_id: userId }),
+
+  acceptFriendRequest: (friendshipId: number) =>
+    http.post(`/user/friendships/${friendshipId}/accept/`),
+
+  rejectFriendRequest: (friendshipId: number) =>
+    http.post(`/user/friendships/${friendshipId}/reject/`),
+
+  checkFriendship: (userId: number) =>
+    http.get('/user/friendships/check_friendship/', { params: { user_id: userId } }),
+
+  // 私信相关
+  sendMessage: (recipientId: number, content: string) =>
+    http.post('/user/messages/', { recipient_id: recipientId, content }),
+
+  getConversation: (userId: number, page?: number) =>
+    http.get('/user/messages/conversation/', { 
+      params: { user_id: userId, page, page_size: 20 }
+    }),
+
+  markMessageAsRead: (messageId: number) =>
+    http.post(`/user/messages/${messageId}/mark_as_read/`),
 }
 
 export type LoginBody = {

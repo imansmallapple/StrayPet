@@ -1,9 +1,9 @@
 import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
 import { blogApi, type Comment } from '@/services/modules/blog'
-import { useEffect, useState, useRef } from 'react'
-import { Container, Row, Col, Nav, Card, Spinner, Alert, Pagination, Button } from 'react-bootstrap'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState, useRef, Fragment } from 'react'
+import { Container, Row, Col, Nav, Card, Spinner, Alert, Pagination, Button, Modal } from 'react-bootstrap'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
 import './index.scss'
@@ -11,19 +11,42 @@ import './index.scss'
 type TabKey = 'info' | 'preferences' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'replies'
 
 export default function Profile() {
+  const { userId } = useParams<{ userId?: string }>()
   const location = useLocation()
   const hashTab = (location.hash.replace('#', '') as TabKey)
   const validTabs: TabKey[] = ['info', 'preferences', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'replies']
   const activeTab: TabKey = validTabs.includes(hashTab) ? hashTab : 'info'
   const [me, setMe] = useState<ApiUserMe | null>(null)
+  const [currentUser, setCurrentUser] = useState<ApiUserMe | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const isOtherUserProfile = Boolean(userId && currentUser && Number(userId) !== currentUser.id)
 
   useEffect(() => {
     let alive = true
     ;(async () => {
       try {
-        const { data } = await authApi.getProfile()
+        // 获取当前登录用户信息
+        const { data: current } = await authApi.getProfile()
+        if (!alive) return
+        setCurrentUser(current)
+
+        // 获取要显示的用户信息
+        let data
+        if (userId) {
+          const userId_num = Number(userId)
+          // 如果 userId 等于当前用户 ID，显示当前用户信息
+          if (userId_num === current.id) {
+            data = current
+          } else {
+            // 否则获取其他用户的公开资料
+            const { data: userData } = await authApi.getUserProfile(userId_num)
+            data = userData
+          }
+        } else {
+          // 没有 userId 参数，显示当前用户
+          data = current
+        }
         if (!alive) return
         setMe(data)
       } catch (e: any) {
@@ -33,7 +56,8 @@ export default function Profile() {
       }
     })()
     return () => { alive = false }
-  }, [])
+  }, [userId])
+
 
   // activeTab is derived from URL hash; no state set in effect
 
@@ -87,54 +111,58 @@ export default function Profile() {
                   <i className="bi bi-person-circle me-2"></i>
                   个人信息
                 </Nav.Link>
-                <Nav.Link
-                  href="#preferences"
-                  active={activeTab === 'preferences'}
-                  className="profile-nav-link"
-                >
-                  <i className="bi bi-sliders me-2"></i>
-                  我的偏好
-                </Nav.Link>
-                <Nav.Link
-                  href="#favorite-pets"
-                  active={activeTab === 'favorite-pets'}
-                  className="profile-nav-link"
-                >
-                  <i className="bi bi-star-fill me-2"></i>
-                  收藏的宠物
-                </Nav.Link>
-                <Nav.Link
-                  href="#favorite-articles"
-                  active={activeTab === 'favorite-articles'}
-                  className="profile-nav-link"
-                >
-                  <i className="bi bi-bookmark-star-fill me-2"></i>
-                  收藏的文章
-                </Nav.Link>
-                <Nav.Link
-                  href="#my-articles"
-                  active={activeTab === 'my-articles'}
-                  className="profile-nav-link"
-                >
-                  <i className="bi bi-file-earmark-text me-2"></i>
-                  我的文章
-                </Nav.Link>
-                <Nav.Link
-                  href="#my-pets"
-                  active={activeTab === 'my-pets'}
-                  className="profile-nav-link"
-                >
-                  <i className="bi bi-heart-fill me-2"></i>
-                  我的宠物
-                </Nav.Link>
-                <Nav.Link
-                  href="#replies"
-                  active={activeTab === 'replies'}
-                  className="profile-nav-link"
-                >
-                  <i className="bi bi-chat-dots-fill me-2"></i>
-                  回复我的
-                </Nav.Link>
+                {!isOtherUserProfile && (
+                  <>
+                    <Nav.Link
+                      href="#preferences"
+                      active={activeTab === 'preferences'}
+                      className="profile-nav-link"
+                    >
+                      <i className="bi bi-sliders me-2"></i>
+                      我的偏好
+                    </Nav.Link>
+                    <Nav.Link
+                      href="#favorite-pets"
+                      active={activeTab === 'favorite-pets'}
+                      className="profile-nav-link"
+                    >
+                      <i className="bi bi-star-fill me-2"></i>
+                      收藏的宠物
+                    </Nav.Link>
+                    <Nav.Link
+                      href="#favorite-articles"
+                      active={activeTab === 'favorite-articles'}
+                      className="profile-nav-link"
+                    >
+                      <i className="bi bi-bookmark-star-fill me-2"></i>
+                      收藏的文章
+                    </Nav.Link>
+                    <Nav.Link
+                      href="#my-articles"
+                      active={activeTab === 'my-articles'}
+                      className="profile-nav-link"
+                    >
+                      <i className="bi bi-file-earmark-text me-2"></i>
+                      我的文章
+                    </Nav.Link>
+                    <Nav.Link
+                      href="#my-pets"
+                      active={activeTab === 'my-pets'}
+                      className="profile-nav-link"
+                    >
+                      <i className="bi bi-heart-fill me-2"></i>
+                      我的宠物
+                    </Nav.Link>
+                    <Nav.Link
+                      href="#replies"
+                      active={activeTab === 'replies'}
+                      className="profile-nav-link"
+                    >
+                      <i className="bi bi-chat-dots-fill me-2"></i>
+                      回复我的
+                    </Nav.Link>
+                  </>
+                )}
               </Nav>
             </Card.Body>
           </Card>
@@ -142,24 +170,49 @@ export default function Profile() {
 
         {/* Main content */}
         <Col md={9}>
-          {activeTab === 'info' && <ProfileInfo me={me} />}
-          {activeTab === 'preferences' && <PreferencesForm />}
-          {activeTab === 'favorite-pets' && <FavoritesList />}
-          {activeTab === 'favorite-articles' && <FavoriteArticlesList />}
-          {activeTab === 'my-articles' && <MyArticlesList />}
-          {activeTab === 'my-pets' && <MyPetsList />}
-          {activeTab === 'replies' && <RepliesList />}
+          {activeTab === 'info' && <ProfileInfo me={me} isOtherUserProfile={isOtherUserProfile} />}
+          {!isOtherUserProfile && activeTab === 'preferences' && <PreferencesForm />}
+          {!isOtherUserProfile && activeTab === 'favorite-pets' && <FavoritesList />}
+          {!isOtherUserProfile && activeTab === 'favorite-articles' && <FavoriteArticlesList />}
+          {!isOtherUserProfile && activeTab === 'my-articles' && <MyArticlesList />}
+          {!isOtherUserProfile && activeTab === 'my-pets' && <MyPetsList />}
+          {!isOtherUserProfile && activeTab === 'replies' && <RepliesList />}
         </Col>
       </Row>
     </Container>
   )
 }
 
-function ProfileInfo({ me }: { me: ApiUserMe }) {
+function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOtherUserProfile?: boolean }) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [userData, setUserData] = useState(me)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [friendshipStatus, setFriendshipStatus] = useState<any>(null)
+  const [loadingFriendship, setLoadingFriendship] = useState(false)
+  const [showMessageModal, setShowMessageModal] = useState(false)
+  const [messageContent, setMessageContent] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const [messageError, setMessageError] = useState('')
+
+  // 加载好友关系
+  useEffect(() => {
+    if (!isOtherUserProfile || !me.id) return
+
+    const loadFriendship = async () => {
+      setLoadingFriendship(true)
+      try {
+        const { data } = await authApi.checkFriendship(me.id)
+        setFriendshipStatus(data)
+      } catch {
+        setFriendshipStatus(null)
+      } finally {
+        setLoadingFriendship(false)
+      }
+    }
+
+    loadFriendship()
+  }, [me.id, isOtherUserProfile])
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -195,6 +248,61 @@ function ProfileInfo({ me }: { me: ApiUserMe }) {
     }
   }
 
+  const handleAddFriend = async () => {
+    setLoadingFriendship(true)
+    try {
+      const { data } = await authApi.addFriend(me.id)
+      setFriendshipStatus(data)
+    } catch (error: any) {
+      alert(error?.response?.data?.error || '添加好友失败')
+    } finally {
+      setLoadingFriendship(false)
+    }
+  }
+
+  const handleAcceptFriend = async () => {
+    if (!friendshipStatus?.id) return
+    setLoadingFriendship(true)
+    try {
+      const { data } = await authApi.acceptFriendRequest(friendshipStatus.id)
+      setFriendshipStatus(data)
+    } catch (error: any) {
+      alert(error?.response?.data?.error || '接受好友请求失败')
+    } finally {
+      setLoadingFriendship(false)
+    }
+  }
+
+  const handleRejectFriend = async () => {
+    if (!friendshipStatus?.id) return
+    setLoadingFriendship(true)
+    try {
+      const { data } = await authApi.rejectFriendRequest(friendshipStatus.id)
+      setFriendshipStatus(data)
+    } catch (error: any) {
+      alert(error?.response?.data?.error || '拒绝好友请求失败')
+    } finally {
+      setLoadingFriendship(false)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!messageContent.trim()) return
+    
+    setSendingMessage(true)
+    setMessageError('')
+    try {
+      await authApi.sendMessage(me.id, messageContent)
+      setMessageContent('')
+      setShowMessageModal(false)
+      alert('消息已发送')
+    } catch (error: any) {
+      setMessageError(error?.response?.data?.error || '消息发送失败')
+    } finally {
+      setSendingMessage(false)
+    }
+  }
+
   const avatarUrl = userData?.avatar 
     ? typeof userData.avatar === 'string' 
       ? userData.avatar
@@ -202,78 +310,180 @@ function ProfileInfo({ me }: { me: ApiUserMe }) {
     : undefined
 
   return (
-    <Card className="shadow-sm">
-      <Card.Header className="bg-white border-bottom">
-        <h4 className="mb-0">个人信息</h4>
-      </Card.Header>
-      <Card.Body>
-        {uploadError && (
-          <Alert variant="danger" className="mb-3" dismissible onClose={() => setUploadError('')}>
-            {uploadError}
-          </Alert>
-        )}
+    <Fragment>
+      <Card className="shadow-sm">
+        <Card.Header className="bg-white border-bottom">
+          <h4 className="mb-0">个人信息</h4>
+        </Card.Header>
+        <Card.Body>
+          {uploadError && (
+            <Alert variant="danger" className="mb-3" dismissible onClose={() => setUploadError('')}>
+              {uploadError}
+            </Alert>
+          )}
 
-        {/* Avatar Section */}
-        <Row className="info-row py-3 border-bottom align-items-center">
-          <Col md={3}>
-            <label className="text-muted fw-semibold">头像</label>
-          </Col>
-          <Col md={9}>
-            <div className="d-flex align-items-center gap-3">
-              <div className="profile-avatar-large">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={userData?.username} className="avatar-img" />
-                ) : (
-                  <span>{userData?.username?.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              <div className="flex-grow-1">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleAvatarUpload}
-                  disabled={uploading}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline-primary btn-sm me-2"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                >
-                  {uploading ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      上传中…
-                    </>
+          {/* Avatar Section */}
+          <Row className="info-row py-3 border-bottom align-items-center">
+            <Col md={3}>
+              <label className="text-muted fw-semibold">头像</label>
+            </Col>
+            <Col md={9}>
+              <div className="d-flex align-items-center gap-3">
+                <div className="profile-avatar-large">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={userData?.username} className="avatar-img" />
                   ) : (
-                    '上传头像'
+                    <span>{userData?.username?.charAt(0).toUpperCase()}</span>
                   )}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={handleResetAvatar}
-                  disabled={uploading || !userData?.avatar}
-                >
-                  重置为默认
-                </button>
-                <div className="small text-muted mt-2">
-                  支持 JPG、PNG、GIF、WebP，最大 5MB
+                </div>
+                <div className="flex-grow-1">
+                  {!isOtherUserProfile && (
+                    <>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleAvatarUpload}
+                        disabled={uploading}
+                        style={{ display: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary btn-sm me-2"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                      >
+                        {uploading ? (
+                          <>
+                            <Spinner animation="border" size="sm" className="me-2" />
+                            上传中…
+                          </>
+                        ) : (
+                          '上传头像'
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={handleResetAvatar}
+                        disabled={uploading || !userData?.avatar}
+                      >
+                        重置为默认
+                      </button>
+                      <div className="small text-muted mt-2">
+                        支持 JPG、PNG、GIF、WebP，最大 5MB
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
-          </Col>
-        </Row>
+            </Col>
+          </Row>
 
-        <InfoRow label="用户名" value={userData?.username ?? '—'} />
-        <InfoRow label="姓 (Last name)" value={userData?.last_name ?? '—'} />
-        <InfoRow label="名 (First name)" value={userData?.first_name ?? '—'} />
-        <InfoRow label="邮箱" value={userData?.email ?? '—'} />
-        <InfoRow label="电话" value={userData?.phone ?? '—'} />
-      </Card.Body>
-    </Card>
+          <InfoRow label="用户名" value={userData?.username ?? '—'} />
+          <InfoRow label="姓 (Last name)" value={userData?.last_name ?? '—'} />
+          <InfoRow label="名 (First name)" value={userData?.first_name ?? '—'} />
+          <InfoRow label="邮箱" value={userData?.email ?? '—'} />
+          <InfoRow label="电话" value={userData?.phone ?? '—'} />
+
+          {/* Friend Actions */}
+          {isOtherUserProfile && (
+            <>
+              <hr className="my-4" />
+              <Row className="friend-actions">
+                <Col md={9} className="d-flex gap-2">
+                  {!friendshipStatus?.status ? (
+                    <Button
+                      variant="primary"
+                      onClick={handleAddFriend}
+                      disabled={loadingFriendship}
+                    >
+                      {loadingFriendship ? '加载中…' : '添加好友'}
+                    </Button>
+                  ) : friendshipStatus.status === 'pending' ? (
+                    <>
+                      {friendshipStatus.to_user.id === userData.id ? (
+                        <>
+                          <Button
+                            variant="success"
+                            onClick={handleAcceptFriend}
+                            disabled={loadingFriendship}
+                          >
+                            接受好友请求
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            onClick={handleRejectFriend}
+                            disabled={loadingFriendship}
+                          >
+                            拒绝
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="secondary" disabled>
+                          待对方接受
+                        </Button>
+                      )}
+                    </>
+                  ) : friendshipStatus.status === 'accepted' ? (
+                    <Button
+                      variant="success"
+                      onClick={() => setShowMessageModal(true)}
+                    >
+                      发送私信
+                    </Button>
+                  ) : (
+                    <Button variant="secondary" disabled>
+                      已拒绝
+                    </Button>
+                  )}
+                </Col>
+              </Row>
+            </>
+          )}
+        </Card.Body>
+      </Card>
+
+      {/* Message Modal */}
+      <Modal show={showMessageModal} onHide={() => setShowMessageModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>给 {userData?.username} 发送私信</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {messageError && <Alert variant="danger">{messageError}</Alert>}
+          <form>
+            <div className="mb-3">
+              <label className="form-label">消息内容</label>
+              <textarea
+                className="form-control"
+                rows={4}
+                value={messageContent}
+                onChange={(e) => setMessageContent(e.target.value)}
+                placeholder="输入消息内容…"
+                disabled={sendingMessage}
+              />
+              {friendshipStatus?.status !== 'accepted' && (
+                <small className="text-warning mt-2 d-block">
+                  ⚠️ 非好友每天最多发送3条私信
+                </small>
+              )}
+            </div>
+          </form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowMessageModal(false)}>
+            关闭
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSendMessage}
+            disabled={sendingMessage || !messageContent.trim()}
+          >
+            {sendingMessage ? '发送中…' : '发送'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Fragment>
   )
 }
 

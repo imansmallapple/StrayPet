@@ -150,3 +150,59 @@ class Notification(models.Model):
     
     def __str__(self):
         return f'{self.user.username} - {self.get_notification_type_display()}'
+
+
+class Friendship(models.Model):
+    """好友关系模型"""
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='friendships_initiated')
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='friendships_received')
+    
+    # 状态：pending=待接受, accepted=已接受, blocked=已拒绝
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', '待接受'),
+            ('accepted', '已接受'),
+            ('blocked', '已拒绝'),
+        ],
+        default='pending'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('from_user', 'to_user')
+        verbose_name = 'Friendship'
+        verbose_name_plural = 'Friendships'
+        indexes = [
+            models.Index(fields=['from_user', 'status']),
+            models.Index(fields=['to_user', 'status']),
+        ]
+    
+    def __str__(self):
+        return f'{self.from_user.username} -> {self.to_user.username} ({self.status})'
+
+
+class PrivateMessage(models.Model):
+    """私信模型"""
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
+    
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Private Message'
+        verbose_name_plural = 'Private Messages'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['sender', 'recipient', '-created_at']),
+            models.Index(fields=['recipient', 'is_read']),
+        ]
+    
+    def __str__(self):
+        return f'{self.sender.username} -> {self.recipient.username}: {self.content[:50]}'
