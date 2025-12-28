@@ -301,8 +301,16 @@ class UserOpsViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         return [permissions.IsAuthenticated()]
 
     # 当前用户——简要
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'patch'])
     def me(self, request):
+        if request.method == 'GET':
+            ser = UserMeSerializer(request.user, context={'request': request})
+            return Response(ser.data)
+        elif request.method == 'PATCH':
+            ser = UserMeSerializer(request.user, data=request.data, partial=True, context={'request': request})
+            ser.is_valid(raise_exception=True)
+            ser.save()
+            return Response(ser.data)
         ser = UserMeSerializer(request.user, context={'request': request})
         return Response(ser.data)
 

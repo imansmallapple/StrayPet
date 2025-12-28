@@ -1,8 +1,11 @@
+import logging
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueValidator
+
+logger = logging.getLogger(__name__)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.permissions import AllowAny
@@ -52,84 +55,19 @@ class UserMeSerializer(serializers.ModelSerializer):
     other_pets = serializers.CharField(source='profile.other_pets', allow_blank=True, required=False, default='')
     additional_notes = serializers.CharField(source='profile.additional_notes', allow_blank=True, required=False, default='')
     
-    # Use SerializerMethodField (read-only) for preference booleans to safely serialize
-    prefer_vaccinated = serializers.SerializerMethodField(read_only=True)
-    prefer_sterilized = serializers.SerializerMethodField(read_only=True)
-    prefer_dewormed = serializers.SerializerMethodField(read_only=True)
-    prefer_child_friendly = serializers.SerializerMethodField(read_only=True)
-    prefer_trained = serializers.SerializerMethodField(read_only=True)
-    prefer_loves_play = serializers.SerializerMethodField(read_only=True)
-    prefer_loves_walks = serializers.SerializerMethodField(read_only=True)
-    prefer_good_with_dogs = serializers.SerializerMethodField(read_only=True)
-    prefer_good_with_cats = serializers.SerializerMethodField(read_only=True)
-    prefer_affectionate = serializers.SerializerMethodField(read_only=True)
-    prefer_needs_attention = serializers.SerializerMethodField(read_only=True)
+    # Preference fields - both readable and writable
+    prefer_vaccinated = serializers.BooleanField(source='profile.prefer_vaccinated', required=False, default=False)
+    prefer_sterilized = serializers.BooleanField(source='profile.prefer_sterilized', required=False, default=False)
+    prefer_dewormed = serializers.BooleanField(source='profile.prefer_dewormed', required=False, default=False)
+    prefer_child_friendly = serializers.BooleanField(source='profile.prefer_child_friendly', required=False, default=False)
+    prefer_trained = serializers.BooleanField(source='profile.prefer_trained', required=False, default=False)
+    prefer_loves_play = serializers.BooleanField(source='profile.prefer_loves_play', required=False, default=False)
+    prefer_loves_walks = serializers.BooleanField(source='profile.prefer_loves_walks', required=False, default=False)
+    prefer_good_with_dogs = serializers.BooleanField(source='profile.prefer_good_with_dogs', required=False, default=False)
+    prefer_good_with_cats = serializers.BooleanField(source='profile.prefer_good_with_cats', required=False, default=False)
+    prefer_affectionate = serializers.BooleanField(source='profile.prefer_affectionate', required=False, default=False)
+    prefer_needs_attention = serializers.BooleanField(source='profile.prefer_needs_attention', required=False, default=False)
     
-    def get_prefer_vaccinated(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_vaccinated', False))
-        except:
-            return False
-    
-    def get_prefer_sterilized(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_sterilized', False))
-        except:
-            return False
-    
-    def get_prefer_dewormed(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_dewormed', False))
-        except:
-            return False
-    
-    def get_prefer_child_friendly(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_child_friendly', False))
-        except:
-            return False
-    
-    def get_prefer_trained(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_trained', False))
-        except:
-            return False
-    
-    def get_prefer_loves_play(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_loves_play', False))
-        except:
-            return False
-    
-    def get_prefer_loves_walks(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_loves_walks', False))
-        except:
-            return False
-    
-    def get_prefer_good_with_dogs(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_good_with_dogs', False))
-        except:
-            return False
-    
-    def get_prefer_good_with_cats(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_good_with_cats', False))
-        except:
-            return False
-    
-    def get_prefer_affectionate(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_affectionate', False))
-        except:
-            return False
-    
-    def get_prefer_needs_attention(self, obj):
-        try:
-            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_needs_attention', False))
-        except:
-            return False
 
     class Meta:
         model = User
@@ -149,25 +87,9 @@ class UserMeSerializer(serializers.ModelSerializer):
         }
 
     def to_internal_value(self, data):
-        # Extract preference fields from input and nest them under profile
-        internal_value = super().to_internal_value(data)
-        profile_data = internal_value.get('profile', {})
-        
-        preference_fields = [
-            'prefer_vaccinated', 'prefer_sterilized', 'prefer_dewormed',
-            'prefer_child_friendly', 'prefer_trained', 'prefer_loves_play',
-            'prefer_loves_walks', 'prefer_good_with_dogs', 'prefer_good_with_cats',
-            'prefer_affectionate', 'prefer_needs_attention'
-        ]
-        
-        for field in preference_fields:
-            if field in internal_value:
-                profile_data[field] = internal_value.pop(field)
-        
-        if profile_data:
-            internal_value['profile'] = profile_data
-        
-        return internal_value
+        # DRF automatically handles nested source fields via source='profile.field_name'
+        # Just call parent implementation
+        return super().to_internal_value(data)
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})

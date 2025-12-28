@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Modal, Form, Button, Row, Col } from 'react-bootstrap'
 import { authApi } from '@/services/modules/auth'
 
@@ -6,21 +6,41 @@ interface FilterPreferencesModalProps {
   show: boolean
   onHide: () => void
   onApply: (filters: any) => void
+  currentFilters?: {
+    species?: string
+    size?: string
+    sex?: string
+    age_min?: number | string
+    age_max?: number | string
+    [key: string]: any // for pet traits (vaccinated, sterilized, etc)
+  }
 }
 
-export default function FilterPreferencesModal({ show, onHide, onApply }: FilterPreferencesModalProps) {
+// 添加样式确保复选框的checked状态可见
+const checkboxStyles = `
+  input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: #0d6efd;
+  }
+  input[type="checkbox"]:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+  }
+  label {
+    cursor: pointer;
+    margin-bottom: 0;
+  }
+`
+
+export default function FilterPreferencesModal({ show, onHide, onApply, currentFilters }: FilterPreferencesModalProps) {
   const [preferences, setPreferences] = useState({
     preferred_species: '',
     preferred_size: '',
     preferred_age_min: '',
     preferred_age_max: '',
     preferred_gender: '',
-    has_experience: false,
-    living_situation: '',
-    has_yard: false,
-    other_pets: '',
-    additional_notes: '',
-    // 宠物特性偏好
     prefer_vaccinated: false,
     prefer_sterilized: false,
     prefer_dewormed: false,
@@ -33,135 +53,144 @@ export default function FilterPreferencesModal({ show, onHide, onApply }: Filter
     prefer_affectionate: false,
     prefer_needs_attention: false
   })
-  const [loading, setLoading] = useState(false)
-  const [hasLoaded, setHasLoaded] = useState(false)
+  const loadedRef = useRef(false)
+  const preferencesRef = useRef(preferences)  // 使用ref来跟踪最新的preferences值
 
-  // 第一次打开Modal时加载用户的偏好设置
+  // 当preferences状态改变时，同步更新ref
   useEffect(() => {
-    if (!show || hasLoaded) return
+    preferencesRef.current = preferences
+  }, [preferences])
+  
+  useEffect(() => {
+    if (!show) {
+      // Modal关闭时重置flag，这样下次打开时会重新加载最新的过滤条件
+      loadedRef.current = false
+      return
+    }
+    
+    if (loadedRef.current) return
 
-    let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        
-        const { data } = await authApi.getProfile()
-        if (!alive) return
-        setPreferences({
-          preferred_species: data.preferred_species || '',
-          preferred_size: data.preferred_size || '',
-          preferred_age_min: data.preferred_age_min?.toString() || '',
-          preferred_age_max: data.preferred_age_max?.toString() || '',
-          preferred_gender: data.preferred_gender || '',
-          has_experience: data.has_experience || false,
-          living_situation: data.living_situation || '',
-          has_yard: data.has_yard || false,
-          other_pets: data.other_pets || '',
-          additional_notes: data.additional_notes || '',
-          prefer_vaccinated: data.prefer_vaccinated || false,
-          prefer_sterilized: data.prefer_sterilized || false,
-          prefer_dewormed: data.prefer_dewormed || false,
-          prefer_child_friendly: data.prefer_child_friendly || false,
-          prefer_trained: data.prefer_trained || false,
-          prefer_loves_play: data.prefer_loves_play || false,
-          prefer_loves_walks: data.prefer_loves_walks || false,
-          prefer_good_with_dogs: data.prefer_good_with_dogs || false,
-          prefer_good_with_cats: data.prefer_good_with_cats || false,
-          prefer_affectionate: data.prefer_affectionate || false,
-          prefer_needs_attention: data.prefer_needs_attention || false
-        })
-        setHasLoaded(true)
-      } catch (_e: any) {
-        if (alive) {
-          console.error('Failed to load preferences:', _e)
-          console.error('Error status:', _e?.response?.status)
-          console.error('Error data:', _e?.response?.data)
-          const errorDetail = typeof _e?.response?.data === 'string' ? _e.response.data : JSON.stringify(_e?.response?.data) || _e?.message
-          console.error('Error details:', errorDetail)
+    // 初始化preferences：只显示当前URL中应用的过滤条件，不加载保存的偏好
+    const emptyPreferences = {
+      preferred_species: '',
+      preferred_size: '',
+      preferred_age_min: '',
+      preferred_age_max: '',
+      preferred_gender: '',
+      prefer_vaccinated: false,
+      prefer_sterilized: false,
+      prefer_dewormed: false,
+      prefer_child_friendly: false,
+      prefer_trained: false,
+      prefer_loves_play: false,
+      prefer_loves_walks: false,
+      prefer_good_with_dogs: false,
+      prefer_good_with_cats: false,
+      prefer_affectionate: false,
+      prefer_needs_attention: false
+    }
+    
+    // 只应用URL中的currentFilters，不加载API的保存偏好
+    const newPreferences = { ...emptyPreferences }
+    if (currentFilters) {
+      if (currentFilters.species) newPreferences.preferred_species = currentFilters.species
+      if (currentFilters.size) newPreferences.preferred_size = currentFilters.size
+      if (currentFilters.sex) newPreferences.preferred_gender = currentFilters.sex
+      if (currentFilters.age_min) newPreferences.preferred_age_min = String(currentFilters.age_min)
+      if (currentFilters.age_max) newPreferences.preferred_age_max = String(currentFilters.age_max)
+      
+      // 对于宠物特性，只在URL中有'true'值时才设置为true
+      const petTraits = ['vaccinated', 'sterilized', 'dewormed', 'child_friendly', 'trained', 
+                         'loves_play', 'loves_walks', 'good_with_dogs', 'good_with_cats', 
+                         'affectionate', 'needs_attention']
+      petTraits.forEach(trait => {
+        const traitKey = `prefer_${trait}` as keyof typeof newPreferences
+        if (currentFilters[trait] === true) {
+          (newPreferences[traitKey] as boolean) = true
         }
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
-    return () => { alive = false }
-  }, [show, hasLoaded])
+      })
+    }
+    
+    // eslint-disable-next-line @eslint-react/hooks-extra/no-direct-set-state-in-use-effect
+    setPreferences(newPreferences)
+    console.warn('[Modal] Filter preferences initialized:', JSON.stringify(newPreferences, null, 2))
+    loadedRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show])
 
   const handleApply = async () => {
+    // 使用ref中的最新值，而不是state，以避免异步状态更新问题
+    const currentPreferences = preferencesRef.current
     const filters: any = {}
     
-    if (preferences.preferred_species) filters.species = preferences.preferred_species
-    if (preferences.preferred_size) filters.size = preferences.preferred_size
-    if (preferences.preferred_gender) filters.sex = preferences.preferred_gender
-    if (preferences.preferred_age_min) filters.age_min = Number(preferences.preferred_age_min)
-    if (preferences.preferred_age_max) filters.age_max = Number(preferences.preferred_age_max)
+    // 显式传递所有筛选字段，这样handleApplyFilters能知道用户选择了什么
+    filters.species = currentPreferences.preferred_species || undefined
+    filters.size = currentPreferences.preferred_size || undefined
+    filters.sex = currentPreferences.preferred_gender || undefined
+    filters.age_min = currentPreferences.preferred_age_min ? Number(currentPreferences.preferred_age_min) : undefined
+    filters.age_max = currentPreferences.preferred_age_max ? Number(currentPreferences.preferred_age_max) : undefined
     
-    // 添加宠物特性偏好过滤
-    if (preferences.prefer_vaccinated) filters.vaccinated = true
-    if (preferences.prefer_sterilized) filters.sterilized = true
-    if (preferences.prefer_dewormed) filters.dewormed = true
-    if (preferences.prefer_child_friendly) filters.child_friendly = true
-    if (preferences.prefer_trained) filters.trained = true
-    if (preferences.prefer_loves_play) filters.loves_play = true
-    if (preferences.prefer_loves_walks) filters.loves_walks = true
-    if (preferences.prefer_good_with_dogs) filters.good_with_dogs = true
-    if (preferences.prefer_good_with_cats) filters.good_with_cats = true
-    if (preferences.prefer_affectionate) filters.affectionate = true
-    if (preferences.prefer_needs_attention) filters.needs_attention = true
+    // 添加宠物特性偏好过滤（只在为true时才设置，否则设为false以表示"不勾选"）
+    filters.vaccinated = currentPreferences.prefer_vaccinated ? true : false
+    filters.sterilized = currentPreferences.prefer_sterilized ? true : false
+    filters.dewormed = currentPreferences.prefer_dewormed ? true : false
+    filters.child_friendly = currentPreferences.prefer_child_friendly ? true : false
+    filters.trained = currentPreferences.prefer_trained ? true : false
+    filters.loves_play = currentPreferences.prefer_loves_play ? true : false
+    filters.loves_walks = currentPreferences.prefer_loves_walks ? true : false
+    filters.good_with_dogs = currentPreferences.prefer_good_with_dogs ? true : false
+    filters.good_with_cats = currentPreferences.prefer_good_with_cats ? true : false
+    filters.affectionate = currentPreferences.prefer_affectionate ? true : false
+    filters.needs_attention = currentPreferences.prefer_needs_attention ? true : false
 
-    // 保存用户的偏好设置到个人资料
+    console.warn('[Modal] preferences state:', currentPreferences)
+    
+    // 保存用户的宠物特性偏好到个人资料
     try {
       const payload: any = {
-        has_experience: preferences.has_experience,
-        has_yard: preferences.has_yard,
-        prefer_vaccinated: preferences.prefer_vaccinated,
-        prefer_sterilized: preferences.prefer_sterilized,
-        prefer_dewormed: preferences.prefer_dewormed,
-        prefer_child_friendly: preferences.prefer_child_friendly,
-        prefer_trained: preferences.prefer_trained,
-        prefer_loves_play: preferences.prefer_loves_play,
-        prefer_loves_walks: preferences.prefer_loves_walks,
-        prefer_good_with_dogs: preferences.prefer_good_with_dogs,
-        prefer_good_with_cats: preferences.prefer_good_with_cats,
-        prefer_affectionate: preferences.prefer_affectionate,
-        prefer_needs_attention: preferences.prefer_needs_attention
+        prefer_vaccinated: currentPreferences.prefer_vaccinated,
+        prefer_sterilized: currentPreferences.prefer_sterilized,
+        prefer_dewormed: currentPreferences.prefer_dewormed,
+        prefer_child_friendly: currentPreferences.prefer_child_friendly,
+        prefer_trained: currentPreferences.prefer_trained,
+        prefer_loves_play: currentPreferences.prefer_loves_play,
+        prefer_loves_walks: currentPreferences.prefer_loves_walks,
+        prefer_good_with_dogs: currentPreferences.prefer_good_with_dogs,
+        prefer_good_with_cats: currentPreferences.prefer_good_with_cats,
+        prefer_affectionate: currentPreferences.prefer_affectionate,
+        prefer_needs_attention: currentPreferences.prefer_needs_attention
       }
       
-      if (preferences.preferred_species) payload.preferred_species = preferences.preferred_species
-      if (preferences.preferred_size) payload.preferred_size = preferences.preferred_size
-      if (preferences.preferred_gender) payload.preferred_gender = preferences.preferred_gender
-      if (preferences.living_situation) payload.living_situation = preferences.living_situation
-      if (preferences.other_pets) payload.other_pets = preferences.other_pets
-      if (preferences.additional_notes) payload.additional_notes = preferences.additional_notes
-      if (preferences.preferred_age_min) payload.preferred_age_min = Number(preferences.preferred_age_min)
-      if (preferences.preferred_age_max) payload.preferred_age_max = Number(preferences.preferred_age_max)
+      if (currentPreferences.preferred_species) payload.preferred_species = currentPreferences.preferred_species
+      if (currentPreferences.preferred_size) payload.preferred_size = currentPreferences.preferred_size
+      if (currentPreferences.preferred_gender) payload.preferred_gender = currentPreferences.preferred_gender
+      if (currentPreferences.preferred_age_min) payload.preferred_age_min = Number(currentPreferences.preferred_age_min)
+      if (currentPreferences.preferred_age_max) payload.preferred_age_max = Number(currentPreferences.preferred_age_max)
       
-      await authApi.updateProfile(payload)
-    } catch (_e: any) {
+      console.warn('[Modal] Sending updateProfile payload:', payload)
+      const result = await authApi.updateProfile(payload)
+      console.warn('[Modal] updateProfile response:', result)
+    } catch (e: any) {
       // 偏好保存失败不影响筛选应用
+      console.error('[Modal] Failed to save preferences:', e.message)
     }
 
     onApply(filters)
-    setHasLoaded(false)  // 重置loaded标志，下次打开时重新加载最新的用户偏好
+    loadedRef.current = false  // 重置loaded标志，下次打开时重新加载最新的用户偏好
     onHide()
   }
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
-      <Modal.Header closeButton>
-        <Modal.Title>
-          <i className="bi bi-sliders me-2"></i>
-          筛选您的理想宠物
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border" role="status">
-              <span className="visually-hidden">加载中…</span>
-            </div>
-            <div className="mt-3">加载中…</div>
-          </div>
-        ) : (
+    <>
+      <style>{checkboxStyles}</style>
+      <Modal show={show} onHide={onHide} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-sliders me-2"></i>
+            筛选您的理想宠物
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           <form>
             <Row className="mb-3">
               <Col md={6}>
@@ -235,222 +264,168 @@ export default function FilterPreferencesModal({ show, onHide, onApply }: Filter
                   </Form.Select>
                 </Form.Group>
               </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>居住环境</Form.Label>
-                  <Form.Select 
-                    value={preferences.living_situation}
-                    onChange={(e) => setPreferences({...preferences, living_situation: e.target.value})}
-                  >
-                    <option value="">请选择</option>
-                    <option value="apartment">公寓</option>
-                    <option value="house">独栋房屋</option>
-                    <option value="townhouse">联排别墅</option>
-                    <option value="farm">农场</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Check 
-                    type="checkbox"
-                    id="has_experience"
-                    label="我有养宠物的经验"
-                    checked={preferences.has_experience}
-                    onChange={(e) => setPreferences({...preferences, has_experience: e.target.checked})}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Check 
-                    type="checkbox"
-                    id="has_yard"
-                    label="我家有院子"
-                    checked={preferences.has_yard}
-                    onChange={(e) => setPreferences({...preferences, has_yard: e.target.checked})}
-                  />
-                </Form.Group>
-              </Col>
             </Row>
 
             <Form.Group className="mb-3">
               <Form.Label className="fw-bold mb-3">宠物特性偏好</Form.Label>
               
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_vaccinated"
-                      label="已接种疫苗"
-                      checked={preferences.prefer_vaccinated}
-                      onChange={(e) => setPreferences({...preferences, prefer_vaccinated: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_sterilized"
-                      label="已绝育/已去势"
-                      checked={preferences.prefer_sterilized}
-                      onChange={(e) => setPreferences({...preferences, prefer_sterilized: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+              <div className="ms-2">
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_vaccinated"
+                    checked={preferences.prefer_vaccinated}
+                    onChange={(e) => {
+                      setPreferences({...preferences, prefer_vaccinated: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_vaccinated" className="ms-2">已接种疫苗</label>
+                </div>
+                
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_sterilized"
+                    checked={preferences.prefer_sterilized}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_sterilized checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_sterilized: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_sterilized" className="ms-2">已绝育/已去势</label>
+                </div>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_dewormed"
-                      label="已驱虫"
-                      checked={preferences.prefer_dewormed}
-                      onChange={(e) => setPreferences({...preferences, prefer_dewormed: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_child_friendly"
-                      label="适合儿童"
-                      checked={preferences.prefer_child_friendly}
-                      onChange={(e) => setPreferences({...preferences, prefer_child_friendly: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_dewormed"
+                    checked={preferences.prefer_dewormed}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_dewormed checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_dewormed: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_dewormed" className="ms-2">已驱虫</label>
+                </div>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_trained"
-                      label="家庭训练"
-                      checked={preferences.prefer_trained}
-                      onChange={(e) => setPreferences({...preferences, prefer_trained: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_loves_play"
-                      label="喜欢玩耍"
-                      checked={preferences.prefer_loves_play}
-                      onChange={(e) => setPreferences({...preferences, prefer_loves_play: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_child_friendly"
+                    checked={preferences.prefer_child_friendly}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_child_friendly checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_child_friendly: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_child_friendly" className="ms-2">适合儿童</label>
+                </div>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_loves_walks"
-                      label="喜欢散步"
-                      checked={preferences.prefer_loves_walks}
-                      onChange={(e) => setPreferences({...preferences, prefer_loves_walks: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_good_with_dogs"
-                      label="与其他狗相处友善"
-                      checked={preferences.prefer_good_with_dogs}
-                      onChange={(e) => setPreferences({...preferences, prefer_good_with_dogs: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_trained"
+                    checked={preferences.prefer_trained}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_trained checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_trained: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_trained" className="ms-2">家庭训练</label>
+                </div>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_good_with_cats"
-                      label="与猫相处友善"
-                      checked={preferences.prefer_good_with_cats}
-                      onChange={(e) => setPreferences({...preferences, prefer_good_with_cats: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_affectionate"
-                      label="富有感情的"
-                      checked={preferences.prefer_affectionate}
-                      onChange={(e) => setPreferences({...preferences, prefer_affectionate: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_loves_play"
+                    checked={preferences.prefer_loves_play}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_loves_play checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_loves_play: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_loves_play" className="ms-2">喜欢玩耍</label>
+                </div>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Check 
-                      type="checkbox"
-                      id="prefer_needs_attention"
-                      label="需要陪伴/关注"
-                      checked={preferences.prefer_needs_attention}
-                      onChange={(e) => setPreferences({...preferences, prefer_needs_attention: e.target.checked})}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_loves_walks"
+                    checked={preferences.prefer_loves_walks}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_loves_walks checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_loves_walks: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_loves_walks" className="ms-2">喜欢散步</label>
+                </div>
+
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_good_with_dogs"
+                    checked={preferences.prefer_good_with_dogs}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_good_with_dogs checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_good_with_dogs: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_good_with_dogs" className="ms-2">与其他狗相处友善</label>
+                </div>
+
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_good_with_cats"
+                    checked={preferences.prefer_good_with_cats}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_good_with_cats checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_good_with_cats: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_good_with_cats" className="ms-2">与猫相处友善</label>
+                </div>
+
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_affectionate"
+                    checked={preferences.prefer_affectionate}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_affectionate checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_affectionate: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_affectionate" className="ms-2">富有感情的</label>
+                </div>
+
+                <div className="mb-2">
+                  <input 
+                    type="checkbox"
+                    id="prefer_needs_attention"
+                    checked={preferences.prefer_needs_attention}
+                    onChange={(e) => {
+                      console.warn('[Modal] prefer_needs_attention checkbox changed to:', e.target.checked)
+                      setPreferences({...preferences, prefer_needs_attention: e.target.checked})
+                    }}
+                  />
+                  <label htmlFor="prefer_needs_attention" className="ms-2">需要陪伴/关注</label>
+                </div>
+              </div>
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>家中其他宠物</Form.Label>
-              <Form.Control 
-                type="text"
-                value={preferences.other_pets}
-                onChange={(e) => setPreferences({...preferences, other_pets: e.target.value})}
-                placeholder="例如: 一只猫，两只狗"
-              />
-            </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>其他备注</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={preferences.additional_notes}
-                onChange={(e) => setPreferences({...preferences, additional_notes: e.target.value})}
-                placeholder="其他想说明的偏好或要求..."
-              />
-            </Form.Group>
           </form>
-        )}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>
           取消
         </Button>
-        <Button variant="primary" onClick={handleApply} disabled={loading}>
+        <Button variant="primary" onClick={handleApply}>
           应用筛选
         </Button>
       </Modal.Footer>
-    </Modal>
+      </Modal>
+    </>
   )
 }

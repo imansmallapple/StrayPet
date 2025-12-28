@@ -147,32 +147,104 @@ export default function Adopt() {
   }
 
   const handleApplyFilters = (filters: any) => {
-    // 应用筛选条件到URL参数
-    if (filters.species) sp.set('species', filters.species)
-    else sp.delete('species')
+    // 创建新的URLSearchParams，保留现有的非筛选参数
+    const newSp = new URLSearchParams(sp)
     
-    if (filters.size) sp.set('size', filters.size)
-    else sp.delete('size')
+    // 应用筛选条件到URL参数（只更新Modal传来的字段）
+    if (filters.species !== undefined) {
+      if (filters.species) newSp.set('species', filters.species)
+      else newSp.delete('species')
+    }
     
-    if (filters.sex) sp.set('sex', filters.sex)
-    else sp.delete('sex')
+    if (filters.size !== undefined) {
+      if (filters.size) newSp.set('size', filters.size)
+      else newSp.delete('size')
+    }
     
-    if (filters.age_min) sp.set('age_min', String(filters.age_min))
-    else sp.delete('age_min')
+    if (filters.sex !== undefined) {
+      if (filters.sex) newSp.set('sex', filters.sex)
+      else newSp.delete('sex')
+    }
     
-    if (filters.age_max) sp.set('age_max', String(filters.age_max))
-    else sp.delete('age_max')
+    if (filters.age_min !== undefined) {
+      if (filters.age_min) newSp.set('age_min', String(filters.age_min))
+      else newSp.delete('age_min')
+    }
     
-    // 添加宠物特性过滤参数
+    if (filters.age_max !== undefined) {
+      if (filters.age_max) newSp.set('age_max', String(filters.age_max))
+      else newSp.delete('age_max')
+    }
+    
+    // 添加宠物特性过滤参数（布尔值字段）
     const petTraits = ['vaccinated', 'sterilized', 'dewormed', 'child_friendly', 'trained', 
                        'loves_play', 'loves_walks', 'good_with_dogs', 'good_with_cats', 
                        'affectionate', 'needs_attention']
     petTraits.forEach(trait => {
-      if (filters[trait]) sp.set(trait, 'true')
-      else sp.delete(trait)
+      if (filters[trait] !== undefined) {
+        if (filters[trait] === true) newSp.set(trait, 'true')
+        else newSp.delete(trait)
+      }
     })
     
     // 重置到第一页
+    newSp.set('page', '1')
+    setSp(newSp)
+  }
+
+  const appliedFilters = useMemo(() => {
+    const filters: { key: string; label: string }[] = []
+    
+    const speciesMap: Record<string, string> = { dog: '狗', cat: '猫', other: '其他' }
+    const sizeMap: Record<string, string> = { small: '小型', medium: '中型', large: '大型' }
+    const genderMap: Record<string, string> = { male: '公', female: '母' }
+    
+    const speciesVal = sp.get('species')
+    if (speciesVal) filters.push({ key: 'species', label: `物种: ${speciesMap[speciesVal] || speciesVal}` })
+    
+    const sizeVal = sp.get('size')
+    if (sizeVal) filters.push({ key: 'size', label: `大小: ${sizeMap[sizeVal] || sizeVal}` })
+    
+    const sexVal = sp.get('sex')
+    if (sexVal) filters.push({ key: 'sex', label: `性别: ${genderMap[sexVal] || sexVal}` })
+    
+    const ageMinVal = sp.get('age_min')
+    const ageMaxVal = sp.get('age_max')
+    if (ageMinVal || ageMaxVal) {
+      const ageLabel = `年龄: ${ageMinVal || '0'}-${ageMaxVal || '99'}个月`
+      filters.push({ key: 'age', label: ageLabel })
+    }
+    
+    const traitLabels: Record<string, string> = {
+      vaccinated: '已接种疫苗',
+      sterilized: '已绝育/已去势',
+      dewormed: '已驱虫',
+      child_friendly: '适合儿童',
+      trained: '家庭训练',
+      loves_play: '喜欢玩耍',
+      loves_walks: '喜欢散步',
+      good_with_dogs: '与其他狗相处友善',
+      good_with_cats: '与猫相处友善',
+      affectionate: '富有感情的',
+      needs_attention: '需要陪伴/关注'
+    }
+    
+    petTraits.forEach(trait => {
+      if (sp.get(trait) === 'true') {
+        filters.push({ key: trait, label: traitLabels[trait] || trait })
+      }
+    })
+    
+    return filters
+  }, [sp, petTraits])
+
+  const removeFilter = (key: string) => {
+    if (key === 'age') {
+      sp.delete('age_min')
+      sp.delete('age_max')
+    } else {
+      sp.delete(key)
+    }
     sp.set('page', '1')
     setSp(sp)
   }
@@ -188,51 +260,63 @@ export default function Adopt() {
       {/* 白色工具条 */}
       <Container className="pf3-toolbar bg-white rounded-4 shadow-sm py-3 px-3 my-3">
         <Stack
-          direction="horizontal"
+          direction="vertical"
           gap={3}
-          className="flex-wrap justify-content-between align-items-center"
+          className="mb-0"
         >
-          <div className="fs-5">
-            <strong className="fw-bolder">{count}</strong> Pets waiting to meet you
-          </div>
+          <Stack
+            direction="horizontal"
+            gap={3}
+            className="flex-wrap justify-content-between align-items-center"
+          >
+            <div className="fs-5">
+              <strong className="fw-bolder">{count}</strong> Pets waiting to meet you
+            </div>
 
-          <Stack direction="horizontal" gap={2} className="flex-wrap">
-            <Button 
-              type="button" 
-              variant="primary" 
-              className="fw-bold"
-              onClick={() => setShowFilterModal(true)}
-            >
-              <span className="me-2" aria-hidden>🐾</span>
-              Find Your Perfect Match
-            </Button>
+            <Stack direction="horizontal" gap={2} className="flex-wrap">
+              <Button 
+                type="button" 
+                variant="primary" 
+                className="fw-bold"
+                onClick={() => setShowFilterModal(true)}
+              >
+                <span className="me-2" aria-hidden>🐾</span>
+                Find Your Perfect Match
+              </Button>
 
-            <Button type="button" variant="light" className="pf3-pill fw-semibold border">
-              Longest Stay <span className="ms-1" aria-hidden>▾</span>
-            </Button>
-
-            <Form.Select
-              aria-label="Sort"
-              value={sort}
-              onChange={(e) => setQuery('sort', e.target.value)}
-              className="pf3-select"
-            >
-              <option value="longest_stay">Longest Stay</option>
-              <option value="-add_date">Newest</option>
-              <option value="name">Name A–Z</option>
-            </Form.Select>
-
-            <Form.Select
-              aria-label="Species"
-              value={species}
-              onChange={(e) => setQuery('species', e.target.value || undefined)}
-              className="pf3-select"
-            >
-              <option value="">All Species</option>
-              <option value="dog">Dogs</option>
-              <option value="cat">Cats</option>
-            </Form.Select>
+              <Form.Select
+                aria-label="Sort"
+                value={sort}
+                onChange={(e) => setQuery('sort', e.target.value)}
+                className="pf3-select"
+              >
+                <option value="longest_stay">Longest Stay</option>
+                <option value="-add_date">Newest</option>
+                <option value="name">Name A–Z</option>
+              </Form.Select>
+            </Stack>
           </Stack>
+
+          {/* 显示已应用的过滤条件 */}
+          {appliedFilters.length > 0 && (
+            <Stack direction="horizontal" gap={2} className="flex-wrap">
+              {appliedFilters.map(filter => (
+                <div 
+                  key={filter.key}
+                  className="badge bg-info d-flex align-items-center gap-2"
+                  style={{ padding: '0.5rem 0.75rem', fontSize: '0.9rem' }}
+                >
+                  {filter.label}
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => removeFilter(filter.key)}
+                    style={{ width: '1rem', height: '1rem' }}
+                  />
+                </div>
+              ))}
+            </Stack>
+          )}
         </Stack>
       </Container>
 
@@ -338,6 +422,25 @@ export default function Adopt() {
         show={showFilterModal}
         onHide={() => setShowFilterModal(false)}
         onApply={handleApplyFilters}
+        currentFilters={useMemo(() => {
+          const filters: Record<string, any> = {}
+          if (sp.get('species')) filters.species = sp.get('species')
+          if (sp.get('size')) filters.size = sp.get('size')
+          if (sp.get('sex')) filters.sex = sp.get('sex')
+          const ageMin = sp.get('age_min')
+          if (ageMin) filters.age_min = Number(ageMin)
+          const ageMax = sp.get('age_max')
+          if (ageMax) filters.age_max = Number(ageMax)
+          
+          // 添加宠物特性过滤字段
+          const petTraits = ['vaccinated', 'sterilized', 'dewormed', 'child_friendly', 'trained', 
+                             'loves_play', 'loves_walks', 'good_with_dogs', 'good_with_cats', 
+                             'affectionate', 'needs_attention']
+          petTraits.forEach(trait => {
+            if (sp.get(trait) === 'true') filters[trait] = true
+          })
+          return filters
+        }, [sp])}
       />
     </div>
   )

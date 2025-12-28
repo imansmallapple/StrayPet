@@ -2,7 +2,7 @@ import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
 import { blogApi, type Comment } from '@/services/modules/blog'
 import { useEffect, useState, useRef, Fragment } from 'react'
-import { Container, Row, Col, Nav, Card, Spinner, Alert, Pagination, Button, Modal } from 'react-bootstrap'
+import { Container, Row, Col, Nav, Card, Spinner, Alert, Pagination, Button, Modal, Form } from 'react-bootstrap'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
@@ -178,6 +178,9 @@ function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOthe
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [userData, setUserData] = useState(me)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editData, setEditData] = useState(me)
+  const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [friendshipStatus, setFriendshipStatus] = useState<any>(null)
   const [loadingFriendship, setLoadingFriendship] = useState(false)
@@ -277,6 +280,25 @@ function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOthe
     }
   }
 
+  const handleSaveProfile = async () => {
+    setSaving(true)
+    try {
+      const payload: any = {
+        has_experience: (editData as any).has_experience,
+        living_situation: (editData as any).living_situation,
+        has_yard: (editData as any).has_yard
+      }
+      const { data } = await authApi.updateProfile(payload)
+      setUserData(data)
+      setEditData(data)
+      setIsEditing(false)
+    } catch (error: any) {
+      alert(error?.response?.data?.error || '保存个人信息失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!messageContent.trim()) return
     
@@ -303,8 +325,43 @@ function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOthe
   return (
     <Fragment>
       <Card className="shadow-sm">
-        <Card.Header className="bg-white border-bottom">
+        <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
           <h4 className="mb-0">个人信息</h4>
+          {!isOtherUserProfile && (
+            <div className="d-flex gap-2">
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-success"
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                  >
+                    {saving ? '保存中...' : '保存'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => {
+                      setIsEditing(false)
+                      setEditData(userData)
+                    }}
+                    disabled={saving}
+                  >
+                    取消
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => setIsEditing(true)}
+                >
+                  编辑个人信息
+                </button>
+              )}
+            </div>
+          )}
         </Card.Header>
         <Card.Body>
           {uploadError && (
@@ -376,6 +433,65 @@ function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOthe
           <InfoRow label="名 (First name)" value={userData?.first_name ?? '—'} />
           <InfoRow label="邮箱" value={userData?.email ?? '—'} />
           <InfoRow label="电话" value={userData?.phone ?? '—'} />
+
+          {/* Pet Care Experience Info */}
+          <Row className="info-row py-3 border-bottom align-items-center">
+            <Col md={3}>
+              <label className="text-muted fw-semibold">养宠物经验</label>
+            </Col>
+            <Col md={9}>
+              {isEditing && !isOtherUserProfile ? (
+                <Form.Check
+                  type="checkbox"
+                  checked={(editData as any).has_experience}
+                  onChange={(e: any) => setEditData({...editData, has_experience: e.target.checked})}
+                  label="有养宠物经验"
+                />
+              ) : (
+                <span>{(userData as any)?.has_experience ? '有经验' : '无经验'}</span>
+              )}
+            </Col>
+          </Row>
+
+          <Row className="info-row py-3 border-bottom align-items-center">
+            <Col md={3}>
+              <label className="text-muted fw-semibold">居住环境</label>
+            </Col>
+            <Col md={9}>
+              {isEditing && !isOtherUserProfile ? (
+                <Form.Select
+                  value={(editData as any).living_situation || ''}
+                  onChange={(e: any) => setEditData({...editData, living_situation: e.target.value})}
+                >
+                  <option value="">选择居住环境</option>
+                  <option value="apartment">公寓</option>
+                  <option value="house">独栋房屋</option>
+                  <option value="townhouse">联排别墅</option>
+                  <option value="farm">农场</option>
+                </Form.Select>
+              ) : (
+                <span>{getLivingSituationLabel((userData as any)?.living_situation)}</span>
+              )}
+            </Col>
+          </Row>
+
+          <Row className="info-row py-3 border-bottom align-items-center">
+            <Col md={3}>
+              <label className="text-muted fw-semibold">有无院子</label>
+            </Col>
+            <Col md={9}>
+              {isEditing && !isOtherUserProfile ? (
+                <Form.Check
+                  type="checkbox"
+                  checked={(editData as any).has_yard}
+                  onChange={(e: any) => setEditData({...editData, has_yard: e.target.checked})}
+                  label="有院子"
+                />
+              ) : (
+                <span>{(userData as any)?.has_yard ? '有' : '无'}</span>
+              )}
+            </Col>
+          </Row>
 
           {/* Friend Actions */}
           {isOtherUserProfile && (
@@ -489,6 +605,17 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       </Col>
     </Row>
   )
+}
+
+function getLivingSituationLabel(situation?: string): string {
+  if (!situation) return '—'
+  const situationMap: Record<string, string> = {
+    apartment: '公寓',
+    house: '独栋房屋',
+    townhouse: '联排别墅',
+    farm: '农场'
+  }
+  return situationMap[situation] || situation
 }
 
 function FavoritesList() {

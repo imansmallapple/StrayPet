@@ -35,7 +35,7 @@ export const authApi = {
   getCaptcha: () => http.get<CaptchaResp>(ENDPOINTS.captcha),
 
   getMe: () => http.get<UserMe>(ENDPOINTS.me),
-  getProfile: () => http.get<UserMe>(ENDPOINTS.detail),
+  getProfile: () => http.get<UserMe>(ENDPOINTS.me),
   getUserProfile: (userId: number) => http.get<UserMe>(`/user/userinfo/${userId}/`),
   updateProfile: (data: Partial<UserMe>) => http.patch<UserMe>(ENDPOINTS.me, data),
 
