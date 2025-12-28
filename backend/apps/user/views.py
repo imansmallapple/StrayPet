@@ -499,7 +499,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         user = self.request.user
         # 返回与当前用户相关的所有好友关系
         return Friendship.objects.filter(
-            models.Q(from_user=user) | models.Q(to_user=user)
+            Q(from_user=user) | Q(to_user=user)
         )
     
     @action(detail=False, methods=['post'])
@@ -519,8 +519,8 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         
         # 检查是否已存在好友关系
         friendship = Friendship.objects.filter(
-            models.Q(from_user=request.user, to_user=target_user) |
-            models.Q(from_user=target_user, to_user=request.user)
+            Q(from_user=request.user, to_user=target_user) |
+            Q(from_user=target_user, to_user=request.user)
         ).first()
         
         if friendship:
@@ -568,8 +568,8 @@ class FriendshipViewSet(viewsets.ModelViewSet):
             return Response({'error': '缺少user_id参数'}, status=status.HTTP_400_BAD_REQUEST)
         
         friendship = Friendship.objects.filter(
-            models.Q(from_user=request.user, to_user_id=user_id) |
-            models.Q(from_user_id=user_id, to_user=request.user)
+            Q(from_user=request.user, to_user_id=user_id) |
+            Q(from_user_id=user_id, to_user=request.user)
         ).first()
         
         if not friendship:
@@ -590,7 +590,7 @@ class PrivateMessageViewSet(viewsets.ModelViewSet):
         user = self.request.user
         # 返回当前用户收到或发送的所有消息
         return PrivateMessage.objects.filter(
-            models.Q(sender=user) | models.Q(recipient=user)
+            Q(sender=user) | Q(recipient=user)
         ).order_by('-created_at')
     
     def create(self, request, *args, **kwargs):
@@ -608,8 +608,8 @@ class PrivateMessageViewSet(viewsets.ModelViewSet):
         
         # 检查是否为好友或者检查非好友消息数量
         friendship = Friendship.objects.filter(
-            models.Q(from_user=request.user, to_user=recipient, status='accepted') |
-            models.Q(from_user=recipient, to_user=request.user, status='accepted')
+            Q(from_user=request.user, to_user=recipient, status='accepted') |
+            Q(from_user=recipient, to_user=request.user, status='accepted')
         ).first()
         
         if not friendship:
@@ -642,8 +642,8 @@ class PrivateMessageViewSet(viewsets.ModelViewSet):
             return Response({'error': '缺少user_id参数'}, status=status.HTTP_400_BAD_REQUEST)
         
         messages = PrivateMessage.objects.filter(
-            models.Q(sender=request.user, recipient_id=user_id) |
-            models.Q(sender_id=user_id, recipient=request.user)
+            Q(sender=request.user, recipient_id=user_id) |
+            Q(sender_id=user_id, recipient=request.user)
         ).order_by('-created_at')
         
         page = self.paginate_queryset(messages, request)

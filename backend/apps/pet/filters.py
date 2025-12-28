@@ -12,9 +12,22 @@ class PetFilter(df.FilterSet):
     status  = df.CharFilter(field_name="status", lookup_expr="iexact")
     sex     = df.CharFilter(field_name="sex",     lookup_expr="iexact")
     city    = df.CharFilter(field_name="address__city__name", lookup_expr="icontains")
-        # 年龄段：用总月数范围过滤（前端映射成 age_min/age_max）
+    # 年龄段：用总月数范围过滤（前端映射成 age_min/age_max）
     age_min = df.NumberFilter(method="filter_age_min")
     age_max = df.NumberFilter(method="filter_age_max")
+    
+    # 宠物特性过滤
+    vaccinated = df.BooleanFilter(field_name="vaccinated")
+    sterilized = df.BooleanFilter(field_name="sterilized")
+    dewormed = df.BooleanFilter(field_name="dewormed")
+    child_friendly = df.BooleanFilter(field_name="child_friendly")
+    trained = df.BooleanFilter(field_name="trained")
+    loves_play = df.BooleanFilter(field_name="loves_play")
+    loves_walks = df.BooleanFilter(field_name="loves_walks")
+    good_with_dogs = df.BooleanFilter(field_name="good_with_dogs")
+    good_with_cats = df.BooleanFilter(field_name="good_with_cats")
+    affectionate = df.BooleanFilter(field_name="affectionate")
+    needs_attention = df.BooleanFilter(field_name="needs_attention")
 
     def filter_age_min(self, qs, name, v):
         v = int(v); y, m = v // 12, v % 12
@@ -26,7 +39,9 @@ class PetFilter(df.FilterSet):
     
     class Meta:
         model = Pet
-        fields = ["species", "breed", "status"]
+        fields = ["species", "breed", "status", "vaccinated", "sterilized", "dewormed", 
+                  "child_friendly", "trained", "loves_play", "loves_walks", "good_with_dogs", 
+                  "good_with_cats", "affectionate", "needs_attention"]
 
 
 class LostFilter(df.FilterSet):

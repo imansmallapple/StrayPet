@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Modal, Form, Button, Row, Col, Alert, ListGroup } from 'react-bootstrap'
 import { shelterApi, type ShelterCreatePayload } from '@/services/modules/shelter'
+import { useAuth } from '@/hooks/useAuth'
 import './CreateShelter.scss'
 
 interface CreateShelterProps {
@@ -11,6 +12,9 @@ interface CreateShelterProps {
 }
 
 export default function CreateShelter({ show, onHide, onSuccess }: CreateShelterProps) {
+  const { user } = useAuth()
+  
+  // All state declarations first
   const [formData, setFormData] = useState<ShelterCreatePayload>({
     name: '',
     description: '',
@@ -425,6 +429,24 @@ export default function CreateShelter({ show, onHide, onSuccess }: CreateShelter
     if (!loading) {
       onHide()
     }
+  }
+
+  // Permission check - only admin users can create shelters
+  const isAdmin = user?.is_staff || false
+  
+  if (!isAdmin) {
+    return (
+      <Modal show={show} onHide={onHide}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Shelter</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning">
+            Only administrators can add new shelters. Please contact an admin if you'd like to add a shelter.
+          </Alert>
+        </Modal.Body>
+      </Modal>
+    )
   }
 
   return (

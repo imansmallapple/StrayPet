@@ -39,31 +39,135 @@ class VerifyEmailCodeSerializer(serializers.Serializer):
         return attrs
     
 class UserMeSerializer(serializers.ModelSerializer):
-    phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+    phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False, default='')
     avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
-    preferred_species = serializers.CharField(source='profile.preferred_species', allow_blank=True, required=False)
-    preferred_size = serializers.CharField(source='profile.preferred_size', allow_blank=True, required=False)
+    preferred_species = serializers.CharField(source='profile.preferred_species', allow_blank=True, required=False, default='')
+    preferred_size = serializers.CharField(source='profile.preferred_size', allow_blank=True, required=False, default='')
     preferred_age_min = serializers.IntegerField(source='profile.preferred_age_min', allow_null=True, required=False)
     preferred_age_max = serializers.IntegerField(source='profile.preferred_age_max', allow_null=True, required=False)
-    preferred_gender = serializers.CharField(source='profile.preferred_gender', allow_blank=True, required=False)
-    has_experience = serializers.BooleanField(source='profile.has_experience', required=False)
-    living_situation = serializers.CharField(source='profile.living_situation', allow_blank=True, required=False)
-    has_yard = serializers.BooleanField(source='profile.has_yard', required=False)
-    other_pets = serializers.CharField(source='profile.other_pets', allow_blank=True, required=False)
-    additional_notes = serializers.CharField(source='profile.additional_notes', allow_blank=True, required=False)
+    preferred_gender = serializers.CharField(source='profile.preferred_gender', allow_blank=True, required=False, default='')
+    has_experience = serializers.BooleanField(source='profile.has_experience', required=False, default=False)
+    living_situation = serializers.CharField(source='profile.living_situation', allow_blank=True, required=False, default='')
+    has_yard = serializers.BooleanField(source='profile.has_yard', required=False, default=False)
+    other_pets = serializers.CharField(source='profile.other_pets', allow_blank=True, required=False, default='')
+    additional_notes = serializers.CharField(source='profile.additional_notes', allow_blank=True, required=False, default='')
+    
+    # Use SerializerMethodField (read-only) for preference booleans to safely serialize
+    prefer_vaccinated = serializers.SerializerMethodField(read_only=True)
+    prefer_sterilized = serializers.SerializerMethodField(read_only=True)
+    prefer_dewormed = serializers.SerializerMethodField(read_only=True)
+    prefer_child_friendly = serializers.SerializerMethodField(read_only=True)
+    prefer_trained = serializers.SerializerMethodField(read_only=True)
+    prefer_loves_play = serializers.SerializerMethodField(read_only=True)
+    prefer_loves_walks = serializers.SerializerMethodField(read_only=True)
+    prefer_good_with_dogs = serializers.SerializerMethodField(read_only=True)
+    prefer_good_with_cats = serializers.SerializerMethodField(read_only=True)
+    prefer_affectionate = serializers.SerializerMethodField(read_only=True)
+    prefer_needs_attention = serializers.SerializerMethodField(read_only=True)
+    
+    def get_prefer_vaccinated(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_vaccinated', False))
+        except:
+            return False
+    
+    def get_prefer_sterilized(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_sterilized', False))
+        except:
+            return False
+    
+    def get_prefer_dewormed(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_dewormed', False))
+        except:
+            return False
+    
+    def get_prefer_child_friendly(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_child_friendly', False))
+        except:
+            return False
+    
+    def get_prefer_trained(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_trained', False))
+        except:
+            return False
+    
+    def get_prefer_loves_play(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_loves_play', False))
+        except:
+            return False
+    
+    def get_prefer_loves_walks(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_loves_walks', False))
+        except:
+            return False
+    
+    def get_prefer_good_with_dogs(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_good_with_dogs', False))
+        except:
+            return False
+    
+    def get_prefer_good_with_cats(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_good_with_cats', False))
+        except:
+            return False
+    
+    def get_prefer_affectionate(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_affectionate', False))
+        except:
+            return False
+    
+    def get_prefer_needs_attention(self, obj):
+        try:
+            return bool(getattr(obj, 'profile', None) and getattr(obj.profile, 'prefer_needs_attention', False))
+        except:
+            return False
 
     class Meta:
         model = User
         fields = ("id", "username", "email", "first_name", "last_name", "phone", "avatar",
                   "preferred_species", "preferred_size", "preferred_age_min", "preferred_age_max",
                   "preferred_gender", "has_experience", "living_situation", "has_yard", 
-                  "other_pets", "additional_notes")
+                  "other_pets", "additional_notes",
+                  "prefer_vaccinated", "prefer_sterilized", "prefer_dewormed", "prefer_child_friendly",
+                  "prefer_trained", "prefer_loves_play", "prefer_loves_walks", "prefer_good_with_dogs",
+                  "prefer_good_with_cats", "prefer_affectionate", "prefer_needs_attention",
+                  "is_staff")
         extra_kwargs = {
             "username": {"required": False},
             "email": {"required": False},
             "first_name": {"required": False},
             "last_name": {"required": False},
         }
+
+    def to_internal_value(self, data):
+        # Extract preference fields from input and nest them under profile
+        internal_value = super().to_internal_value(data)
+        profile_data = internal_value.get('profile', {})
+        
+        preference_fields = [
+            'prefer_vaccinated', 'prefer_sterilized', 'prefer_dewormed',
+            'prefer_child_friendly', 'prefer_trained', 'prefer_loves_play',
+            'prefer_loves_walks', 'prefer_good_with_dogs', 'prefer_good_with_cats',
+            'prefer_affectionate', 'prefer_needs_attention'
+        ]
+        
+        for field in preference_fields:
+            if field in internal_value:
+                profile_data[field] = internal_value.pop(field)
+        
+        if profile_data:
+            internal_value['profile'] = profile_data
+        
+        return internal_value
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
@@ -72,12 +176,16 @@ class UserMeSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
+        # 确保profile存在
+        profile = getattr(instance, 'profile', None)
+        if not profile:
+            from .models import UserProfile
+            profile = UserProfile.objects.create(user=instance)
+        
         if profile_data:
-            profile = getattr(instance, 'profile', None)
-            if profile:
-                for attr, value in profile_data.items():
-                    setattr(profile, attr, value)
-                profile.save()
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
 
         return instance
 

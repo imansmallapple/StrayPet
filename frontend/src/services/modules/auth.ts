@@ -128,4 +128,16 @@ export type UserMe = {
   has_yard?: boolean
   other_pets?: string
   additional_notes?: string
+  prefer_vaccinated?: boolean
+  prefer_sterilized?: boolean
+  prefer_dewormed?: boolean
+  prefer_child_friendly?: boolean
+  prefer_trained?: boolean
+  prefer_loves_play?: boolean
+  prefer_loves_walks?: boolean
+  prefer_good_with_dogs?: boolean
+  prefer_good_with_cats?: boolean
+  prefer_affectionate?: boolean
+  prefer_needs_attention?: boolean
+  is_staff?: boolean
 }

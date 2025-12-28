@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Container, Row, Col, Card, Button, Spinner, Alert, Badge, Form } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { shelterApi, type Shelter } from '@/services/modules/shelter'
+import { useAuth } from '@/hooks/useAuth'
 import CreateShelter from './components/CreateShelter'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -176,6 +177,8 @@ function ShelterMapPreview({ lon, lat, className, width = '100%', height = 180 }
 }
 
 export default function SheltersPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.is_staff || false
   const [shelters, setShelters] = useState<Shelter[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -274,14 +277,16 @@ export default function SheltersPage() {
                 {totalCount} {totalCount === 1 ? 'Shelter' : 'Shelters'}
               </Badge>
             </div>
-            <Button 
-              variant="primary" 
-              className="add-shelter-btn"
-              onClick={handleAddClick}
-            >
-              <i className="bi bi-plus-circle me-2"></i>
-              Add Shelter
-            </Button>
+            {isAdmin && (
+              <Button 
+                variant="primary" 
+                className="add-shelter-btn"
+                onClick={handleAddClick}
+              >
+                <i className="bi bi-plus-circle me-2"></i>
+                Add Shelter
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -417,12 +422,52 @@ export default function SheltersPage() {
                     )}
                   </div>
 
-                  {/* View Details Button */}
-                  <Link to={`/shelters/${shelter.id}`} className="w-100">
-                    <Button variant="primary" className="w-100">
-                      View Details
-                    </Button>
-                  </Link>
+                  {/* Action Buttons */}
+                  <div className="d-grid gap-2">
+                    <Link to={`/shelters/${shelter.id}`} className="w-100">
+                      <Button variant="primary" className="w-100">
+                        View Details
+                      </Button>
+                    </Link>
+                    {!isAdmin && (shelter.phone || shelter.email) && (
+                      <Button 
+                        variant="outline-secondary" 
+                        className="w-100"
+                        onClick={() => {
+                          // 创建联系选项
+                          const contactOptions = []
+                          if (shelter.phone) {
+                            contactOptions.push({
+                              label: 'Call',
+                              action: () => window.location.href = `tel:${shelter.phone}`
+                            })
+                          }
+                          if (shelter.email) {
+                            contactOptions.push({
+                              label: 'Email',
+                              action: () => window.location.href = `mailto:${shelter.email}`
+                            })
+                          }
+                          
+                          // 如果只有一种联系方式，直接执行
+                          if (contactOptions.length === 1) {
+                            contactOptions[0].action()
+                          } else if (contactOptions.length > 1) {
+                            // 多种方式，显示选择菜单
+                            const choice = window.confirm(
+                              `Contact options:\n\n` +
+                              contactOptions.map((opt, idx) => `${idx + 1}. ${opt.label}`).join('\n') +
+                              `\n\nPress OK to call, or Cancel to email`
+                            )
+                            contactOptions[choice ? 0 : 1]?.action()
+                          }
+                        }}
+                      >
+                        <i className="bi bi-telephone me-2"></i>
+                        Contact Us
+                      </Button>
+                    )}
+                  </div>
                 </Card.Body>
               </Card>
             </Col>

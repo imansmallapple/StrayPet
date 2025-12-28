@@ -34,6 +34,19 @@ class UserProfile(models.Model):
     has_yard = models.BooleanField(default=False, help_text="是否有院子")
     other_pets = models.CharField(max_length=200, blank=True, help_text="家中其他宠物")
     additional_notes = models.TextField(blank=True, help_text="其他偏好说明")
+    
+    # Pet characteristics preferences
+    prefer_vaccinated = models.BooleanField(default=False, help_text="偏好已接种疫苗的宠物")
+    prefer_sterilized = models.BooleanField(default=False, help_text="偏好已绝育的宠物")
+    prefer_dewormed = models.BooleanField(default=False, help_text="偏好已驱虫的宠物")
+    prefer_child_friendly = models.BooleanField(default=False, help_text="偏好适合儿童的宠物")
+    prefer_trained = models.BooleanField(default=False, help_text="偏好已训练的宠物")
+    prefer_loves_play = models.BooleanField(default=False, help_text="偏好喜欢玩耍的宠物")
+    prefer_loves_walks = models.BooleanField(default=False, help_text="偏好喜欢散步的宠物")
+    prefer_good_with_dogs = models.BooleanField(default=False, help_text="偏好与其他狗相处友善的宠物")
+    prefer_good_with_cats = models.BooleanField(default=False, help_text="偏好与猫相处友善的宠物")
+    prefer_affectionate = models.BooleanField(default=False, help_text="偏好富有感情的宠物")
+    prefer_needs_attention = models.BooleanField(default=False, help_text="偏好需要陪伴的宠物")
 
     def __str__(self):
         return f'Profile<{self.user.username}>'

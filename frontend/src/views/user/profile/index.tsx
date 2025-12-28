@@ -8,13 +8,13 @@ import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
 import './index.scss'
 
-type TabKey = 'info' | 'preferences' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'replies'
+type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'replies'
 
 export default function Profile() {
   const { userId } = useParams<{ userId?: string }>()
   const location = useLocation()
   const hashTab = (location.hash.replace('#', '') as TabKey)
-  const validTabs: TabKey[] = ['info', 'preferences', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'replies']
+  const validTabs: TabKey[] = ['info', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'replies']
   const activeTab: TabKey = validTabs.includes(hashTab) ? hashTab : 'info'
   const [me, setMe] = useState<ApiUserMe | null>(null)
   const [currentUser, setCurrentUser] = useState<ApiUserMe | null>(null)
@@ -114,14 +114,6 @@ export default function Profile() {
                 {!isOtherUserProfile && (
                   <>
                     <Nav.Link
-                      href="#preferences"
-                      active={activeTab === 'preferences'}
-                      className="profile-nav-link"
-                    >
-                      <i className="bi bi-sliders me-2"></i>
-                      我的偏好
-                    </Nav.Link>
-                    <Nav.Link
                       href="#favorite-pets"
                       active={activeTab === 'favorite-pets'}
                       className="profile-nav-link"
@@ -171,7 +163,6 @@ export default function Profile() {
         {/* Main content */}
         <Col md={9}>
           {activeTab === 'info' && <ProfileInfo me={me} isOtherUserProfile={isOtherUserProfile} />}
-          {!isOtherUserProfile && activeTab === 'preferences' && <PreferencesForm />}
           {!isOtherUserProfile && activeTab === 'favorite-pets' && <FavoritesList />}
           {!isOtherUserProfile && activeTab === 'favorite-articles' && <FavoriteArticlesList />}
           {!isOtherUserProfile && activeTab === 'my-articles' && <MyArticlesList />}
@@ -625,247 +616,6 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
             <span className="text-muted">{ageText()}</span>
           </Card.Text>
         </Link>
-      </Card.Body>
-    </Card>
-  )
-}
-
-function PreferencesForm() {
-  const [preferences, setPreferences] = useState({
-    preferred_species: '',
-    preferred_size: '',
-    preferred_age_min: '',
-    preferred_age_max: '',
-    preferred_gender: '',
-    has_experience: false,
-    living_situation: '',
-    has_yard: false,
-    other_pets: '',
-    additional_notes: ''
-  })
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        const { data } = await authApi.getProfile()
-        if (!alive) return
-        setPreferences({
-          preferred_species: data.preferred_species || '',
-          preferred_size: data.preferred_size || '',
-          preferred_age_min: data.preferred_age_min?.toString() || '',
-          preferred_age_max: data.preferred_age_max?.toString() || '',
-          preferred_gender: data.preferred_gender || '',
-          has_experience: data.has_experience || false,
-          living_situation: data.living_situation || '',
-          has_yard: data.has_yard || false,
-          other_pets: data.other_pets || '',
-          additional_notes: data.additional_notes || ''
-        })
-      } catch (_e: any) {
-        setError('加载偏好设置失败')
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
-    return () => { alive = false }
-  }, [])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setMessage('')
-    setError('')
-
-    try {
-      const payload: any = {
-        has_experience: preferences.has_experience,
-        has_yard: preferences.has_yard
-      }
-      
-      if (preferences.preferred_species) payload.preferred_species = preferences.preferred_species
-      if (preferences.preferred_size) payload.preferred_size = preferences.preferred_size
-      if (preferences.preferred_gender) payload.preferred_gender = preferences.preferred_gender
-      if (preferences.living_situation) payload.living_situation = preferences.living_situation
-      if (preferences.other_pets) payload.other_pets = preferences.other_pets
-      if (preferences.additional_notes) payload.additional_notes = preferences.additional_notes
-      if (preferences.preferred_age_min) payload.preferred_age_min = Number(preferences.preferred_age_min)
-      if (preferences.preferred_age_max) payload.preferred_age_max = Number(preferences.preferred_age_max)
-      
-      await authApi.updateProfile(payload)
-      setMessage('保存成功！')
-      setTimeout(() => setMessage(''), 3000)
-    } catch (_e: any) {
-      setError(_e?.response?.data?.detail || '保存失败')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="text-center py-5">
-        <Spinner animation="border" variant="primary" />
-        <div className="mt-3">加载中…</div>
-      </div>
-    )
-  }
-
-  return (
-    <Card className="shadow-sm">
-      <Card.Header className="bg-white border-bottom">
-        <h4 className="mb-0">领养偏好设置</h4>
-        <small className="text-muted">设置您理想的宠物特征，帮助我们为您推荐合适的宠物</small>
-      </Card.Header>
-      <Card.Body>
-        {message && <Alert variant="success">{message}</Alert>}
-        {error && <Alert variant="danger">{error}</Alert>}
-        
-        <form onSubmit={handleSubmit}>
-          <Row className="mb-3">
-            <Col md={6}>
-              <label className="form-label">偏好物种</label>
-              <select 
-                className="form-select"
-                value={preferences.preferred_species}
-                onChange={(e) => setPreferences({...preferences, preferred_species: e.target.value})}
-              >
-                <option value="">不限</option>
-                <option value="dog">狗</option>
-                <option value="cat">猫</option>
-                <option value="other">其他</option>
-              </select>
-            </Col>
-            <Col md={6}>
-              <label className="form-label">偏好大小</label>
-              <select 
-                className="form-select"
-                value={preferences.preferred_size}
-                onChange={(e) => setPreferences({...preferences, preferred_size: e.target.value})}
-              >
-                <option value="">不限</option>
-                <option value="small">小型</option>
-                <option value="medium">中型</option>
-                <option value="large">大型</option>
-              </select>
-            </Col>
-          </Row>
-
-          <Row className="mb-3">
-            <Col md={6}>
-              <label className="form-label">偏好年龄（最小月数）</label>
-              <input 
-                type="number"
-                className="form-control"
-                value={preferences.preferred_age_min}
-                onChange={(e) => setPreferences({...preferences, preferred_age_min: e.target.value})}
-                placeholder="例如: 6"
-                min="0"
-              />
-            </Col>
-            <Col md={6}>
-              <label className="form-label">偏好年龄（最大月数）</label>
-              <input 
-                type="number"
-                className="form-control"
-                value={preferences.preferred_age_max}
-                onChange={(e) => setPreferences({...preferences, preferred_age_max: e.target.value})}
-                placeholder="例如: 24"
-                min="0"
-              />
-            </Col>
-          </Row>
-
-          <Row className="mb-3">
-            <Col md={6}>
-              <label className="form-label">偏好性别</label>
-              <select 
-                className="form-select"
-                value={preferences.preferred_gender}
-                onChange={(e) => setPreferences({...preferences, preferred_gender: e.target.value})}
-              >
-                <option value="">不限</option>
-                <option value="male">公</option>
-                <option value="female">母</option>
-              </select>
-            </Col>
-            <Col md={6}>
-              <label className="form-label">居住环境</label>
-              <select 
-                className="form-select"
-                value={preferences.living_situation}
-                onChange={(e) => setPreferences({...preferences, living_situation: e.target.value})}
-              >
-                <option value="">请选择</option>
-                <option value="apartment">公寓</option>
-                <option value="house">独栋房屋</option>
-                <option value="townhouse">联排别墅</option>
-                <option value="farm">农场</option>
-              </select>
-            </Col>
-          </Row>
-
-          <Row className="mb-3">
-            <Col md={6}>
-              <div className="form-check">
-                <input 
-                  type="checkbox"
-                  className="form-check-input"
-                  id="has_experience"
-                  checked={preferences.has_experience}
-                  onChange={(e) => setPreferences({...preferences, has_experience: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="has_experience">
-                  我有养宠物的经验
-                </label>
-              </div>
-            </Col>
-            <Col md={6}>
-              <div className="form-check">
-                <input 
-                  type="checkbox"
-                  className="form-check-input"
-                  id="has_yard"
-                  checked={preferences.has_yard}
-                  onChange={(e) => setPreferences({...preferences, has_yard: e.target.checked})}
-                />
-                <label className="form-check-label" htmlFor="has_yard">
-                  我家有院子
-                </label>
-              </div>
-            </Col>
-          </Row>
-
-          <div className="mb-3">
-            <label className="form-label">家中其他宠物</label>
-            <input 
-              type="text"
-              className="form-control"
-              value={preferences.other_pets}
-              onChange={(e) => setPreferences({...preferences, other_pets: e.target.value})}
-              placeholder="例如: 一只猫，两只狗"
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">其他说明</label>
-            <textarea 
-              className="form-control"
-              rows={4}
-              value={preferences.additional_notes}
-              onChange={(e) => setPreferences({...preferences, additional_notes: e.target.value})}
-              placeholder="其他想说明的偏好或要求..."
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? '保存中...' : '保存偏好'}
-          </button>
-        </form>
       </Card.Body>
     </Card>
   )

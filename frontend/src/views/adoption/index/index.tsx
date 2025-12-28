@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
 import PageHeroTitle from '@/components/page-hero-title'
+import FilterPreferencesModal from '../components/FilterPreferencesModal'
 
 import {
   Container, Row, Col,
@@ -25,16 +26,28 @@ export default function Adopt() {
   
   const [favStates, setFavStates] = useState<Record<number, boolean>>({})
   const [favLoading, setFavLoading] = useState<Record<number, boolean>>({})
-
-  const params = useMemo(
-    () => ({
+  const [showFilterModal, setShowFilterModal] = useState(false)
+  
+  // 获取所有宠物特性过滤参数
+  const petTraits = useMemo(() => ['vaccinated', 'sterilized', 'dewormed', 'child_friendly', 'trained', 
+                                   'loves_play', 'loves_walks', 'good_with_dogs', 'good_with_cats', 
+                                   'affectionate', 'needs_attention'], [])
+  
+  const params = useMemo(() => {
+    const traitParams: Record<string, string | boolean> = {}
+    petTraits.forEach(trait => {
+      const val = sp.get(trait)
+      if (val === 'true') traitParams[trait] = true
+    })
+    
+    return {
       page,
       page_size: pageSize,
       ...(species ? { species } : {}),
       ...(sort ? { ordering: sort } : {}),
-    }),
-    [page, pageSize, species, sort]
-  );
+      ...traitParams,
+    }
+  }, [page, pageSize, species, sort, sp, petTraits]);
 
   const { data, loading } = useRequest(
     () => adoptApi.list(params).then(res => res.data as Paginated<Pet>),
@@ -133,6 +146,37 @@ export default function Adopt() {
     }
   }
 
+  const handleApplyFilters = (filters: any) => {
+    // 应用筛选条件到URL参数
+    if (filters.species) sp.set('species', filters.species)
+    else sp.delete('species')
+    
+    if (filters.size) sp.set('size', filters.size)
+    else sp.delete('size')
+    
+    if (filters.sex) sp.set('sex', filters.sex)
+    else sp.delete('sex')
+    
+    if (filters.age_min) sp.set('age_min', String(filters.age_min))
+    else sp.delete('age_min')
+    
+    if (filters.age_max) sp.set('age_max', String(filters.age_max))
+    else sp.delete('age_max')
+    
+    // 添加宠物特性过滤参数
+    const petTraits = ['vaccinated', 'sterilized', 'dewormed', 'child_friendly', 'trained', 
+                       'loves_play', 'loves_walks', 'good_with_dogs', 'good_with_cats', 
+                       'affectionate', 'needs_attention']
+    petTraits.forEach(trait => {
+      if (filters[trait]) sp.set(trait, 'true')
+      else sp.delete(trait)
+    })
+    
+    // 重置到第一页
+    sp.set('page', '1')
+    setSp(sp)
+  }
+
   return (
     <div>
       {/* 顶部大标题 + 黄线 */}
@@ -153,7 +197,12 @@ export default function Adopt() {
           </div>
 
           <Stack direction="horizontal" gap={2} className="flex-wrap">
-            <Button type="button" variant="primary" className="fw-bold">
+            <Button 
+              type="button" 
+              variant="primary" 
+              className="fw-bold"
+              onClick={() => setShowFilterModal(true)}
+            >
               <span className="me-2" aria-hidden>🐾</span>
               Find Your Perfect Match
             </Button>
@@ -283,6 +332,13 @@ export default function Adopt() {
           </>
         )}
       </Container>
+
+      {/* 筛选偏好模态框 */}
+      <FilterPreferencesModal 
+        show={showFilterModal}
+        onHide={() => setShowFilterModal(false)}
+        onApply={handleApplyFilters}
+      />
     </div>
   )
 }
