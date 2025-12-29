@@ -7,9 +7,6 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.safestring import mark_safe
 from smart_selects.db_fields import ChainedForeignKey
-from django.contrib.gis.db import models as gis_models
-from django.contrib.gis.geos import Point
-from django.contrib.postgres.indexes import GistIndex
 
 User = get_user_model()
 
@@ -363,7 +360,7 @@ class Address(models.Model):
     latitude = models.DecimalField("Lat", max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField("Lng", max_digits=9, decimal_places=6, null=True, blank=True)
   # ✅ 新增：地理点（WGS84，经纬度）
-    location  = gis_models.PointField(srid=4326, geography=True, null=True, blank=True)
+    location  = models.JSONField(default=dict, null=True, blank=True)
 
     class Meta:
         ordering = ["country", "region", "city", "street"]
@@ -372,7 +369,6 @@ class Address(models.Model):
         indexes = [
             models.Index(fields=["country", "region", "city"]),
             models.Index(fields=["postal_code"]),
-            GistIndex(fields=["location"], name="idx_address_location_gist"),
         ]
 
     def __str__(self):

@@ -7,6 +7,227 @@
     min-height: calc(100vh - 64px);
 }
 
+// 消息中心样式
+.message-center {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .nav-tabs {
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 0;
+
+    .nav-link {
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #64748b;
+      font-weight: 500;
+      padding: 0.75rem 1.5rem;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: #0d6efd;
+        border-bottom-color: #0d6efd;
+      }
+
+      &.active {
+        color: #0d6efd;
+        border-bottom-color: #0d6efd;
+        background: transparent;
+      }
+    }
+  }
+
+  .message-content {
+    flex: 1;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+
+    .row {
+      height: 100%;
+      gap: 0;
+    }
+  }
+
+  .message-list-container {
+    max-height: 600px;
+    overflow-y: auto;
+    background: #f8fafc;
+
+    @media (max-width: 768px) {
+      max-height: 300px;
+    }
+  }
+
+  .message-list {
+    border-radius: 0;
+
+    .message-list-item {
+      border-left: 3px solid transparent;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: #f1f5f9;
+        border-left-color: #0d6efd;
+      }
+
+      &.active {
+        background-color: #e0e7ff;
+        border-left-color: #0d6efd;
+
+        strong {
+          color: #0d6efd;
+        }
+      }
+    }
+  }
+
+  .message-detail-container {
+    background: #fff;
+    border-left: 1px solid #e2e8f0;
+    max-height: 600px;
+    overflow-y: auto;
+
+    @media (max-width: 768px) {
+      border-left: none;
+      border-top: 1px solid #e2e8f0;
+      max-height: 400px;
+    }
+  }
+
+  .message-detail-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    color: #334155;
+  }
+
+  .reply-cards-container {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: 600px;
+    
+    @media (max-width: 768px) {
+      max-height: 100%;
+      padding: 15px;
+    }
+  }
+
+  .reply-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .reply-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: #0d6efd;
+      }
+
+      .card-header {
+        padding: 12px 16px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+
+        strong {
+          color: #1e293b;
+        }
+      }
+
+      .card-body {
+        padding: 16px;
+
+        .reply-content {
+          color: #334155;
+          line-height: 1.6;
+          word-break: break-word;
+          white-space: pre-wrap;
+        }
+
+        .original-comment {
+          border-left: 3px solid #0d6efd;
+        }
+      }
+
+      .card-footer {
+        padding: 12px 16px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+
+        .btn {
+          font-size: 0.875rem;
+        }
+      }
+    }
+  }
+
+  .notification-cards-container {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: 600px;
+
+    @media (max-width: 768px) {
+      max-height: 100%;
+      padding: 15px;
+    }
+  }
+
+  .notification-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .notification-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: #0d6efd;
+      }
+
+      .card-header {
+        padding: 12px 16px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+
+        strong {
+          color: #1e293b;
+        }
+      }
+
+      .card-body {
+        padding: 16px;
+
+        .notification-title {
+          color: #1e293b;
+          font-size: 1rem;
+          line-height: 1.5;
+        }
+
+        .notification-content {
+          color: #334155;
+          line-height: 1.6;
+          word-break: break-word;
+          white-space: pre-wrap;
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
 .profile-side {
     background: #fff;
     border-radius: 14px;

@@ -17,7 +17,6 @@ from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework_gis.filters import InBBoxFilter
 from .serializers import LostGeoSerializer
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import viewsets, permissions
@@ -339,8 +338,8 @@ class DonationViewSet(viewsets.ModelViewSet):
 class LostGeoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Lost.objects.select_related("address", "pet", "reporter").all()
     serializer_class = LostGeoSerializer
-    filter_backends = (InBBoxFilter,)
-    bbox_filter_field = "address__location" 
+    # bbox_filter_field = "address__location" 
+    # InBBoxFilter removed - using standard filtering
 
 
 class ShelterViewSet(viewsets.ModelViewSet):

@@ -3,7 +3,6 @@ from __future__ import annotations
 from rest_framework import serializers
 import json
 from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite, Shelter
-from django.contrib.gis.geos import Point
 from typing import TYPE_CHECKING
 from common.utils import geocode_address
 if TYPE_CHECKING:
@@ -168,8 +167,8 @@ def _create_or_resolve_address(address_data: dict) -> Address:
 
     if lat_val is not None and lon_val is not None:
         try:
-            # Ensure location point (lon,lat) is stored as Point
-            addr_kwargs['location'] = Point(lon_val, lat_val)
+            # Store location as JSON with lon,lat
+            addr_kwargs['location'] = {"type": "Point", "coordinates": [lon_val, lat_val]}
         except Exception:
             # don't fail the whole flow if Point creation fails
             pass
@@ -216,7 +215,7 @@ def _create_or_get_location(location_data: dict) -> "Location":
         kwargs['longitude'] = lon
     if lat is not None and lon is not None:
         try:
-            kwargs['location'] = Point(lon, lat)
+            kwargs['location'] = {"type": "Point", "coordinates": [lon, lat]}
         except Exception:
             pass
 
@@ -228,17 +227,18 @@ def _create_or_get_location(location_data: dict) -> "Location":
 import logging
 logger = logging.getLogger(__name__)
 
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
-from rest_framework_gis.fields import GeometryField
+class LostGeoSerializer(serializers.ModelSerializer):
+    # Serialize geometry as JSON
+    geometry = serializers.SerializerMethodField()
 
-class LostGeoSerializer(GeoFeatureModelSerializer):
-    # 用 GeometryField 显式映射外键下的 geometry 字段
-    geometry = GeometryField(source='address.location')
+    def get_geometry(self, obj):
+        if obj.address and obj.address.location:
+            return obj.address.location
+        return None
 
     class Meta:
         model = Lost
-        geo_field = "geometry"
-        fields = ("id", "status", "pet_name", "species", "breed", "color", "sex", "size", "reporter", "lost_time")
+        fields = ("id", "status", "pet_name", "species", "breed", "color", "sex", "size", "reporter", "lost_time", "geometry")
 
 class PetListSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
@@ -384,7 +384,7 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
                 address.latitude = lat
                 address.longitude = lon
                 try:
-                    address.location = Point(lon, lat)
+                    address.location = {"type": "Point", "coordinates": [lon, lat]}
                 except Exception:
                     pass
                 address.save(update_fields=["latitude", "longitude", "location"])
@@ -505,12 +505,12 @@ class DonationCreateSerializer(serializers.ModelSerializer):
                             except Exception:
                                 pass
                         if fallback_kwargs:
-                            # if lat/lon present set Point
+                            # if lat/lon present set location as JSON
                             lat_val = fallback_kwargs.get('latitude')
                             lon_val = fallback_kwargs.get('longitude')
                             if lat_val is not None and lon_val is not None:
                                 try:
-                                    fallback_kwargs['location'] = Point(lon_val, lat_val)
+                                    fallback_kwargs['location'] = {"type": "Point", "coordinates": [lon_val, lat_val]}
                                 except Exception:
                                     pass
                             address = Address.objects.create(**fallback_kwargs)

@@ -2,21 +2,12 @@
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto, Shelter
-from django.contrib.gis.admin import GISModelAdmin
-from django.contrib.gis.forms.widgets import OSMWidget
 from django import forms
 
 class AddressAdminForm(forms.ModelForm):
     class Meta:
         model = Address
         fields = "__all__"
-        widgets = {
-            "location": OSMWidget(attrs={
-                "map_width": 700,
-                "map_height": 400,
-                "default_zoom": 5,
-            })
-        }
 
 
 class PetPhotoInline(admin.TabularInline):
@@ -173,7 +164,7 @@ def close_donation(modeladmin, request, queryset):
 
 
 @admin.register(Address)
-class AddressAdmin(GISModelAdmin):
+class AddressAdmin(admin.ModelAdmin):
     form = AddressAdminForm
     list_display = ("__str__", "postal_code", "location")
     list_select_related = ("city", "region", "country")

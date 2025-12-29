@@ -17,9 +17,7 @@ app_name = 'user'
 router = DefaultRouter()
 router.register(r'', views.UserViewSet, basename='user-list')
 
-# 通知路由
-notification_router = DefaultRouter()
-notification_router.register(r'notifications', views.NotificationViewSet, basename='notification')
+# 通知路由在 user_router 中注册
 
 class UserDefaultRouter(DefaultRouter):
     permission_classes = [AllowAny]
@@ -76,13 +74,14 @@ class UserRootAPIView(APIView):
         ])
         return Response(data)
     
-user_router = UserDefaultRouter()
+user_router = DefaultRouter()
 user_router.register('register', views.RegisterViewSet, basename='register')
 user_router.register('userinfo', views.UserInfoViewSet, basename='userinfo')
 user_router.register('list',      views.UserListViewSet,basename='user-list')
 user_router.register('avatars',   views.AvatarViewSet, basename='avatar')
 user_router.register('friendships', views.FriendshipViewSet, basename='friendship')
 user_router.register('messages',    views.PrivateMessageViewSet, basename='message')
+# NotificationViewSet 已通过单独的path注册，不使用router
 user_router.register('',         views.UserOpsViewSet,  basename='user')
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -124,10 +123,14 @@ urlpatterns = [
         name='user-me'
     ),
     path(
+        'notifications/',
+        views.NotificationsListView.as_view(),
+        name='notifications-list'
+    ),
+    path(
         '',
         UserRootAPIView.as_view(),
         name='api-root'
     ),    
-    * user_router.urls,
-    * notification_router.urls,
+    *user_router.urls,
 ]

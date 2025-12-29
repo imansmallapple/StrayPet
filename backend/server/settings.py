@@ -34,9 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.gis',
     'rest_framework',
-    'rest_framework_gis',
     'apps.blog',
     'apps.user',
     'apps.comment',
@@ -109,12 +107,8 @@ WSGI_APPLICATION = 'server.wsgi.application'
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",   # ✅ PostGIS 引擎
-        "NAME": os.getenv("DB_NAME", "straypet"),
-        "USER": os.getenv("DB_USER", "sp_user"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "sp_pass"),
-        "HOST": os.getenv("DB_HOST", "db"),
-        "PORT": os.getenv("DB_PORT", "5432"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 

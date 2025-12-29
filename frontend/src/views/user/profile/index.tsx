@@ -1,20 +1,20 @@
 import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
-import { blogApi, type Comment } from '@/services/modules/blog'
 import { useEffect, useState, useRef, Fragment } from 'react'
-import { Container, Row, Col, Nav, Card, Spinner, Alert, Pagination, Button, Modal, Form } from 'react-bootstrap'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Container, Row, Col, Nav, Card, Spinner, Alert, Button, Modal, Form } from 'react-bootstrap'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
+import MessageCenter from './MessageCenter'
 import './index.scss'
 
-type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'replies'
+type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'message-center'
 
 export default function Profile() {
   const { userId } = useParams<{ userId?: string }>()
   const location = useLocation()
   const hashTab = (location.hash.replace('#', '') as TabKey)
-  const validTabs: TabKey[] = ['info', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'replies']
+  const validTabs: TabKey[] = ['info', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'message-center']
   const activeTab: TabKey = validTabs.includes(hashTab) ? hashTab : 'info'
   const [me, setMe] = useState<ApiUserMe | null>(null)
   const [currentUser, setCurrentUser] = useState<ApiUserMe | null>(null)
@@ -146,12 +146,12 @@ export default function Profile() {
                       我的宠物
                     </Nav.Link>
                     <Nav.Link
-                      href="#replies"
-                      active={activeTab === 'replies'}
+                      href="#message-center"
+                      active={activeTab === 'message-center'}
                       className="profile-nav-link"
                     >
                       <i className="bi bi-chat-dots-fill me-2"></i>
-                      回复我的
+                      消息中心
                     </Nav.Link>
                   </>
                 )}
@@ -162,19 +162,19 @@ export default function Profile() {
 
         {/* Main content */}
         <Col md={9}>
-          {activeTab === 'info' && <ProfileInfo me={me} isOtherUserProfile={isOtherUserProfile} />}
+          {activeTab === 'info' && <ProfileInfo me={me} isOtherUserProfile={isOtherUserProfile} currentUser={currentUser} />}
           {!isOtherUserProfile && activeTab === 'favorite-pets' && <FavoritesList />}
           {!isOtherUserProfile && activeTab === 'favorite-articles' && <FavoriteArticlesList />}
           {!isOtherUserProfile && activeTab === 'my-articles' && <MyArticlesList />}
           {!isOtherUserProfile && activeTab === 'my-pets' && <MyPetsList />}
-          {!isOtherUserProfile && activeTab === 'replies' && <RepliesList />}
+          {!isOtherUserProfile && activeTab === 'message-center' && <MessageCenter />}
         </Col>
       </Row>
     </Container>
   )
 }
 
-function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOtherUserProfile?: boolean }) {
+function ProfileInfo({ me, isOtherUserProfile = false, currentUser }: { me: ApiUserMe; isOtherUserProfile?: boolean; currentUser?: ApiUserMe | null }) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [userData, setUserData] = useState(me)
@@ -498,18 +498,42 @@ function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOthe
             <>
               <hr className="my-4" />
               <Row className="friend-actions">
-                <Col md={9} className="d-flex gap-2">
+                <Col md={9} className="d-flex gap-2 flex-wrap">
                   {!friendshipStatus?.status ? (
-                    <Button
-                      variant="primary"
-                      onClick={handleAddFriend}
-                      disabled={loadingFriendship}
-                    >
-                      {loadingFriendship ? '加载中…' : '添加好友'}
-                    </Button>
+                    <>
+                      <Button
+                        variant="primary"
+                        onClick={handleAddFriend}
+                        disabled={loadingFriendship}
+                      >
+                        {loadingFriendship ? '加载中…' : '添加好友'}
+                      </Button>
+                      <Button
+                        variant="outline-secondary"
+                        onClick={() => setShowMessageModal(true)}
+                      >
+                        <i className="bi bi-chat-dots me-2"></i>
+                        发送私信
+                      </Button>
+                    </>
                   ) : friendshipStatus.status === 'pending' ? (
                     <>
-                      {friendshipStatus.to_user.id === userData.id ? (
+                      {friendshipStatus.from_user.id === currentUser?.id ? (
+                        // 当前用户是申请发送者 - 显示灰色按钮和发送私信选项
+                        <>
+                          <Button variant="secondary" disabled>
+                            已发送申请
+                          </Button>
+                          <Button
+                            variant="outline-secondary"
+                            onClick={() => setShowMessageModal(true)}
+                          >
+                            <i className="bi bi-chat-dots me-2"></i>
+                            发送私信
+                          </Button>
+                        </>
+                      ) : (
+                        // 当前用户是申请接收者 - 显示接受/拒绝按钮和发送私信
                         <>
                           <Button
                             variant="success"
@@ -525,20 +549,29 @@ function ProfileInfo({ me, isOtherUserProfile = false }: { me: ApiUserMe; isOthe
                           >
                             拒绝
                           </Button>
+                          <Button
+                            variant="outline-secondary"
+                            onClick={() => setShowMessageModal(true)}
+                          >
+                            <i className="bi bi-chat-dots me-2"></i>
+                            发送私信
+                          </Button>
                         </>
-                      ) : (
-                        <Button variant="secondary" disabled>
-                          待对方接受
-                        </Button>
                       )}
                     </>
                   ) : friendshipStatus.status === 'accepted' ? (
-                    <Button
-                      variant="success"
-                      onClick={() => setShowMessageModal(true)}
-                    >
-                      发送私信
-                    </Button>
+                    <>
+                      <Button
+                        variant="success"
+                        onClick={() => setShowMessageModal(true)}
+                      >
+                        <i className="bi bi-chat-dots me-2"></i>
+                        发送私信
+                      </Button>
+                      <Button variant="secondary" disabled>
+                        已成为好友
+                      </Button>
+                    </>
                   ) : (
                     <Button variant="secondary" disabled>
                       已拒绝
@@ -891,235 +924,5 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
         </Link>
       </Card.Body>
     </Card>
-  )
-}
-
-function RepliesList() {
-  const navigate = useNavigate()
-  const [replies, setReplies] = useState<(Comment & { article_id?: number; article_title?: string; parent_comment?: Comment })[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [page, setPage] = useState(1)
-  const [pageSize] = useState(10)
-  const [total, setTotal] = useState(0)
-  const [hoveredId, setHoveredId] = useState<number | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const { data } = await blogApi.getRepliesToMe({ page, page_size: pageSize })
-        if (!alive) return
-        setReplies(data.results || [])
-        setTotal(data.count || 0)
-      } catch (e: any) {
-        if (!alive) return
-        setError(e?.response?.data?.detail || '加载回复失败')
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
-    return () => { alive = false }
-  }, [page, pageSize])
-
-  const handleDelete = async (commentId: number) => {
-    if (!window.confirm('确定要删除这条评论吗？')) return
-    try {
-      // 在实际后端实现中，需要添加删除评论的 API
-      // 临时方案：刷新列表
-      setReplies(replies.filter(r => r.id !== commentId))
-    } catch (err) {
-      console.error('Delete comment failed:', err)
-      alert('删除评论失败')
-    }
-  }
-
-  const handleNavigateToArticle = (articleId?: number) => {
-    if (articleId) {
-      navigate(`/blog/${articleId}`)
-    }
-  }
-
-  const totalPages = Math.ceil(total / pageSize)
-
-  if (loading) {
-    return (
-      <div className="text-center py-5">
-        <Spinner animation="border" variant="primary" />
-        <div className="mt-3">加载中…</div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return <Alert variant="danger">{error}</Alert>
-  }
-
-  if (replies.length === 0) {
-    return (
-      <Card className="shadow-sm text-center py-5">
-        <Card.Body>
-          <i className="bi bi-chat-dots text-muted" style={{ fontSize: '4rem' }}></i>
-          <h5 className="mt-3 text-muted">还没有人回复你的评论</h5>
-          <p className="text-muted">去 <Link to="/blog">博客</Link> 发表有趣的评论吧</p>
-        </Card.Body>
-      </Card>
-    )
-  }
-
-  return (
-    <div>
-      <Card className="shadow-sm mb-3">
-        <Card.Header className="bg-white border-bottom">
-          <h4 className="mb-0">回复我的评论 ({total})</h4>
-        </Card.Header>
-      </Card>
-
-      {replies.map((reply) => (
-        <Card 
-          key={reply.id} 
-          className="mb-3 shadow-sm border-0"
-          onMouseEnter={() => setHoveredId(reply.id)}
-          onMouseLeave={() => setHoveredId(null)}
-        >
-          <Card.Body>
-            {/* 上方：别人的回复 */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              {/* 用户头像 */}
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  backgroundColor: '#667eea',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  fontSize: '18px',
-                  overflow: 'hidden',
-                  flexShrink: 0
-                }}
-              >
-                {reply.user?.avatar ? (
-                  <img
-                    src={reply.user.avatar}
-                    alt={reply.user.username}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  reply.user?.username?.charAt(0)?.toUpperCase()
-                )}
-              </div>
-
-              {/* 主体内容 */}
-              <div style={{ flex: 1 }}>
-                {/* 用户名和日期 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                  <strong style={{ fontSize: '14px', color: '#333' }}>
-                    {reply.user?.username || '用户'}
-                  </strong>
-                  <span style={{ fontSize: '12px', color: '#999' }}>
-                    回复了我的评论
-                  </span>
-                  <span style={{ fontSize: '12px', color: '#bbb', marginLeft: 'auto' }}>
-                    {new Date(reply.add_date).toLocaleDateString('zh-CN', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                </div>
-
-                {/* 回复内容 */}
-                <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#333' }}>
-                  {reply.content}
-                </div>
-              </div>
-            </div>
-
-            {/* 下方：我的原评论 */}
-            {reply.parent_comment && (
-              <div
-                style={{
-                  fontSize: '13px',
-                  color: '#666',
-                  paddingLeft: '12px',
-                  borderLeft: '3px solid #667eea',
-                  backgroundColor: '#f5f7ff',
-                  padding: '12px',
-                  borderRadius: '4px',
-                  marginBottom: '12px'
-                }}
-              >
-                <div style={{ color: '#667eea', fontWeight: '600', marginBottom: '4px', fontSize: '12px' }}>
-                  我的评论
-                </div>
-                <div style={{ color: '#333', lineHeight: '1.5' }}>
-                  {reply.parent_comment.content}
-                </div>
-              </div>
-            )}
-
-            {/* 操作按钮：放到最下面 */}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {reply.article_id && (
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  onClick={() => handleNavigateToArticle(reply.article_id)}
-                  style={{ fontSize: '12px' }}
-                >
-                  <i className="bi bi-link-45deg me-1"></i>
-                  查看文章：{reply.article_title}
-                </Button>
-              )}
-              
-              {/* 删除按钮：仅在hover时显示 */}
-              {hoveredId === reply.id && (
-                <Button
-                  size="sm"
-                  variant="outline-danger"
-                  onClick={() => handleDelete(reply.id)}
-                  style={{ fontSize: '12px' }}
-                >
-                  <i className="bi bi-trash me-1"></i>
-                  删除
-                </Button>
-              )}
-            </div>
-          </Card.Body>
-        </Card>
-      ))}
-
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
-          <Pagination>
-            <Pagination.First disabled={page === 1} onClick={() => setPage(1)} />
-            <Pagination.Prev disabled={page === 1} onClick={() => setPage(page - 1)} />
-            
-            {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-              const pageNum = page <= 3 ? i + 1 : page - 2 + i
-              return (
-                <Pagination.Item
-                  key={pageNum}
-                  active={pageNum === page}
-                  onClick={() => setPage(pageNum)}
-                >
-                  {pageNum}
-                </Pagination.Item>
-              )
-            })}
-            
-            <Pagination.Next disabled={page === totalPages} onClick={() => setPage(page + 1)} />
-            <Pagination.Last disabled={page === totalPages} onClick={() => setPage(totalPages)} />
-          </Pagination>
-        </div>
-      )}
-    </div>
   )
 }
