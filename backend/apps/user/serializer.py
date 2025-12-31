@@ -37,8 +37,13 @@ class VerifyEmailCodeSerializer(serializers.Serializer):
         attrs = super().validate(attrs)
         from django.core.cache import cache
         item_code = cache.get(attrs['email'])
-        if item_code != attrs['code']:
+        if not item_code:
+            raise serializers.ValidationError('Verification code expired!')
+        # 大小写不敏感比较验证码
+        if item_code.lower() != attrs['code'].lower():
             raise serializers.ValidationError('Code wrong!')
+        # 验证码验证成功后，删除它以防止重复使用
+        cache.delete(attrs['email'])
         return attrs
     
 class UserMeSerializer(serializers.ModelSerializer):
@@ -163,9 +168,12 @@ class SendEmailCodeSerializer(serializers.Serializer):
 
 
 class UserInfoSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
+    phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email')
+        fields = ('id', 'username', 'email', 'avatar', 'phone', 'first_name', 'last_name')
 
 
 class UpdateEmailSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer):

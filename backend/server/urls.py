@@ -20,9 +20,26 @@ from django.conf import settings
 from django.conf.urls.static import static
 from apps.pet.views import LostGeoViewSet 
 from rest_framework.routers import DefaultRouter
+from django.http import FileResponse
+import os
 
 router = DefaultRouter()
 router.register(r"pet/lost_geo", LostGeoViewSet, basename="lost-geo")
+
+def serve_media_with_cache_control(request, path):
+    """Serve media files with no-cache headers to prevent image caching"""
+    full_path = os.path.join(settings.MEDIA_ROOT, path)
+    if not os.path.isfile(full_path):
+        from django.http import Http404
+        raise Http404(f"File not found: {path}")
+    
+    response = FileResponse(open(full_path, 'rb'))
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    response['ETag'] = None  # 移除ETag以强制重新验证
+    response['Last-Modified'] = None
+    return response
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,8 +50,10 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path("chaining/", include("smart_selects.urls")),
     *static(settings.STATIC_URL, document_root=settings.STATIC_ROOT),
-    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # 为媒体文件添加缓存控制头，防止浏览器缓存导致头像更新不显示
+    urlpatterns += [
+        path('media/<path:path>', serve_media_with_cache_control),
+    ]

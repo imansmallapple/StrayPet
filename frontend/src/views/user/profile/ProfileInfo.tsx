@@ -59,8 +59,57 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
 
     try {
       const { data } = await authApi.uploadAvatar(file)
-      setUserData(data)
-      setEditData(data)
+      console.warn('Avatar upload response:', data)
+      console.warn('Avatar field from response:', data.avatar)
+      console.warn('Avatar field type:', typeof data.avatar)
+      
+      // 强制添加缓存破坏参数，确保浏览器加载新图片
+      const timestamp = `${Date.now()}_${Math.random().toString(36).substring(7)}`
+      let newAvatarUrl: string | undefined = undefined
+      
+      if (typeof data.avatar === 'string' && data.avatar) {
+        // 移除旧的版本参数
+        let cleanUrl = data.avatar.split('?')[0].split('#')[0]
+        // 如果是相对路径，转换为绝对URL（指向后端服务器）
+        if (cleanUrl.startsWith('/')) {
+          cleanUrl = `http://localhost:8000${cleanUrl}`
+        }
+        // 添加新的版本参数
+        newAvatarUrl = `${cleanUrl}?v=${timestamp}`
+      }
+      
+      console.warn('New avatar URL with cache bust:', newAvatarUrl)
+      
+      const updatedData = {
+        ...data,
+        avatar: newAvatarUrl || data.avatar
+      } as typeof data
+      
+      // 使用Image预加载确保浏览器获取新图片
+      const preloadImg = new Image()
+      preloadImg.crossOrigin = 'anonymous'
+      
+      preloadImg.onload = () => {
+        console.warn('Image preloaded successfully, updating UI')
+        setUserData(updatedData)
+        setEditData(updatedData)
+        localStorage.setItem('user', JSON.stringify(updatedData))
+        window.dispatchEvent(new Event('auth:updated'))
+      }
+      
+      preloadImg.onerror = (error) => {
+        console.warn('Image preload failed, error:', error)
+        console.warn('Attempted to load URL:', newAvatarUrl)
+        console.warn('Full avatar data:', updatedData.avatar)
+        // 即使预加载失败，也更新UI
+        setUserData(updatedData)
+        setEditData(updatedData)
+        localStorage.setItem('user', JSON.stringify(updatedData))
+        window.dispatchEvent(new Event('auth:updated'))
+      }
+      
+      console.warn('Starting image preload with URL:', newAvatarUrl)
+      preloadImg.src = newAvatarUrl || ''
     } catch (error: any) {
       setUploadError(error?.response?.data?.error || '头像上传失败，请重试')
     } finally {
@@ -73,9 +122,46 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
     setResettingAvatar(true)
     try {
       const { data } = await authApi.resetAvatarToDefault()
-      setUserData(data)
-      setEditData(data)
-      setShowResetModal(false)
+      
+      // 强制添加缓存破坏参数
+      const timestamp = `${Date.now()}_${Math.random().toString(36).substring(7)}`
+      let newAvatarUrl: string | undefined = undefined
+      
+      if (typeof data.avatar === 'string' && data.avatar) {
+        let cleanUrl = data.avatar.split('?')[0].split('#')[0]
+        // 如果是相对路径，转换为绝对URL
+        if (cleanUrl.startsWith('/')) {
+          cleanUrl = `http://localhost:8000${cleanUrl}`
+        }
+        newAvatarUrl = `${cleanUrl}?v=${timestamp}`
+      }
+      
+      const updatedData = {
+        ...data,
+        avatar: newAvatarUrl || data.avatar
+      } as typeof data
+      
+      // 使用Image预加载确保浏览器获取新图片
+      const preloadImg = new Image()
+      preloadImg.crossOrigin = 'anonymous'
+      
+      preloadImg.onload = () => {
+        console.warn('Reset avatar image preloaded successfully')
+        setUserData(updatedData)
+        setEditData(updatedData)
+        localStorage.setItem('user', JSON.stringify(updatedData))
+        window.dispatchEvent(new Event('auth:updated'))
+        setShowResetModal(false)
+      }
+      preloadImg.onerror = () => {
+        console.warn('Reset avatar image preload failed, updating UI anyway')
+        setUserData(updatedData)
+        setEditData(updatedData)
+        localStorage.setItem('user', JSON.stringify(updatedData))
+        window.dispatchEvent(new Event('auth:updated'))
+        setShowResetModal(false)
+      }
+      preloadImg.src = newAvatarUrl || ''
     } catch (error: any) {
       alert(error?.response?.data?.error || '重置头像失败')
     } finally {
@@ -159,7 +245,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
 
   const avatarUrl = userData?.avatar 
     ? typeof userData.avatar === 'string' 
-      ? userData.avatar
+      ? userData.avatar  // avatar URL已在handleAvatarUpload和handleResetAvatar中包含时间戳
       : URL.createObjectURL(userData.avatar as any)
     : undefined
 

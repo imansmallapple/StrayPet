@@ -27,6 +27,12 @@ export default function Profile() {
         // 获取当前登录用户信息
         const { data: current } = await authApi.getProfile()
         if (!alive) return
+        
+        // 处理avatar URL - 转换相对路径为绝对URL
+        if (current.avatar && typeof current.avatar === 'string' && current.avatar.startsWith('/')) {
+          current.avatar = `http://localhost:8000${current.avatar}`
+        }
+        
         setMe(current)
       } catch (e: any) {
         setError(e?.response?.data?.detail || '加载用户信息失败')

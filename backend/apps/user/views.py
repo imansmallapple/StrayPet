@@ -166,7 +166,7 @@ class UserListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 class UserInfoViewSet(mixins.RetrieveModelMixin,
                       viewsets.GenericViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.all().select_related('profile')
     serializer_class = UserInfoSerializer
     authentication_classes = [authentication.SessionAuthentication, JWTAuthentication]
     permission_classes = [permissions.AllowAny]
@@ -295,9 +295,11 @@ class UserOpsViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
 
     def get_permissions(self):
-        # 按需调整：只有管理员能看/查他人；当前用户自己的接口只需登录
-        if self.action in ['retrieve', 'detail_by_id']:
+        # retrieve: 任何认证用户都可以查看其他用户的公开信息
+        # detail_by_id: 需要管理员权限
+        if self.action == 'detail_by_id':
             return [permissions.IsAdminUser()]
+        # retrieve 和其他action都需要认证
         return [permissions.IsAuthenticated()]
 
     # 当前用户——简要
