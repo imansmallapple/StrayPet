@@ -1,12 +1,14 @@
 import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
-import { useEffect, useState, useRef, Fragment } from 'react'
-import { Container, Row, Col, Nav, Card, Spinner, Alert, Button, Modal, Form } from 'react-bootstrap'
+import { useEffect, useState } from 'react'
+import { Container, Row, Col, Nav, Card, Spinner, Alert, Button, Modal } from 'react-bootstrap'
 import { Link, useLocation, useParams } from 'react-router-dom'
+import ProfileInfo from './ProfileInfo'
 import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
 import MessageCenter from './MessageCenter'
 import './index.scss'
+import './profile.scss'
 
 type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'message-center'
 
@@ -174,483 +176,6 @@ export default function Profile() {
   )
 }
 
-function ProfileInfo({ me, isOtherUserProfile = false, currentUser }: { me: ApiUserMe; isOtherUserProfile?: boolean; currentUser?: ApiUserMe | null }) {
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const [userData, setUserData] = useState(me)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState(me)
-  const [saving, setSaving] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [friendshipStatus, setFriendshipStatus] = useState<any>(null)
-  const [loadingFriendship, setLoadingFriendship] = useState(false)
-  const [showMessageModal, setShowMessageModal] = useState(false)
-  const [messageContent, setMessageContent] = useState('')
-  const [sendingMessage, setSendingMessage] = useState(false)
-  const [messageError, setMessageError] = useState('')
-
-  // 加载好友关系
-  useEffect(() => {
-    if (!isOtherUserProfile || !me.id) return
-
-    const loadFriendship = async () => {
-      setLoadingFriendship(true)
-      try {
-        const { data } = await authApi.checkFriendship(me.id)
-        setFriendshipStatus(data)
-      } catch {
-        setFriendshipStatus(null)
-      } finally {
-        setLoadingFriendship(false)
-      }
-    }
-
-    loadFriendship()
-  }, [me.id, isOtherUserProfile])
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
-    setUploadError('')
-
-    try {
-      const { data } = await authApi.uploadAvatar(file)
-      setUserData(data)
-    } catch (error: any) {
-      setUploadError(error?.response?.data?.error || '头像上传失败')
-    } finally {
-      setUploading(false)
-      e.target.value = ''
-    }
-  }
-
-  const handleResetAvatar = async () => {
-    if (!window.confirm('确定要重置为默认头像吗？')) return
-    
-    setUploading(true)
-    setUploadError('')
-
-    try {
-      const { data } = await authApi.resetAvatarToDefault()
-      setUserData(data)
-    } catch (error: any) {
-      setUploadError(error?.response?.data?.error || '重置头像失败')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleAddFriend = async () => {
-    setLoadingFriendship(true)
-    try {
-      const { data } = await authApi.addFriend(me.id)
-      setFriendshipStatus(data)
-    } catch (error: any) {
-      alert(error?.response?.data?.error || '添加好友失败')
-    } finally {
-      setLoadingFriendship(false)
-    }
-  }
-
-  const handleAcceptFriend = async () => {
-    if (!friendshipStatus?.id) return
-    setLoadingFriendship(true)
-    try {
-      const { data } = await authApi.acceptFriendRequest(friendshipStatus.id)
-      setFriendshipStatus(data)
-    } catch (error: any) {
-      alert(error?.response?.data?.error || '接受好友请求失败')
-    } finally {
-      setLoadingFriendship(false)
-    }
-  }
-
-  const handleRejectFriend = async () => {
-    if (!friendshipStatus?.id) return
-    setLoadingFriendship(true)
-    try {
-      const { data } = await authApi.rejectFriendRequest(friendshipStatus.id)
-      setFriendshipStatus(data)
-    } catch (error: any) {
-      alert(error?.response?.data?.error || '拒绝好友请求失败')
-    } finally {
-      setLoadingFriendship(false)
-    }
-  }
-
-  const handleSaveProfile = async () => {
-    setSaving(true)
-    try {
-      const payload: any = {
-        has_experience: (editData as any).has_experience,
-        living_situation: (editData as any).living_situation,
-        has_yard: (editData as any).has_yard
-      }
-      const { data } = await authApi.updateProfile(payload)
-      setUserData(data)
-      setEditData(data)
-      setIsEditing(false)
-    } catch (error: any) {
-      alert(error?.response?.data?.error || '保存个人信息失败')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!messageContent.trim()) return
-    
-    setSendingMessage(true)
-    setMessageError('')
-    try {
-      await authApi.sendMessage(me.id, messageContent)
-      setMessageContent('')
-      setShowMessageModal(false)
-      alert('消息已发送')
-    } catch (error: any) {
-      setMessageError(error?.response?.data?.error || '消息发送失败')
-    } finally {
-      setSendingMessage(false)
-    }
-  }
-
-  const avatarUrl = userData?.avatar 
-    ? typeof userData.avatar === 'string' 
-      ? userData.avatar
-      : URL.createObjectURL(userData.avatar as any)
-    : undefined
-
-  return (
-    <Fragment>
-      <Card className="shadow-sm">
-        <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
-          <h4 className="mb-0">个人信息</h4>
-          {!isOtherUserProfile && (
-            <div className="d-flex gap-2">
-              {isEditing ? (
-                <>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-success"
-                    onClick={handleSaveProfile}
-                    disabled={saving}
-                  >
-                    {saving ? '保存中...' : '保存'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => {
-                      setIsEditing(false)
-                      setEditData(userData)
-                    }}
-                    disabled={saving}
-                  >
-                    取消
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => setIsEditing(true)}
-                >
-                  编辑个人信息
-                </button>
-              )}
-            </div>
-          )}
-        </Card.Header>
-        <Card.Body>
-          {uploadError && (
-            <Alert variant="danger" className="mb-3" dismissible onClose={() => setUploadError('')}>
-              {uploadError}
-            </Alert>
-          )}
-
-          {/* Avatar Section */}
-          <Row className="info-row py-3 border-bottom align-items-center">
-            <Col md={3}>
-              <label className="text-muted fw-semibold">头像</label>
-            </Col>
-            <Col md={9}>
-              <div className="d-flex align-items-center gap-3">
-                <div className="profile-avatar-large">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={userData?.username} className="avatar-img" />
-                  ) : (
-                    <span>{userData?.username?.charAt(0).toUpperCase()}</span>
-                  )}
-                </div>
-                <div className="flex-grow-1">
-                  {!isOtherUserProfile && (
-                    <>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        onChange={handleAvatarUpload}
-                        disabled={uploading}
-                        style={{ display: 'none' }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-outline-primary btn-sm me-2"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                      >
-                        {uploading ? (
-                          <>
-                            <Spinner animation="border" size="sm" className="me-2" />
-                            上传中…
-                          </>
-                        ) : (
-                          '上传头像'
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={handleResetAvatar}
-                        disabled={uploading || !userData?.avatar}
-                      >
-                        重置为默认
-                      </button>
-                      <div className="small text-muted mt-2">
-                        支持 JPG、PNG、GIF、WebP，最大 5MB
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </Col>
-          </Row>
-
-          <InfoRow label="用户名" value={userData?.username ?? '—'} />
-          <InfoRow label="姓 (Last name)" value={userData?.last_name ?? '—'} />
-          <InfoRow label="名 (First name)" value={userData?.first_name ?? '—'} />
-          <InfoRow label="邮箱" value={userData?.email ?? '—'} />
-          <InfoRow label="电话" value={userData?.phone ?? '—'} />
-
-          {/* Pet Care Experience Info */}
-          <Row className="info-row py-3 border-bottom align-items-center">
-            <Col md={3}>
-              <label className="text-muted fw-semibold">养宠物经验</label>
-            </Col>
-            <Col md={9}>
-              {isEditing && !isOtherUserProfile ? (
-                <Form.Check
-                  type="checkbox"
-                  checked={(editData as any).has_experience}
-                  onChange={(e: any) => setEditData({...editData, has_experience: e.target.checked})}
-                  label="有养宠物经验"
-                />
-              ) : (
-                <span>{(userData as any)?.has_experience ? '有经验' : '无经验'}</span>
-              )}
-            </Col>
-          </Row>
-
-          <Row className="info-row py-3 border-bottom align-items-center">
-            <Col md={3}>
-              <label className="text-muted fw-semibold">居住环境</label>
-            </Col>
-            <Col md={9}>
-              {isEditing && !isOtherUserProfile ? (
-                <Form.Select
-                  value={(editData as any).living_situation || ''}
-                  onChange={(e: any) => setEditData({...editData, living_situation: e.target.value})}
-                >
-                  <option value="">选择居住环境</option>
-                  <option value="apartment">公寓</option>
-                  <option value="house">独栋房屋</option>
-                  <option value="townhouse">联排别墅</option>
-                  <option value="farm">农场</option>
-                </Form.Select>
-              ) : (
-                <span>{getLivingSituationLabel((userData as any)?.living_situation)}</span>
-              )}
-            </Col>
-          </Row>
-
-          <Row className="info-row py-3 border-bottom align-items-center">
-            <Col md={3}>
-              <label className="text-muted fw-semibold">有无院子</label>
-            </Col>
-            <Col md={9}>
-              {isEditing && !isOtherUserProfile ? (
-                <Form.Check
-                  type="checkbox"
-                  checked={(editData as any).has_yard}
-                  onChange={(e: any) => setEditData({...editData, has_yard: e.target.checked})}
-                  label="有院子"
-                />
-              ) : (
-                <span>{(userData as any)?.has_yard ? '有' : '无'}</span>
-              )}
-            </Col>
-          </Row>
-
-          {/* Friend Actions */}
-          {isOtherUserProfile && (
-            <>
-              <hr className="my-4" />
-              <Row className="friend-actions">
-                <Col md={9} className="d-flex gap-2 flex-wrap">
-                  {!friendshipStatus?.status ? (
-                    <>
-                      <Button
-                        variant="primary"
-                        onClick={handleAddFriend}
-                        disabled={loadingFriendship}
-                      >
-                        {loadingFriendship ? '加载中…' : '添加好友'}
-                      </Button>
-                      <Button
-                        variant="outline-secondary"
-                        onClick={() => setShowMessageModal(true)}
-                      >
-                        <i className="bi bi-chat-dots me-2"></i>
-                        发送私信
-                      </Button>
-                    </>
-                  ) : friendshipStatus.status === 'pending' ? (
-                    <>
-                      {friendshipStatus.from_user.id === currentUser?.id ? (
-                        // 当前用户是申请发送者 - 显示灰色按钮和发送私信选项
-                        <>
-                          <Button variant="secondary" disabled>
-                            已发送申请
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => setShowMessageModal(true)}
-                          >
-                            <i className="bi bi-chat-dots me-2"></i>
-                            发送私信
-                          </Button>
-                        </>
-                      ) : (
-                        // 当前用户是申请接收者 - 显示接受/拒绝按钮和发送私信
-                        <>
-                          <Button
-                            variant="success"
-                            onClick={handleAcceptFriend}
-                            disabled={loadingFriendship}
-                          >
-                            接受好友请求
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            onClick={handleRejectFriend}
-                            disabled={loadingFriendship}
-                          >
-                            拒绝
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => setShowMessageModal(true)}
-                          >
-                            <i className="bi bi-chat-dots me-2"></i>
-                            发送私信
-                          </Button>
-                        </>
-                      )}
-                    </>
-                  ) : friendshipStatus.status === 'accepted' ? (
-                    <>
-                      <Button
-                        variant="success"
-                        onClick={() => setShowMessageModal(true)}
-                      >
-                        <i className="bi bi-chat-dots me-2"></i>
-                        发送私信
-                      </Button>
-                      <Button variant="secondary" disabled>
-                        已成为好友
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="secondary" disabled>
-                      已拒绝
-                    </Button>
-                  )}
-                </Col>
-              </Row>
-            </>
-          )}
-        </Card.Body>
-      </Card>
-
-      {/* Message Modal */}
-      <Modal show={showMessageModal} onHide={() => setShowMessageModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>给 {userData?.username} 发送私信</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {messageError && <Alert variant="danger">{messageError}</Alert>}
-          <form>
-            <div className="mb-3">
-              <label className="form-label">消息内容</label>
-              <textarea
-                className="form-control"
-                rows={4}
-                value={messageContent}
-                onChange={(e) => setMessageContent(e.target.value)}
-                placeholder="输入消息内容…"
-                disabled={sendingMessage}
-              />
-              {friendshipStatus?.status !== 'accepted' && (
-                <small className="text-warning mt-2 d-block">
-                  ⚠️ 非好友每天最多发送3条私信
-                </small>
-              )}
-            </div>
-          </form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowMessageModal(false)}>
-            关闭
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSendMessage}
-            disabled={sendingMessage || !messageContent.trim()}
-          >
-            {sendingMessage ? '发送中…' : '发送'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </Fragment>
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <Row className="info-row py-3 border-bottom">
-      <Col md={3}>
-        <label className="text-muted fw-semibold">{label}</label>
-      </Col>
-      <Col md={9}>
-        <span>{value}</span>
-      </Col>
-    </Row>
-  )
-}
-
-function getLivingSituationLabel(situation?: string): string {
-  if (!situation) return '—'
-  const situationMap: Record<string, string> = {
-    apartment: '公寓',
-    house: '独栋房屋',
-    townhouse: '联排别墅',
-    farm: '农场'
-  }
-  return situationMap[situation] || situation
-}
-
 function FavoritesList() {
   const [favorites, setFavorites] = useState<Pet[]>([])
   const [loading, setLoading] = useState(true)
@@ -718,15 +243,18 @@ function FavoritesList() {
 
 function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }) {
   const [removing, setRemoving] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
-  const handleRemove = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    if (removing) return
+  const handleRemoveClick = () => {
+    setShowConfirm(true)
+  }
 
+  const handleConfirmRemove = async () => {
     setRemoving(true)
     try {
       await adoptApi.unfavorite(pet.id)
       onRemove(pet.id)
+      setShowConfirm(false)
     } catch (err) {
       console.error('Remove favorite failed:', err)
       alert('取消收藏失败')
@@ -744,40 +272,64 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
   }
 
   return (
-    <Card className="pet-card h-100 border-0 shadow-sm">
-      <div className="position-relative">
-        <button
-          type="button"
-          className="pet-card-remove-btn"
-          onClick={handleRemove}
-          disabled={removing}
-          aria-label="取消收藏"
-        >
-          {removing ? '⋯' : '×'}
-        </button>
-        <Link to={`/adopt/${pet.id}`}>
-          <Card.Img
-            variant="top"
-            src={pet.photo || '/images/pet-placeholder.jpg'}
-            alt={pet.name}
-            style={{ height: 200, objectFit: 'cover' }}
-          />
-        </Link>
-      </div>
-      <Card.Body>
-        <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
-          <Card.Title className="fs-5 fw-bold">{pet.name}</Card.Title>
-          <Card.Text className="text-muted small">
-            <i className="bi bi-geo-alt me-1"></i>
-            {pet.address_display || pet.city || '位置未知'}
-          </Card.Text>
-          <Card.Text className="small">
-            <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
-            <span className="text-muted">{ageText()}</span>
-          </Card.Text>
-        </Link>
-      </Card.Body>
-    </Card>
+    <>
+      <Card className="pet-card h-100 border-0 shadow-sm hover-card">
+        <div className="position-relative pet-image-wrapper">
+          <button
+            type="button"
+            className="pet-card-remove-btn"
+            onClick={handleRemoveClick}
+            disabled={removing}
+            aria-label="取消收藏"
+            title="取消收藏"
+          >
+            <i className="bi bi-heart-fill"></i>
+          </button>
+          <Link to={`/adopt/${pet.id}`}>
+            <Card.Img
+              variant="top"
+              src={pet.photo || '/images/pet-placeholder.jpg'}
+              alt={pet.name}
+              className="pet-card-image"
+              style={{ height: 200, objectFit: 'cover' }}
+            />
+          </Link>
+        </div>
+        <Card.Body className="pet-card-body">
+          <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
+            <Card.Title className="fs-5 fw-bold pet-name">{pet.name}</Card.Title>
+            <Card.Text className="text-muted small">
+              <i className="bi bi-geo-alt me-1"></i>
+              {pet.address_display || pet.city || '位置未知'}
+            </Card.Text>
+            <Card.Text className="small pet-meta">
+              <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
+              <span className="text-muted">{ageText()}</span>
+            </Card.Text>
+          </Link>
+        </Card.Body>
+      </Card>
+
+      <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-exclamation-circle me-2"></i>
+            确认操作
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-0">确定要取消收藏 <strong>{pet.name}</strong> 吗？</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirm(false)} disabled={removing}>
+            取消
+          </Button>
+          <Button variant="danger" onClick={handleConfirmRemove} disabled={removing}>
+            {removing ? '处理中…' : '确认取消收藏'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
   )
 }
 
@@ -848,17 +400,18 @@ function MyPetsList() {
 
 function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }) {
   const [removing, setRemoving] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
-  const handleRemove = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    if (removing) return
-    
-    if (!confirm('确定要删除这只宠物吗？')) return
+  const handleRemoveClick = () => {
+    setShowConfirm(true)
+  }
 
+  const handleConfirmRemove = async () => {
     setRemoving(true)
     try {
       await adoptApi.remove(pet.id)
       onRemove(pet.id)
+      setShowConfirm(false)
     } catch (err) {
       console.error('Remove pet failed:', err)
       alert('删除宠物失败')
@@ -885,44 +438,72 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
       ARCHIVED: { text: '已下架', variant: 'dark' }
     }
     const status = statusMap[pet.status || 'AVAILABLE'] || statusMap.AVAILABLE
-    return <span className={`badge bg-${status.variant} me-2`}>{status.text}</span>
+    return <span className={`badge bg-${status.variant} me-2 pet-status-badge`}>{status.text}</span>
   }
 
   return (
-    <Card className="pet-card h-100 border-0 shadow-sm">
-      <div className="position-relative">
-        <button
-          type="button"
-          className="pet-card-remove-btn"
-          onClick={handleRemove}
-          disabled={removing}
-          aria-label="删除宠物"
-        >
-          {removing ? '⋯' : '×'}
-        </button>
-        <Link to={`/adopt/${pet.id}`}>
-          <Card.Img
-            variant="top"
-            src={pet.photo || '/images/pet-placeholder.jpg'}
-            alt={pet.name}
-            style={{ height: 200, objectFit: 'cover' }}
-          />
-        </Link>
-      </div>
-      <Card.Body>
-        <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
-          <Card.Title className="fs-5 fw-bold">{pet.name}</Card.Title>
-          <Card.Text className="text-muted small">
-            <i className="bi bi-geo-alt me-1"></i>
-            {pet.address_display || pet.city || '位置未知'}
-          </Card.Text>
-          <Card.Text className="small">
-            {statusBadge()}
-            <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
-            <span className="text-muted">{ageText()}</span>
-          </Card.Text>
-        </Link>
-      </Card.Body>
-    </Card>
+    <>
+      <Card className="pet-card h-100 border-0 shadow-sm hover-card">
+        <div className="position-relative pet-image-wrapper">
+          <button
+            type="button"
+            className="pet-card-delete-btn"
+            onClick={handleRemoveClick}
+            disabled={removing}
+            aria-label="删除宠物"
+            title="删除宠物"
+          >
+            <i className="bi bi-trash-fill"></i>
+          </button>
+          <Link to={`/adopt/${pet.id}`}>
+            <Card.Img
+              variant="top"
+              src={pet.photo || '/images/pet-placeholder.jpg'}
+              alt={pet.name}
+              className="pet-card-image"
+              style={{ height: 200, objectFit: 'cover' }}
+            />
+            <span className="pet-status-badge-overlay">{statusBadge()}</span>
+          </Link>
+        </div>
+        <Card.Body className="pet-card-body">
+          <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
+            <Card.Title className="fs-5 fw-bold pet-name">{pet.name}</Card.Title>
+            <Card.Text className="text-muted small">
+              <i className="bi bi-geo-alt me-1"></i>
+              {pet.address_display || pet.city || '位置未知'}
+            </Card.Text>
+            <Card.Text className="small pet-meta">
+              <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
+              <span className="text-muted">{ageText()}</span>
+            </Card.Text>
+          </Link>
+        </Card.Body>
+      </Card>
+
+      <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            删除宠物
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="alert alert-warning mb-3">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            <strong>警告：</strong>删除后无法恢复
+          </div>
+          <p className="mb-0">确定要删除 <strong className="text-danger">{pet.name}</strong> 吗？</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirm(false)} disabled={removing}>
+            取消
+          </Button>
+          <Button variant="danger" onClick={handleConfirmRemove} disabled={removing}>
+            {removing ? '删除中…' : '确认删除'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </>
   )
 }

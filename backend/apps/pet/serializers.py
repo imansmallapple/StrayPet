@@ -354,13 +354,20 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ("status",)  # 创建默认 AVAILABLE；如需修改在视图层控制
 
     def _ensure_address_coords(self, address: Address):
+        """自动为地址地理编码（如果坐标缺失）"""
         try:
             if not address:
                 return
+            
+            # 检查是否需要地理编码
             lat_missing = getattr(address, 'latitude', None) is None
             lon_missing = getattr(address, 'longitude', None) is None
+            
+            # 如果坐标都存在，跳过
             if not (lat_missing or lon_missing):
                 return
+            
+            # 构建地址字符串
             parts = [
                 address.street or '',
                 address.building_number or '',
@@ -370,6 +377,8 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
                 address.postal_code or '',
             ]
             addr_str = ", ".join([p for p in parts if p])
+            
+            # 构建地理编码上下文
             ctx = {
                 'street': (f"{address.street} {address.building_number}".strip()) if (address.street or address.building_number) else None,
                 'city': address.city.name if getattr(address, 'city_id', None) else None,
@@ -378,7 +387,10 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
                 'country_code': getattr(getattr(address, 'country', None), 'code', None) if getattr(address, 'country_id', None) else None,
                 'postal_code': address.postal_code or None,
             }
+            
+            # 执行地理编码
             coords = geocode_address(addr_str, context=ctx) if addr_str else None
+            
             if coords:
                 lon, lat = coords
                 address.latitude = lat
@@ -388,9 +400,14 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
                 except Exception:
                     pass
                 address.save(update_fields=["latitude", "longitude", "location"])
-        except Exception:
-            # 不阻断主流程
-            pass
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"✅ Address {address.id} geocoded: ({lat}, {lon})")
+        except Exception as e:
+            # 不阻断主流程，但记录错误
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to geocode address {getattr(address, 'id', '?')}: {e}")
 
     def create(self, validated_data):
         address = validated_data.get('address')

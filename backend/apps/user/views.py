@@ -346,9 +346,18 @@ class NotificationViewSet(viewsets.ModelViewSet):
     """用户通知 API - 获取当前用户的所有通知"""
     serializer_class = NotificationSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [permissions.AllowAny]  # 临时改为AllowAny来测试
+    permission_classes = [permissions.IsAuthenticated]  # 需要认证
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     pagination_class = pagination.PageNumberPagination
+    
+    def initial(self, request, *args, **kwargs):
+        import logging
+        logger = logging.getLogger('django')
+        logger.warning(f"[NotificationViewSet] 请求: {request.method} {request.path}")
+        logger.warning(f"[NotificationViewSet] Authorization header: {request.META.get('HTTP_AUTHORIZATION', 'MISSING')[:50] if request.META.get('HTTP_AUTHORIZATION') else 'MISSING'}")
+        logger.warning(f"[NotificationViewSet] User before auth: {request.user}")
+        super().initial(request, *args, **kwargs)
+        logger.warning(f"[NotificationViewSet] User after auth: {request.user}")
     
     def get_queryset(self):
         # 只返回当前用户的通知
@@ -681,29 +690,185 @@ class PrivateMessageViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class NotificationsListView(APIView):
-    """通知列表 API - 使用最基本的APIView来绕过权限检查问题"""
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+@require_http_methods(["GET", "OPTIONS"])
+def test_notifications_view(request):
+    """测试通知 API - 使用纯 Django View，跳过所有 DRF 权限检查"""
+    if request.method == 'OPTIONS':
+        response = JsonResponse({'message': 'OK'})
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+        return response
+    
+    return JsonResponse({
+        'message': 'Test endpoint works with pure Django View!',
+        'path': request.path,
+        'auth_header': request.META.get('HTTP_AUTHORIZATION', 'NO HEADER'),
+        'timestamp': str(__import__('django.utils.timezone', fromlist=['now']).now())
+    })
+
+
+@csrf_exempt
+@require_http_methods(["GET", "OPTIONS"])
+def notifications_view(request):
+    """通知列表 API - 使用纯 Django View"""
+    import logging
+    logger = logging.getLogger('django')
+    logger.warning(f"[notifications_view] 被调用！Method: {request.method}")
+    
+    if request.method == 'OPTIONS':
+        response = JsonResponse({'message': 'OK'})
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+        return response
+    
+    # 验证 token
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    logger.warning(f"[notifications_view] Authorization header: {auth_header[:50] if auth_header else 'MISSING'}")
+    
+    if not auth_header.startswith('Bearer '):
+        logger.warning(f"[notifications_view] 返回 401 - 无 Bearer token")
+        return JsonResponse({'error': 'No auth'}, status=401)
+    
+    token = auth_header[7:]
+    try:
+        from rest_framework_simplejwt.tokens import AccessToken
+        validated_token = AccessToken(token)
+        user_id = validated_token['user_id']
+        logger.warning(f"[notifications_view] 验证 token 成功，user_id={user_id}")
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.get(id=user_id)
+        logger.warning(f"[notifications_view] 找到用户: {user.username}")
+    except Exception as e:
+        logger.error(f"[notifications_view] Token 验证失败: {str(e)}", exc_info=True)
+        return JsonResponse({'error': f'Invalid token: {str(e)}'}, status=401)
+    
+    # 获取通知
+    from apps.user.models import Notification
+    from apps.user.serializer import NotificationSerializer
+    from django.core.paginator import Paginator
+    
+    # 分页处理
+    page = request.GET.get('page', 1)
+    page_size = request.GET.get('page_size', 10)
+    
+    all_notifications = Notification.objects.filter(user=user).order_by('-created_at')
+    paginator = Paginator(all_notifications, page_size)
+    
+    try:
+        page_obj = paginator.page(page)
+    except:
+        page_obj = paginator.page(1)
+    
+    # 使用序列化器
+    serializer = NotificationSerializer(page_obj.object_list, many=True)
+    
+    data = {
+        'count': paginator.count,
+        'next': f'/user/notifications/?page={page_obj.next_page_number()}&page_size={page_size}' if page_obj.has_next() else None,
+        'previous': f'/user/notifications/?page={page_obj.previous_page_number()}&page_size={page_size}' if page_obj.has_previous() else None,
+        'results': serializer.data
+    }
+    
+    return JsonResponse(data)
+
+
+class TestNotificationsView(APIView):
+    """测试通知 API - 最简单的实现，用于诊断问题"""
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]  # 明确设置为 AllowAny
     
     def get(self, request):
+        return Response({
+            'message': 'Test endpoint works!',
+            'path': request.path,
+            'auth_header': request.META.get('HTTP_AUTHORIZATION', 'NO HEADER'),
+            'timestamp': str(__import__('django.utils.timezone', fromlist=['now']).now())
+        })
+
+
+class NotificationsListView(APIView):
+    """通知列表 API - 获取当前用户的所有通知"""
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]  # 明确设置为 AllowAny
+    
+    def get(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("=== NotificationsListView.get() called ===")
+        logger.info(f"Authorization header: {request.META.get('HTTP_AUTHORIZATION', 'MISSING')}")
+        
         try:
-            # 手动检查认证
-            if request.user and request.user.is_authenticated:
-                notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-                # 手动分页
-                from rest_framework.pagination import PageNumberPagination
-                paginator = PageNumberPagination()
-                paginator.page_size = 10
-                page = paginator.paginate_queryset(notifications, request)
-                serializer = NotificationSerializer(page, many=True)
-                return paginator.get_paginated_response(serializer.data)
-            else:
+            # 手动验证 JWT token
+            auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+            
+            if not auth_header.startswith('Bearer '):
+                logger.warning("No valid Authorization header")
                 return Response(
-                    {'results': []},
-                    status=status.HTTP_200_OK
+                    {'error': 'Authentication credentials were not provided.'},
+                    status=status.HTTP_401_UNAUTHORIZED
                 )
+            
+            token = auth_header[7:]
+            from rest_framework_simplejwt.tokens import AccessToken
+            try:
+                validated_token = AccessToken(token)
+                user_id = validated_token['user_id']
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.get(id=user_id)
+                logger.info(f"Token validated for user: {user.username}")
+            except Exception as e:
+                logger.error(f"Token validation failed: {str(e)}")
+                return Response(
+                    {'error': f'Invalid token: {str(e)}'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # 获取当前用户的通知，按创建时间倒序
+            notifications = Notification.objects.filter(user=user).order_by('-created_at')
+            logger.info(f"Found {notifications.count()} notifications for user {user.username}")
+            
+            # 分页处理
+            page = request.query_params.get('page', 1)
+            page_size = request.query_params.get('page_size', 10)
+            
+            from django.core.paginator import Paginator
+            paginator = Paginator(notifications, int(page_size))
+            
+            try:
+                page_obj = paginator.page(int(page))
+            except Exception:
+                page_obj = paginator.page(1)
+            
+            serializer = NotificationSerializer(page_obj.object_list, many=True)
+            
+            return Response({
+                'count': paginator.count,
+                'next': f'?page={page_obj.next_page_number()}' if page_obj.has_next() else None,
+                'previous': f'?page={page_obj.previous_page_number()}' if page_obj.has_previous() else None,
+                'results': serializer.data,
+            })
+        except Notification.DoesNotExist:
+            return Response({
+                'count': 0,
+                'next': None,
+                'previous': None,
+                'results': [],
+            })
         except Exception as e:
-            print(f'Error in NotificationsListView: {e}')
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Error in NotificationsListView: {str(e)}', exc_info=True)
             return Response(
-                {'error': str(e)},
+                {'error': f'Internal server error: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

@@ -81,7 +81,9 @@ user_router.register('list',      views.UserListViewSet,basename='user-list')
 user_router.register('avatars',   views.AvatarViewSet, basename='avatar')
 user_router.register('friendships', views.FriendshipViewSet, basename='friendship')
 user_router.register('messages',    views.PrivateMessageViewSet, basename='message')
-# NotificationViewSet 已通过单独的path注册，不使用router
+user_router.register('notifications', views.NotificationViewSet, basename='notification')
+# ⚠️ 注意：UserOpsViewSet 的空前缀会生成 catch-all 模式 `^(?P<pk>[^/.]+)/$`
+# 所以需要将所有特殊路径（如 notifications）放在它之前
 user_router.register('',         views.UserOpsViewSet,  basename='user')
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -122,15 +124,17 @@ urlpatterns = [
         views.UserMeView.as_view(),
         name='user-me'
     ),
+    # 测试端点 - 纯 Django View
     path(
-        'notifications/',
-        views.NotificationsListView.as_view(),
-        name='notifications-list'
+        'test-notifications/',
+        views.test_notifications_view,
+        name='test-notifications'
     ),
     path(
         '',
         UserRootAPIView.as_view(),
         name='api-root'
-    ),    
+    ),
+    # Router URLs 必须在最后（包括 NotificationViewSet）
     *user_router.urls,
 ]

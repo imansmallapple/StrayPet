@@ -28,7 +28,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('api.urls')),
     path('blog/', include('apps.blog.urls')),
-    path('user/', include('apps.user.urls')),
+    # path('user/', include('apps.user.urls')),  # Already included in api.urls as api/user/
     # path("pet/", include("apps.pet.urls")),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path("chaining/", include("smart_selects.urls")),
