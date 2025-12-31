@@ -720,10 +720,12 @@ class PrivateMessageViewSet(viewsets.ModelViewSet):
         messages = PrivateMessage.objects.filter(
             Q(sender=request.user, recipient_id=user_id) |
             Q(sender_id=user_id, recipient=request.user)
-        ).order_by('-created_at')
+        ).order_by('created_at')  # 按升序排列，最新的消息在最后
         
-        serializer = self.get_serializer(messages, many=True)
-        return Response(serializer.data)
+        serializer = self.get_serializer(messages, many=True, context={'request': request})
+        return Response({
+            'results': serializer.data
+        })
     
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):

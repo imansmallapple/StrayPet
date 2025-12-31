@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Spinner, Alert, Tabs, Tab, Container, Row, Col, Card, Button, Form, InputGroup } from 'react-bootstrap'
 import { blogApi } from '@/services/modules/blog'
 import http from '@/services/http'
+import './MessageCenter.scss'
 
 type MessageType = 'replies' | 'private'
 
@@ -50,23 +51,47 @@ export default function MessageCenter() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 获取当前用户ID
   const getCurrentUserId = () => {
-    return JSON.parse(localStorage.getItem('user_info') || '{}')?.id
+    try {
+      // 尝试两个可能的 localStorage 键名
+      const userInfo = localStorage.getItem('user') || localStorage.getItem('user_info')
+      const parsed = JSON.parse(userInfo || '{}')
+      const userId = parsed?.id
+      console.warn('DEBUG: 获取用户信息, user:', localStorage.getItem('user'), 'parsed:', parsed, 'userId:', userId)
+      return userId || null
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
+      return null
+    }
   }
 
   // 加载私信对话列表
   const loadConversations = useCallback(async () => {
     setLoading(true)
     try {
+      const currentUserId = getCurrentUserId()
+      console.warn('当前用户ID:', currentUserId)
+      
       const { data } = await http.get('/user/messages/')
       const convMap = new Map<number, Conversation>()
+      
       data.results?.forEach((msg: MessageItem) => {
-        const currentUserId = getCurrentUserId()
+        // 确定另一方用户（不是当前用户）
+        const otherUserId = msg.sender.id === currentUserId ? msg.recipient.id : msg.sender.id
         const otherUser = msg.sender.id === currentUserId ? msg.recipient : msg.sender
-        if (!convMap.has(otherUser.id)) {
-          convMap.set(otherUser.id, {
+        
+        console.warn(`消息: sender=${msg.sender.id}, recipient=${msg.recipient.id}, otherUserId=${otherUserId}, currentUserId=${currentUserId}`)
+        
+        // 仅在不是同一个人时记录
+        if (otherUserId !== currentUserId && !convMap.has(otherUserId)) {
+          console.warn(`添加对话: ${otherUser.username}`)
+          convMap.set(otherUserId, {
             otherUser,
             lastMessage: msg.content,
             lastMessageTime: msg.created_at,
@@ -85,14 +110,18 @@ export default function MessageCenter() {
   }, [])
 
   // 加载与某用户的对话
-  const loadConversation = async (userId: number) => {
+  const loadConversation = useCallback(async (userId: number) => {
     try {
       const { data } = await http.get('/user/messages/conversation/', {
         params: { user_id: userId }
       })
-      setPrivateMessages(data.results || [])
+      // 按时间正序排列消息（旧的在前，新的在后）
+      const sortedMessages = (data.results || data || []).sort((a: MessageItem, b: MessageItem) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      )
+      setPrivateMessages(sortedMessages)
       // 标记为已读
-      data.results?.forEach((msg: MessageItem) => {
+      sortedMessages?.forEach((msg: MessageItem) => {
         if (!msg.is_read && msg.recipient.id === getCurrentUserId()) {
           markMessageAsRead(msg.id)
         }
@@ -100,7 +129,7 @@ export default function MessageCenter() {
     } catch (e) {
       console.error('加载对话失败', e)
     }
-  }
+  }, [])
 
   // 标记消息已读
   const markMessageAsRead = async (messageId: number) => {
@@ -113,23 +142,60 @@ export default function MessageCenter() {
 
   // 发送私信
   const sendMessage = async () => {
-    if (!messageInput.trim() || !selectedUser) return
+    if ((!messageInput.trim() && !selectedImage) || !selectedUser) return
     try {
-      const { data } = await http.post('/user/messages/', {
+      await http.post('/user/messages/', {
         recipient_id: selectedUser.id,
         content: messageInput
       })
-      setPrivateMessages([...privateMessages, data])
+      // 直接刷新对话，确保两端消息同步
+      await loadConversation(selectedUser.id)
       setMessageInput('')
+      setSelectedImage(null)
+      setImagePreview(null)
+      setShowEmojiPicker(false)
       scrollToBottom()
     } catch (_e) {
       alert('发送失败')
     }
   }
 
+  // 插入emoji
+  const insertEmoji = (emoji: string) => {
+    setMessageInput(messageInput + emoji)
+    setShowEmojiPicker(false)
+  }
+
+  // 处理图片选择
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setImagePreview(event.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      alert('请选择有效的图片文件')
+    }
+  }
+
+  // 清除图片
+  const clearImagePreview = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  // 常用emoji表情
+  const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😚', '😙', '👍', '👎', '❤️', '💔', '💕', '💖', '🎉', '🎊', '🎈', '✨']
 
   const loadReplies = useCallback(async () => {
     setLoading(true)
@@ -288,30 +354,90 @@ export default function MessageCenter() {
                       <Card.Header className="bg-white border-bottom">
                         <h5 className="mb-0">{selectedUser.username}</h5>
                       </Card.Header>
-                      <Card.Body className="flex-grow-1 overflow-auto p-3" style={{ minHeight: '300px' }}>
-                        <div>
+                      <Card.Body className="flex-grow-1 overflow-auto p-3" style={{ minHeight: '300px', backgroundColor: '#f8f9fa' }}>
+                        <div className="d-flex flex-column gap-3">
                           {privateMessages.map((msg) => {
                             const isOwn = msg.sender.id === getCurrentUserId()
                             return (
                               <div
                                 key={msg.id}
-                                className={`d-flex mb-3 ${isOwn ? 'justify-content-end' : 'justify-content-start'}`}
+                                className={`d-flex ${isOwn ? 'justify-content-end' : 'justify-content-start'}`}
+                                style={{ alignItems: 'flex-end' }}
                               >
-                                <div
-                                  className={`${isOwn ? 'bg-primary text-white' : 'bg-light text-dark'}`}
-                                  style={{
-                                    maxWidth: '70%',
-                                    padding: '8px 12px',
-                                    borderRadius: '8px',
-                                    wordWrap: 'break-word',
-                                    wordBreak: 'break-word'
-                                  }}
-                                >
-                                  <p className="mb-1">{msg.content}</p>
-                                  <small className={isOwn ? 'text-white-50' : 'text-muted'}>
-                                    {formatDate(msg.created_at)}
-                                  </small>
-                                </div>
+                                {/* 左边：接收者消息（别人发送的）*/}
+                                {!isOwn && (
+                                  <div className="d-flex gap-2 align-items-flex-end" style={{ maxWidth: '75%' }}>
+                                    {/* 发送者头像 */}
+                                    <div
+                                      style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        minWidth: '32px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#e9ecef',
+                                        backgroundImage: msg.sender.avatar ? `url(${msg.sender.avatar})` : undefined,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                    {/* 接收者消息气泡（白色）*/}
+                                    <div
+                                      style={{
+                                        padding: '10px 14px',
+                                        borderRadius: '18px 18px 18px 4px',
+                                        backgroundColor: 'white',
+                                        color: '#333',
+                                        wordWrap: 'break-word',
+                                        wordBreak: 'break-word',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                        border: '1px solid #e0e0e0'
+                                      }}
+                                    >
+                                      <p className="mb-2">{msg.content}</p>
+                                      <small className="d-block text-muted" style={{ fontSize: '0.75rem' }}>
+                                        {formatDate(msg.created_at)}
+                                      </small>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* 右边：发送者消息（自己发送的）*/}
+                                {isOwn && (
+                                  <div className="d-flex gap-2 align-items-flex-end flex-row-reverse" style={{ maxWidth: '75%' }}>
+                                    {/* 当前用户头像 */}
+                                    <div
+                                      style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        minWidth: '32px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#e9ecef',
+                                        backgroundImage: msg.sender.avatar ? `url(${msg.sender.avatar})` : undefined,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                    {/* 发送者消息气泡（蓝色）*/}
+                                    <div
+                                      style={{
+                                        padding: '10px 14px',
+                                        borderRadius: '18px 18px 4px 18px',
+                                        backgroundColor: '#0d6efd',
+                                        color: 'white',
+                                        wordWrap: 'break-word',
+                                        wordBreak: 'break-word',
+                                        boxShadow: '0 1px 2px rgba(13, 110, 253, 0.2)'
+                                      }}
+                                    >
+                                      <p className="mb-2">{msg.content}</p>
+                                      <small className="d-block" style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                                        {formatDate(msg.created_at)}
+                                      </small>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )
                           })}
@@ -319,26 +445,110 @@ export default function MessageCenter() {
                         </div>
                       </Card.Body>
                       <Card.Footer className="bg-white border-top">
+                        <div className="mb-3">
+                          {imagePreview && (
+                            <div className="position-relative d-inline-block mb-2">
+                              <img src={imagePreview} alt="preview" style={{ maxHeight: '100px', borderRadius: '4px' }} />
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                className="position-absolute top-0 end-0"
+                                onClick={clearImagePreview}
+                                style={{ transform: 'translate(5px, -5px)' }}
+                              >
+                                <i className="bi bi-x"></i>
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Emoji选择器 */}
+                        {showEmojiPicker && (
+                          <div className="bg-light p-2 mb-2 rounded border" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '4px' }}>
+                            {emojis.map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => insertEmoji(emoji)}
+                                style={{
+                                  border: 'none',
+                                  backgroundColor: 'white',
+                                  cursor: 'pointer',
+                                  fontSize: '1.2rem',
+                                  padding: '4px',
+                                  borderRadius: '4px'
+                                }}
+                                className="hover-bg-primary"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         <InputGroup>
                           <Form.Control
                             placeholder="输入消息..."
                             value={messageInput}
                             onChange={(e) => setMessageInput(e.target.value)}
                             onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
                                 sendMessage()
                               }
                             }}
+                            style={{
+                              minHeight: '60px',
+                              resize: 'none',
+                              maxHeight: '120px',
+                              overflow: 'auto',
+                              fontFamily: 'inherit',
+                              userSelect: 'text'
+                            }}
+                            as="textarea"
                           />
+                        </InputGroup>
+                        
+                        <div className="d-flex gap-2 mt-2">
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            title="表情"
+                          >
+                            <i className="bi bi-emoji-smile me-1"></i>
+                            表情
+                          </Button>
+                          
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            title="图片"
+                          >
+                            <i className="bi bi-image me-1"></i>
+                            图片
+                          </Button>
+                          
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            style={{ display: 'none' }}
+                          />
+                          
                           <Button
                             variant="primary"
+                            size="sm"
                             onClick={sendMessage}
-                            disabled={!messageInput.trim()}
+                            disabled={!messageInput.trim() && !selectedImage}
+                            className="ms-auto"
                           >
                             <i className="bi bi-send me-1"></i>
                             发送
                           </Button>
-                        </InputGroup>
+                        </div>
                       </Card.Footer>
                     </Card>
                   ) : (
