@@ -1,6 +1,7 @@
 import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { useEffect, useState, useRef, Fragment } from 'react'
-import { Button, Modal, Form, Card } from 'react-bootstrap'
+import { Button, Modal, Form, Spinner, Alert } from 'react-bootstrap'
+import './ProfileInfo.scss'
 
 export interface ProfileInfoProps {
   me: ApiUserMe
@@ -22,6 +23,8 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
   const [messageContent, setMessageContent] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const [messageError, setMessageError] = useState('')
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resettingAvatar, setResettingAvatar] = useState(false)
 
   // 加载好友关系
   useEffect(() => {
@@ -46,33 +49,37 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('文件大小超过 5MB')
+      return
+    }
+
     setUploading(true)
     setUploadError('')
 
     try {
       const { data } = await authApi.uploadAvatar(file)
       setUserData(data)
+      setEditData(data)
     } catch (error: any) {
-      setUploadError(error?.response?.data?.error || '头像上传失败')
+      setUploadError(error?.response?.data?.error || '头像上传失败，请重试')
     } finally {
       setUploading(false)
-      e.target.value = ''
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
   const handleResetAvatar = async () => {
-    if (!window.confirm('确定要重置为默认头像吗？')) return
-    
-    setUploading(true)
-    setUploadError('')
-
+    setResettingAvatar(true)
     try {
       const { data } = await authApi.resetAvatarToDefault()
       setUserData(data)
+      setEditData(data)
+      setShowResetModal(false)
     } catch (error: any) {
-      setUploadError(error?.response?.data?.error || '重置头像失败')
+      alert(error?.response?.data?.error || '重置头像失败')
     } finally {
-      setUploading(false)
+      setResettingAvatar(false)
     }
   }
 
@@ -158,74 +165,77 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
 
   return (
     <Fragment>
-      <Card className="profile-card shadow-sm border-0">
-        <Card.Header className="profile-card-header">
-          <div className="d-flex justify-content-between align-items-center">
-            <h4 className="mb-0">
-              <i className="bi bi-person-circle me-2"></i>
-              个人信息
-            </h4>
-            {!isOtherUserProfile && (
-              <div className="d-flex gap-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-success"
-                      onClick={handleSaveProfile}
-                      disabled={saving}
-                    >
-                      <i className="bi bi-check-lg me-1"></i>
-                      {saving ? '保存中...' : '保存'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => {
-                        setIsEditing(false)
-                        setEditData(userData)
-                      }}
-                      disabled={saving}
-                    >
-                      <i className="bi bi-x-lg me-1"></i>
-                      取消
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-primary"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <i className="bi bi-pencil me-1"></i>
-                    编辑信息
-                  </button>
-                )}
-              </div>
-            )}
+      <div className="profile-card">
+        {/* Header */}
+        <div className="profile-card-header">
+          <div className="header-title">
+            <i className="bi bi-person-circle"></i>
+            <h5 className="mb-0">基本信息</h5>
           </div>
-        </Card.Header>
-        <Card.Body className="profile-card-body">
+          {!isOtherUserProfile && (
+            <div className="header-actions">
+              {isEditing ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="success"
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                  >
+                    <i className="bi bi-check-lg me-1"></i>
+                    {saving ? '保存中...' : '保存'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={() => {
+                      setIsEditing(false)
+                      setEditData(userData)
+                    }}
+                    disabled={saving}
+                  >
+                    <i className="bi bi-x-lg me-1"></i>
+                    取消
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline-primary"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <i className="bi bi-pencil me-1"></i>
+                  编辑信息
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="profile-card-body">
           {uploadError && (
-            <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            <Alert variant="danger" className="mb-3" dismissible onClose={() => setUploadError('')}>
               <i className="bi bi-exclamation-circle me-2"></i>
               {uploadError}
-              <button type="button" className="btn-close" onClick={() => setUploadError('')}></button>
-            </div>
+            </Alert>
           )}
 
           {/* Avatar Section */}
-          <div className="profile-avatar-section mb-4">
-            <div className="profile-avatar-wrapper">
+          <div className="avatar-section">
+            <div className="avatar-wrapper">
               <div className="profile-avatar-large">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={userData?.username} className="avatar-img" />
                 ) : (
-                  <span className="avatar-placeholder">{userData?.username?.charAt(0).toUpperCase()}</span>
+                  <div className="avatar-initials">
+                    {userData?.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
                 )}
               </div>
+            </div>
+            <div className="avatar-controls">
               {!isOtherUserProfile && (
-                <div className="avatar-controls">
+                <>
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -234,283 +244,378 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     disabled={uploading}
                     style={{ display: 'none' }}
                   />
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    title="上传头像"
-                  >
-                    <i className="bi bi-cloud-upload me-1"></i>
-                    {uploading ? '上传中…' : '上传头像'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={handleResetAvatar}
-                    disabled={uploading || !userData?.avatar}
-                    title="重置为默认头像"
-                  >
-                    <i className="bi bi-arrow-clockwise me-1"></i>
-                    重置
-                  </button>
-                  <small className="d-block text-muted mt-2">
+                  <div className="d-flex gap-2 mb-3">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="d-flex align-items-center gap-1"
+                    >
+                      <i className="bi bi-cloud-upload"></i>
+                      {uploading ? '上传中...' : '上传头像'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => setShowResetModal(true)}
+                      disabled={uploading || !userData?.avatar}
+                      className="d-flex align-items-center gap-1"
+                    >
+                      <i className="bi bi-arrow-counterclockwise"></i>
+                      重置
+                    </Button>
+                  </div>
+                  <small className="text-muted d-block">
                     <i className="bi bi-info-circle me-1"></i>
                     支持 JPG、PNG、GIF、WebP，最大 5MB
                   </small>
-                </div>
+                </>
               )}
             </div>
           </div>
 
-          <div className="profile-info-grid">
-            <InfoRow 
-              label="用户名" 
-              value={userData?.username ?? '—'}
-              icon="at"
-            />
-            <InfoRow 
-              label="邮箱" 
-              value={userData?.email ?? '—'}
-              icon="envelope"
-            />
-            <InfoRow 
-              label="电话" 
-              value={userData?.phone ?? '—'}
-              icon="telephone"
-            />
-            <InfoRow 
-              label="姓氏" 
-              value={userData?.last_name ?? '—'}
-              icon="person"
-            />
-            <InfoRow 
-              label="名字" 
-              value={userData?.first_name ?? '—'}
-              icon="person"
-            />
-          </div>
+          {/* User Info Grid */}
+          <div className="info-grid">
+            <div className="info-item">
+              <label className="info-label">用户名</label>
+              <div className="info-value">{userData?.username || '—'}</div>
+            </div>
+            
+            <div className="info-item">
+              <label className="info-label">邮箱</label>
+              <div className="info-value">{userData?.email || '—'}</div>
+            </div>
 
-          <hr className="my-4" />
-
-          {/* 宠物相关信息 */}
-          <div className="profile-pet-info">
-            <h5 className="mb-3">
-              <i className="bi bi-paw-fill me-2"></i>
-              养宠物信息
-            </h5>
-
-            <div className="pet-info-group">
-              <label className="pet-info-label">养宠物经验</label>
-              <div className="pet-info-content">
+            <div className="info-item">
+              <label className="info-label">姓氏</label>
+              <div className="info-value">
                 {isEditing && !isOtherUserProfile ? (
-                  <Form.Check
-                    type="checkbox"
-                    checked={(editData as any).has_experience}
-                    onChange={(e: any) => setEditData({...editData, has_experience: e.target.checked})}
-                    label="有养宠物经验"
+                  <input
+                    type="text"
+                    value={(editData as any).last_name || ''}
+                    onChange={(e: any) => setEditData({...editData, last_name: e.target.value})}
+                    placeholder="输入姓氏"
+                    className="form-control form-control-sm"
                   />
                 ) : (
-                  <span className="badge bg-info">
+                  userData?.last_name || '—'
+                )}
+              </div>
+            </div>
+
+            <div className="info-item">
+              <label className="info-label">名字</label>
+              <div className="info-value">
+                {isEditing && !isOtherUserProfile ? (
+                  <input
+                    type="text"
+                    value={(editData as any).first_name || ''}
+                    onChange={(e: any) => setEditData({...editData, first_name: e.target.value})}
+                    placeholder="输入名字"
+                    className="form-control form-control-sm"
+                  />
+                ) : (
+                  userData?.first_name || '—'
+                )}
+              </div>
+            </div>
+
+            <div className="info-item">
+              <label className="info-label">电话</label>
+              <div className="info-value">
+                {isEditing && !isOtherUserProfile ? (
+                  <input
+                    type="tel"
+                    value={(editData as any).phone || ''}
+                    onChange={(e: any) => setEditData({...editData, phone: e.target.value})}
+                    placeholder="输入电话号码"
+                    className="form-control form-control-sm"
+                  />
+                ) : (
+                  userData?.phone || '—'
+                )}
+              </div>
+            </div>
+
+            <div className="info-item">
+              <label className="info-label">养宠经验</label>
+              <div className="info-value">
+                {isEditing && !isOtherUserProfile ? (
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="petExp"
+                      checked={(editData as any).has_experience || false}
+                      onChange={(e: any) => setEditData({...editData, has_experience: e.target.checked})}
+                    />
+                    <label className="form-check-label" htmlFor="petExp">
+                      有养宠物经验
+                    </label>
+                  </div>
+                ) : (
+                  <span className={`badge ${(userData as any)?.has_experience ? 'bg-success' : 'bg-secondary'}`}>
+                    <i className={`bi ${(userData as any)?.has_experience ? 'bi-check' : 'bi-dash'} me-1`}></i>
                     {(userData as any)?.has_experience ? '有经验' : '无经验'}
                   </span>
                 )}
               </div>
             </div>
-
-            <div className="pet-info-group">
-              <label className="pet-info-label">居住环境</label>
-              <div className="pet-info-content">
-                {isEditing && !isOtherUserProfile ? (
-                  <Form.Select
-                    value={(editData as any).living_situation || ''}
-                    onChange={(e: any) => setEditData({...editData, living_situation: e.target.value})}
-                    size="sm"
-                  >
-                    <option value="">选择居住环境</option>
-                    <option value="apartment">公寓</option>
-                    <option value="house">独栋房屋</option>
-                    <option value="townhouse">联排别墅</option>
-                    <option value="farm">农场</option>
-                  </Form.Select>
-                ) : (
-                  <span className="badge bg-secondary">
-                    {getLivingSituationLabel((userData as any)?.living_situation)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="pet-info-group">
-              <label className="pet-info-label">有无院子</label>
-              <div className="pet-info-content">
-                {isEditing && !isOtherUserProfile ? (
-                  <Form.Check
-                    type="checkbox"
-                    checked={(editData as any).has_yard}
-                    onChange={(e: any) => setEditData({...editData, has_yard: e.target.checked})}
-                    label="有院子"
-                  />
-                ) : (
-                  <span className="badge bg-primary">
-                    {(userData as any)?.has_yard ? '有院子' : '无院子'}
-                  </span>
-                )}
-              </div>
-            </div>
           </div>
 
-          {/* Friend Actions */}
-          {isOtherUserProfile && friendshipStatus !== null && (
-            <>
-              <hr className="my-4" />
-              <div className="friend-actions">
-                <div className="d-flex gap-2 flex-wrap">
-                  {!friendshipStatus?.status ? (
-                    <>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleAddFriend}
-                        disabled={loadingFriendship}
+          {/* Pet Care Section */}
+          {!isOtherUserProfile && (
+            <div className="pet-care-section">
+              <div className="section-title">
+                <i className="bi bi-heart-fill"></i>
+                宠物信息
+              </div>
+              <div className="pet-info-items">
+                <div className="pet-info-item">
+                  <label className="pet-label">🏠 居住环境</label>
+                  <div className="pet-value">
+                    {isEditing ? (
+                      <select
+                        value={(editData as any).living_situation || ''}
+                        onChange={(e: any) => setEditData({...editData, living_situation: e.target.value})}
+                        className="form-select form-select-sm"
                       >
-                        <i className="bi bi-person-plus me-1"></i>
-                        添加好友
-                      </Button>
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={() => setShowMessageModal(true)}
-                      >
-                        <i className="bi bi-chat-dots me-1"></i>
-                        发送私信
-                      </Button>
-                    </>
-                  ) : friendshipStatus.status === 'pending' ? (
-                    <>
-                      {friendshipStatus.from_user.id === currentUser?.id ? (
-                        <>
-                          <Button variant="secondary" size="sm" disabled>
-                            <i className="bi bi-hourglass-split me-1"></i>
-                            已发送申请
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={() => setShowMessageModal(true)}
-                          >
-                            <i className="bi bi-chat-dots me-1"></i>
-                            发送私信
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            variant="success"
-                            size="sm"
-                            onClick={handleAcceptFriend}
-                            disabled={loadingFriendship}
-                          >
-                            <i className="bi bi-check-circle me-1"></i>
-                            接受好友请求
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={handleRejectFriend}
-                            disabled={loadingFriendship}
-                          >
-                            <i className="bi bi-x-circle me-1"></i>
-                            拒绝
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={() => setShowMessageModal(true)}
-                          >
-                            <i className="bi bi-chat-dots me-1"></i>
-                            发送私信
-                          </Button>
-                        </>
-                      )}
-                    </>
-                  ) : friendshipStatus.status === 'accepted' ? (
-                    <>
-                      <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => setShowMessageModal(true)}
-                      >
-                        <i className="bi bi-chat-dots me-1"></i>
-                        发送私信
-                      </Button>
-                      <Button variant="secondary" size="sm" disabled>
-                        <i className="bi bi-check-circle me-1"></i>
-                        已成为好友
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="secondary" size="sm" disabled>
-                      <i className="bi bi-x-circle me-1"></i>
-                      已拒绝
-                    </Button>
-                  )}
+                        <option value="">选择居住环境</option>
+                        <option value="apartment">🏢 公寓</option>
+                        <option value="house">🏠 独栋房屋</option>
+                        <option value="townhouse">🏘️ 联排别墅</option>
+                        <option value="farm">🌾 农场</option>
+                      </select>
+                    ) : (
+                      getLivingSituationLabel((userData as any)?.living_situation)
+                    )}
+                  </div>
+                </div>
+
+                <div className="pet-info-item">
+                  <label className="pet-label">🏡 有无院子</label>
+                  <div className="pet-value">
+                    {isEditing ? (
+                      <div className="form-check form-switch">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="yardSwitch"
+                          checked={(editData as any).has_yard || false}
+                          onChange={(e: any) => setEditData({...editData, has_yard: e.target.checked})}
+                        />
+                        <label className="form-check-label" htmlFor="yardSwitch">
+                          有院子
+                        </label>
+                      </div>
+                    ) : (
+                      <span className={`badge ${(userData as any)?.has_yard ? 'bg-success' : 'bg-secondary'}`}>
+                        <i className={`bi ${(userData as any)?.has_yard ? 'bi-check' : 'bi-dash'} me-1`}></i>
+                        {(userData as any)?.has_yard ? '有' : '无'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
-        </Card.Body>
-      </Card>
+
+          {/* Friend Actions */}
+          {isOtherUserProfile && (
+            <div className="friend-actions">
+              <h6 className="mb-3">
+                <i className="bi bi-person-plus me-2"></i>
+                操作
+              </h6>
+              <div className="action-buttons">
+                {!friendshipStatus?.status ? (
+                  <>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleAddFriend}
+                      disabled={loadingFriendship}
+                      className="d-flex align-items-center gap-1"
+                    >
+                      <i className="bi bi-person-plus"></i>
+                      {loadingFriendship ? '加载中...' : '添加好友'}
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={() => setShowMessageModal(true)}
+                      className="d-flex align-items-center gap-1"
+                    >
+                      <i className="bi bi-chat-dots"></i>
+                      发送私信
+                    </Button>
+                  </>
+                ) : friendshipStatus.status === 'pending' ? (
+                  <>
+                    {friendshipStatus.from_user.id === currentUser?.id ? (
+                      <>
+                        <Button variant="secondary" size="sm" disabled className="d-flex align-items-center gap-1">
+                          <i className="bi bi-check-circle"></i>
+                          已发送申请
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={() => setShowMessageModal(true)}
+                          className="d-flex align-items-center gap-1"
+                        >
+                          <i className="bi bi-chat-dots"></i>
+                          发送私信
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="success"
+                          size="sm"
+                          onClick={handleAcceptFriend}
+                          disabled={loadingFriendship}
+                          className="d-flex align-items-center gap-1"
+                        >
+                          <i className="bi bi-check-lg"></i>
+                          接受请求
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={handleRejectFriend}
+                          disabled={loadingFriendship}
+                          className="d-flex align-items-center gap-1"
+                        >
+                          <i className="bi bi-x-lg"></i>
+                          拒绝
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={() => setShowMessageModal(true)}
+                          className="d-flex align-items-center gap-1"
+                        >
+                          <i className="bi bi-chat-dots"></i>
+                          发送私信
+                        </Button>
+                      </>
+                    )}
+                  </>
+                ) : friendshipStatus.status === 'accepted' ? (
+                  <>
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => setShowMessageModal(true)}
+                      className="d-flex align-items-center gap-1"
+                    >
+                      <i className="bi bi-chat-dots"></i>
+                      发送私信
+                    </Button>
+                    <Button variant="secondary" size="sm" disabled className="d-flex align-items-center gap-1">
+                      <i className="bi bi-check-circle"></i>
+                      已成为好友
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" size="sm" disabled className="d-flex align-items-center gap-1">
+                    <i className="bi bi-dash-circle"></i>
+                    已拒绝
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reset Avatar Modal */}
+      <Modal show={showResetModal} onHide={() => setShowResetModal(false)} centered>
+        <Modal.Header closeButton className="border-bottom-0">
+          <Modal.Title className="fw-600">
+            <i className="bi bi-exclamation-triangle me-2 text-warning"></i>
+            确认重置头像
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-0">
+            确定要将头像重置为默认头像吗？此操作无法撤销。
+          </p>
+        </Modal.Body>
+        <Modal.Footer className="border-top-0">
+          <Button variant="secondary" onClick={() => setShowResetModal(false)}>
+            取消
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={handleResetAvatar}
+            disabled={resettingAvatar}
+          >
+            {resettingAvatar ? '重置中...' : '确认重置'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Message Modal */}
       <Modal show={showMessageModal} onHide={() => setShowMessageModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>
+        <Modal.Header closeButton className="border-bottom-0">
+          <Modal.Title className="fw-600">
             <i className="bi bi-chat-dots me-2"></i>
-            给 {userData?.username} 发送私信
+            给 {userData?.username} 发送消息
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {messageError && (
-            <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            <Alert variant="danger" className="mb-3">
+              <i className="bi bi-exclamation-circle me-2"></i>
               {messageError}
-              <button type="button" className="btn-close" onClick={() => setMessageError('')}></button>
-            </div>
+            </Alert>
           )}
-          <form>
-            <div className="mb-3">
-              <label className="form-label">消息内容</label>
-              <textarea
-                className="form-control"
-                rows={4}
-                value={messageContent}
-                onChange={(e) => setMessageContent(e.target.value)}
-                placeholder="输入消息内容…"
-                disabled={sendingMessage}
-                maxLength={500}
-              />
-              <small className="text-muted d-block mt-1">
-                {messageContent.length}/500
-              </small>
-              {friendshipStatus?.status !== 'accepted' && (
-                <div className="alert alert-warning mt-2 small mb-0">
-                  <i className="bi bi-exclamation-triangle me-1"></i>
-                  非好友每天最多发送3条私信
-                </div>
-              )}
-            </div>
-          </form>
+          <Form.Group>
+            <Form.Label className="fw-600 mb-2">消息内容</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              value={messageContent}
+              onChange={(e) => setMessageContent(e.target.value)}
+              placeholder="输入你想说的话…"
+              disabled={sendingMessage}
+              maxLength={500}
+              className="form-control-lg"
+            />
+            <small className="text-muted d-block mt-2">
+              {messageContent.length}/500
+            </small>
+            {friendshipStatus?.status !== 'accepted' && (
+              <Alert variant="warning" className="mt-2 mb-0 py-2">
+                <i className="bi bi-info-circle me-2"></i>
+                非好友每天最多发送3条消息
+              </Alert>
+            )}
+          </Form.Group>
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="border-top-0">
           <Button variant="secondary" onClick={() => setShowMessageModal(false)}>
-            关闭
+            取消
           </Button>
           <Button
             variant="primary"
             onClick={handleSendMessage}
             disabled={sendingMessage || !messageContent.trim()}
           >
-            {sendingMessage ? '发送中…' : '发送'}
+            {sendingMessage ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                发送中...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-send me-1"></i>
+                发送
+              </>
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -518,25 +623,13 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
   )
 }
 
-function InfoRow({ label, value, icon = 'info-circle' }: { label: string; value: string; icon?: string }) {
-  return (
-    <div className="info-row">
-      <div className="info-row-label">
-        <i className={`bi bi-${icon} me-2`}></i>
-        {label}
-      </div>
-      <div className="info-row-value">{value}</div>
-    </div>
-  )
-}
-
 function getLivingSituationLabel(situation?: string): string {
   if (!situation) return '—'
   const situationMap: Record<string, string> = {
-    apartment: '公寓',
-    house: '独栋房屋',
-    townhouse: '联排别墅',
-    farm: '农场'
+    apartment: '🏢 公寓',
+    house: '🏠 独栋房屋',
+    townhouse: '🏘️ 联排别墅',
+    farm: '🌾 农场'
   }
   return situationMap[situation] || situation
 }

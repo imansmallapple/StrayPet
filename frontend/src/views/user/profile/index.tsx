@@ -1,28 +1,24 @@
 import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
 import { useEffect, useState } from 'react'
-import { Container, Row, Col, Nav, Card, Spinner, Alert, Button, Modal } from 'react-bootstrap'
-import { Link, useLocation, useParams } from 'react-router-dom'
-import ProfileInfo from './ProfileInfo'
+import { Container, Row, Col, Nav, Card, Spinner, Alert } from 'react-bootstrap'
+import { Link, useLocation } from 'react-router-dom'
 import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
 import MessageCenter from './MessageCenter'
+import ProfileInfo from './ProfileInfo'
 import './index.scss'
-import './profile.scss'
 
 type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'message-center'
 
 export default function Profile() {
-  const { userId } = useParams<{ userId?: string }>()
+  const [me, setMe] = useState<ApiUserMe | null>(null)
   const location = useLocation()
   const hashTab = (location.hash.replace('#', '') as TabKey)
   const validTabs: TabKey[] = ['info', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'message-center']
   const activeTab: TabKey = validTabs.includes(hashTab) ? hashTab : 'info'
-  const [me, setMe] = useState<ApiUserMe | null>(null)
-  const [currentUser, setCurrentUser] = useState<ApiUserMe | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const isOtherUserProfile = Boolean(userId && currentUser && Number(userId) !== currentUser.id)
 
   useEffect(() => {
     let alive = true
@@ -31,26 +27,7 @@ export default function Profile() {
         // 获取当前登录用户信息
         const { data: current } = await authApi.getProfile()
         if (!alive) return
-        setCurrentUser(current)
-
-        // 获取要显示的用户信息
-        let data
-        if (userId) {
-          const userId_num = Number(userId)
-          // 如果 userId 等于当前用户 ID，显示当前用户信息
-          if (userId_num === current.id) {
-            data = current
-          } else {
-            // 否则获取其他用户的公开资料
-            const { data: userData } = await authApi.getUserProfile(userId_num)
-            data = userData
-          }
-        } else {
-          // 没有 userId 参数，显示当前用户
-          data = current
-        }
-        if (!alive) return
-        setMe(data)
+        setMe(current)
       } catch (e: any) {
         setError(e?.response?.data?.detail || '加载用户信息失败')
       } finally {
@@ -58,7 +35,7 @@ export default function Profile() {
       }
     })()
     return () => { alive = false }
-  }, [userId])
+  }, [])
 
 
   // activeTab is derived from URL hash; no state set in effect
@@ -83,95 +60,79 @@ export default function Profile() {
   if (!me) return null
 
   return (
-    <Container className="profile-container py-4">
-      <Row>
-        {/* Sidebar */}
-        <Col md={3} className="mb-4">
-          <Card className="profile-sidebar shadow-sm">
-            <Card.Body>
-              <div className="text-center mb-3">
-                <div className="profile-avatar">
-                  {me.avatar ? (
-                    <img 
-                      src={typeof me.avatar === 'string' ? me.avatar : URL.createObjectURL(me.avatar as any)}
-                      alt={me.username}
-                      className="avatar-img"
-                    />
-                  ) : (
-                    me.username.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <h5 className="mt-3 mb-0">{me.username}</h5>
-                {me.email && <small className="text-muted">{me.email}</small>}
-              </div>
-              <Nav className="flex-column">
-                <Nav.Link
-                  href="#info"
-                  active={activeTab === 'info'}
-                  className="profile-nav-link"
-                >
-                  <i className="bi bi-person-circle me-2"></i>
-                  个人信息
-                </Nav.Link>
-                {!isOtherUserProfile && (
-                  <>
-                    <Nav.Link
-                      href="#favorite-pets"
-                      active={activeTab === 'favorite-pets'}
-                      className="profile-nav-link"
-                    >
-                      <i className="bi bi-star-fill me-2"></i>
-                      收藏的宠物
-                    </Nav.Link>
-                    <Nav.Link
-                      href="#favorite-articles"
-                      active={activeTab === 'favorite-articles'}
-                      className="profile-nav-link"
-                    >
-                      <i className="bi bi-bookmark-star-fill me-2"></i>
-                      收藏的文章
-                    </Nav.Link>
-                    <Nav.Link
-                      href="#my-articles"
-                      active={activeTab === 'my-articles'}
-                      className="profile-nav-link"
-                    >
-                      <i className="bi bi-file-earmark-text me-2"></i>
-                      我的文章
-                    </Nav.Link>
-                    <Nav.Link
-                      href="#my-pets"
-                      active={activeTab === 'my-pets'}
-                      className="profile-nav-link"
-                    >
-                      <i className="bi bi-heart-fill me-2"></i>
-                      我的宠物
-                    </Nav.Link>
-                    <Nav.Link
-                      href="#message-center"
-                      active={activeTab === 'message-center'}
-                      className="profile-nav-link"
-                    >
-                      <i className="bi bi-chat-dots-fill me-2"></i>
-                      消息中心
-                    </Nav.Link>
-                  </>
-                )}
-              </Nav>
-            </Card.Body>
-          </Card>
-        </Col>
+    <Container className="py-4">
+      {/* 顶部菜单栏 */}
+      <div className="profile-header mb-4 pb-3" style={{ borderBottom: '1px solid #e0e0e0' }}>
+        <div className="d-flex align-items-center gap-4 flex-wrap">
+          <h4 className="mb-0">我的账户</h4>
+          <Nav className="gap-3">
+            <Nav.Link
+              href="#info"
+              active={activeTab === 'info'}
+              className="nav-link"
+              style={{ padding: 0 }}
+            >
+              <i className="bi bi-person-circle me-2"></i>
+              个人信息
+            </Nav.Link>
+            <Nav.Link
+              href="#favorite-pets"
+              active={activeTab === 'favorite-pets'}
+              className="nav-link"
+              style={{ padding: 0 }}
+            >
+              <i className="bi bi-star-fill me-2"></i>
+              收藏的宠物
+            </Nav.Link>
+            <Nav.Link
+              href="#favorite-articles"
+              active={activeTab === 'favorite-articles'}
+              className="nav-link"
+              style={{ padding: 0 }}
+            >
+              <i className="bi bi-bookmark-star-fill me-2"></i>
+              收藏的文章
+            </Nav.Link>
+            <Nav.Link
+              href="#my-articles"
+              active={activeTab === 'my-articles'}
+              className="nav-link"
+              style={{ padding: 0 }}
+            >
+              <i className="bi bi-file-earmark-text me-2"></i>
+              我的文章
+            </Nav.Link>
+            <Nav.Link
+              href="#my-pets"
+              active={activeTab === 'my-pets'}
+              className="nav-link"
+              style={{ padding: 0 }}
+            >
+              <i className="bi bi-heart-fill me-2"></i>
+              我的宠物
+            </Nav.Link>
+            <Nav.Link
+              href="#message-center"
+              active={activeTab === 'message-center'}
+              className="nav-link"
+              style={{ padding: 0 }}
+            >
+              <i className="bi bi-chat-dots-fill me-2"></i>
+              消息中心
+            </Nav.Link>
+          </Nav>
+        </div>
+      </div>
 
-        {/* Main content */}
-        <Col md={9}>
-          {activeTab === 'info' && <ProfileInfo me={me} isOtherUserProfile={isOtherUserProfile} currentUser={currentUser} />}
-          {!isOtherUserProfile && activeTab === 'favorite-pets' && <FavoritesList />}
-          {!isOtherUserProfile && activeTab === 'favorite-articles' && <FavoriteArticlesList />}
-          {!isOtherUserProfile && activeTab === 'my-articles' && <MyArticlesList />}
-          {!isOtherUserProfile && activeTab === 'my-pets' && <MyPetsList />}
-          {!isOtherUserProfile && activeTab === 'message-center' && <MessageCenter />}
-        </Col>
-      </Row>
+      {/* 内容区域 */}
+      <div className="profile-content">
+        {activeTab === 'info' && <ProfileInfo me={me} isOtherUserProfile={false} currentUser={me} />}
+        {activeTab === 'favorite-pets' && <FavoritesList />}
+        {activeTab === 'favorite-articles' && <FavoriteArticlesList />}
+        {activeTab === 'my-articles' && <MyArticlesList />}
+        {activeTab === 'my-pets' && <MyPetsList />}
+        {activeTab === 'message-center' && <MessageCenter />}
+      </div>
     </Container>
   )
 }
@@ -243,18 +204,15 @@ function FavoritesList() {
 
 function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }) {
   const [removing, setRemoving] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
 
-  const handleRemoveClick = () => {
-    setShowConfirm(true)
-  }
+  const handleRemove = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (removing) return
 
-  const handleConfirmRemove = async () => {
     setRemoving(true)
     try {
       await adoptApi.unfavorite(pet.id)
       onRemove(pet.id)
-      setShowConfirm(false)
     } catch (err) {
       console.error('Remove favorite failed:', err)
       alert('取消收藏失败')
@@ -272,64 +230,40 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
   }
 
   return (
-    <>
-      <Card className="pet-card h-100 border-0 shadow-sm hover-card">
-        <div className="position-relative pet-image-wrapper">
-          <button
-            type="button"
-            className="pet-card-remove-btn"
-            onClick={handleRemoveClick}
-            disabled={removing}
-            aria-label="取消收藏"
-            title="取消收藏"
-          >
-            <i className="bi bi-heart-fill"></i>
-          </button>
-          <Link to={`/adopt/${pet.id}`}>
-            <Card.Img
-              variant="top"
-              src={pet.photo || '/images/pet-placeholder.jpg'}
-              alt={pet.name}
-              className="pet-card-image"
-              style={{ height: 200, objectFit: 'cover' }}
-            />
-          </Link>
-        </div>
-        <Card.Body className="pet-card-body">
-          <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
-            <Card.Title className="fs-5 fw-bold pet-name">{pet.name}</Card.Title>
-            <Card.Text className="text-muted small">
-              <i className="bi bi-geo-alt me-1"></i>
-              {pet.address_display || pet.city || '位置未知'}
-            </Card.Text>
-            <Card.Text className="small pet-meta">
-              <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
-              <span className="text-muted">{ageText()}</span>
-            </Card.Text>
-          </Link>
-        </Card.Body>
-      </Card>
-
-      <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <i className="bi bi-exclamation-circle me-2"></i>
-            确认操作
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="mb-0">确定要取消收藏 <strong>{pet.name}</strong> 吗？</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowConfirm(false)} disabled={removing}>
-            取消
-          </Button>
-          <Button variant="danger" onClick={handleConfirmRemove} disabled={removing}>
-            {removing ? '处理中…' : '确认取消收藏'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </>
+    <Card className="pet-card h-100 border-0 shadow-sm">
+      <div className="position-relative">
+        <button
+          type="button"
+          className="pet-card-remove-btn"
+          onClick={handleRemove}
+          disabled={removing}
+          aria-label="取消收藏"
+        >
+          {removing ? '⋯' : '×'}
+        </button>
+        <Link to={`/adopt/${pet.id}`}>
+          <Card.Img
+            variant="top"
+            src={pet.photo || '/images/pet-placeholder.jpg'}
+            alt={pet.name}
+            style={{ height: 200, objectFit: 'cover' }}
+          />
+        </Link>
+      </div>
+      <Card.Body>
+        <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
+          <Card.Title className="fs-5 fw-bold">{pet.name}</Card.Title>
+          <Card.Text className="text-muted small">
+            <i className="bi bi-geo-alt me-1"></i>
+            {pet.address_display || pet.city || '位置未知'}
+          </Card.Text>
+          <Card.Text className="small">
+            <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
+            <span className="text-muted">{ageText()}</span>
+          </Card.Text>
+        </Link>
+      </Card.Body>
+    </Card>
   )
 }
 
@@ -400,18 +334,17 @@ function MyPetsList() {
 
 function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }) {
   const [removing, setRemoving] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
 
-  const handleRemoveClick = () => {
-    setShowConfirm(true)
-  }
+  const handleRemove = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (removing) return
+    
+    if (!confirm('确定要删除这只宠物吗？')) return
 
-  const handleConfirmRemove = async () => {
     setRemoving(true)
     try {
       await adoptApi.remove(pet.id)
       onRemove(pet.id)
-      setShowConfirm(false)
     } catch (err) {
       console.error('Remove pet failed:', err)
       alert('删除宠物失败')
@@ -438,72 +371,44 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
       ARCHIVED: { text: '已下架', variant: 'dark' }
     }
     const status = statusMap[pet.status || 'AVAILABLE'] || statusMap.AVAILABLE
-    return <span className={`badge bg-${status.variant} me-2 pet-status-badge`}>{status.text}</span>
+    return <span className={`badge bg-${status.variant} me-2`}>{status.text}</span>
   }
 
   return (
-    <>
-      <Card className="pet-card h-100 border-0 shadow-sm hover-card">
-        <div className="position-relative pet-image-wrapper">
-          <button
-            type="button"
-            className="pet-card-delete-btn"
-            onClick={handleRemoveClick}
-            disabled={removing}
-            aria-label="删除宠物"
-            title="删除宠物"
-          >
-            <i className="bi bi-trash-fill"></i>
-          </button>
-          <Link to={`/adopt/${pet.id}`}>
-            <Card.Img
-              variant="top"
-              src={pet.photo || '/images/pet-placeholder.jpg'}
-              alt={pet.name}
-              className="pet-card-image"
-              style={{ height: 200, objectFit: 'cover' }}
-            />
-            <span className="pet-status-badge-overlay">{statusBadge()}</span>
-          </Link>
-        </div>
-        <Card.Body className="pet-card-body">
-          <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
-            <Card.Title className="fs-5 fw-bold pet-name">{pet.name}</Card.Title>
-            <Card.Text className="text-muted small">
-              <i className="bi bi-geo-alt me-1"></i>
-              {pet.address_display || pet.city || '位置未知'}
-            </Card.Text>
-            <Card.Text className="small pet-meta">
-              <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
-              <span className="text-muted">{ageText()}</span>
-            </Card.Text>
-          </Link>
-        </Card.Body>
-      </Card>
-
-      <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <i className="bi bi-exclamation-triangle me-2"></i>
-            删除宠物
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="alert alert-warning mb-3">
-            <i className="bi bi-exclamation-triangle me-2"></i>
-            <strong>警告：</strong>删除后无法恢复
-          </div>
-          <p className="mb-0">确定要删除 <strong className="text-danger">{pet.name}</strong> 吗？</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowConfirm(false)} disabled={removing}>
-            取消
-          </Button>
-          <Button variant="danger" onClick={handleConfirmRemove} disabled={removing}>
-            {removing ? '删除中…' : '确认删除'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </>
+    <Card className="pet-card h-100 border-0 shadow-sm">
+      <div className="position-relative">
+        <button
+          type="button"
+          className="pet-card-remove-btn"
+          onClick={handleRemove}
+          disabled={removing}
+          aria-label="删除宠物"
+        >
+          {removing ? '⋯' : '×'}
+        </button>
+        <Link to={`/adopt/${pet.id}`}>
+          <Card.Img
+            variant="top"
+            src={pet.photo || '/images/pet-placeholder.jpg'}
+            alt={pet.name}
+            style={{ height: 200, objectFit: 'cover' }}
+          />
+        </Link>
+      </div>
+      <Card.Body>
+        <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
+          <Card.Title className="fs-5 fw-bold">{pet.name}</Card.Title>
+          <Card.Text className="text-muted small">
+            <i className="bi bi-geo-alt me-1"></i>
+            {pet.address_display || pet.city || '位置未知'}
+          </Card.Text>
+          <Card.Text className="small">
+            {statusBadge()}
+            <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
+            <span className="text-muted">{ageText()}</span>
+          </Card.Text>
+        </Link>
+      </Card.Body>
+    </Card>
   )
 }
