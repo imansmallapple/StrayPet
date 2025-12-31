@@ -213,7 +213,10 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
 
   const handleRemove = async (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     if (removing) return
+
+    if (!window.confirm('取消收藏这只宠物吗？')) return
 
     setRemoving(true)
     try {
@@ -236,17 +239,22 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
   }
 
   return (
-    <Card className="pet-card h-100 border-0 shadow-sm">
-      <div className="position-relative">
-        <button
-          type="button"
-          className="pet-card-remove-btn"
-          onClick={handleRemove}
-          disabled={removing}
-          aria-label="取消收藏"
-        >
-          {removing ? '⋯' : '×'}
-        </button>
+    <Card className="pet-card favorite-pet-card h-100 border-0 shadow-sm overflow-hidden position-relative">
+      <button
+        type="button"
+        className="pet-card-fav-btn"
+        onClick={handleRemove}
+        disabled={removing}
+        aria-label="取消收藏"
+        title="点击取消收藏"
+      >
+        {removing ? (
+          <span className="spinner-border spinner-border-sm"></span>
+        ) : (
+          <i className="bi bi-heart-fill"></i>
+        )}
+      </button>
+      <div className="pet-card-image-wrapper">
         <Link to={`/adopt/${pet.id}`}>
           <Card.Img
             variant="top"
@@ -256,10 +264,10 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
           />
         </Link>
       </div>
-      <Card.Body>
+      <Card.Body className="pt-3">
         <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
-          <Card.Title className="fs-5 fw-bold">{pet.name}</Card.Title>
-          <Card.Text className="text-muted small">
+          <Card.Title className="fs-5 fw-bold mb-2">{pet.name}</Card.Title>
+          <Card.Text className="text-muted small mb-2">
             <i className="bi bi-geo-alt me-1"></i>
             {pet.address_display || pet.city || '位置未知'}
           </Card.Text>
@@ -343,9 +351,10 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
 
   const handleRemove = async (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     if (removing) return
     
-    if (!confirm('确定要删除这只宠物吗？')) return
+    if (!window.confirm('确定要删除这只宠物吗？这将移除您发布的宠物信息。')) return
 
     setRemoving(true)
     try {
@@ -381,17 +390,22 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
   }
 
   return (
-    <Card className="pet-card h-100 border-0 shadow-sm">
-      <div className="position-relative">
-        <button
-          type="button"
-          className="pet-card-remove-btn"
-          onClick={handleRemove}
-          disabled={removing}
-          aria-label="删除宠物"
-        >
-          {removing ? '⋯' : '×'}
-        </button>
+    <Card className="pet-card my-pet-card h-100 border-0 shadow-sm overflow-hidden position-relative">
+      <button
+        type="button"
+        className="pet-card-delete-btn"
+        onClick={handleRemove}
+        disabled={removing}
+        aria-label="删除宠物"
+        title="删除宠物"
+      >
+        {removing ? (
+          <span className="spinner-border spinner-border-sm"></span>
+        ) : (
+          <i className="bi bi-trash3"></i>
+        )}
+      </button>
+      <div className="pet-card-image-wrapper">
         <Link to={`/adopt/${pet.id}`}>
           <Card.Img
             variant="top"
@@ -401,10 +415,10 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
           />
         </Link>
       </div>
-      <Card.Body>
+      <Card.Body className="pt-3">
         <Link to={`/adopt/${pet.id}`} className="text-decoration-none text-dark">
-          <Card.Title className="fs-5 fw-bold">{pet.name}</Card.Title>
-          <Card.Text className="text-muted small">
+          <Card.Title className="fs-5 fw-bold mb-2">{pet.name}</Card.Title>
+          <Card.Text className="text-muted small mb-2">
             <i className="bi bi-geo-alt me-1"></i>
             {pet.address_display || pet.city || '位置未知'}
           </Card.Text>

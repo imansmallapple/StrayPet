@@ -80,19 +80,28 @@ export default function MyArticlesList() {
             <Row>
               {articles.map((article) => (
                 <Col key={article.id} xs={12} className="mb-3">
-                  <Card className="h-100 article-card">
+                  <Card className="h-100 article-card my-article-card position-relative">
+                    <button
+                      type="button"
+                      className="article-delete-btn"
+                      onClick={() => {
+                        if (window.confirm('确定要删除这篇文章吗？')) {
+                          navigate(`/blog/edit/${article.id}?delete=true`)
+                        }
+                      }}
+                      title="删除文章"
+                      aria-label="删除文章"
+                    >
+                      <i className="bi bi-trash3"></i>
+                    </button>
                     <Card.Body>
-                      <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div className="mb-2">
                         <Link
                           to={`/blog/${article.id}`}
                           className="text-decoration-none"
                         >
                           <h6 className="mb-1 article-title">{article.title}</h6>
                         </Link>
-                        <div className="text-muted small">
-                          <i className="bi bi-eye me-1"></i>
-                          {article.count || 0}
-                        </div>
                       </div>
                       
                       <p className="text-muted small mb-2 article-description">
@@ -112,9 +121,15 @@ export default function MyArticlesList() {
                             </Badge>
                           ))}
                         </div>
-                        <small className="text-muted">
-                          {formatDate(article.add_date)}
-                        </small>
+                        <div className="d-flex gap-3">
+                          <small className="text-muted">
+                            {formatDate(article.add_date)}
+                          </small>
+                          <small className="text-muted">
+                            <i className="bi bi-eye me-1"></i>
+                            {article.count || 0}
+                          </small>
+                        </div>
                       </div>
                     </Card.Body>
                   </Card>

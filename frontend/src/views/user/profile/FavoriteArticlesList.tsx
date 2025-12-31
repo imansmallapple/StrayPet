@@ -1,7 +1,7 @@
 // src/views/user/profile/FavoriteArticlesList.tsx
 import { useState } from 'react'
 import { useRequest } from 'ahooks'
-import { Card, Row, Col, Badge, Spinner, Alert, Pagination, Button } from 'react-bootstrap'
+import { Card, Row, Col, Badge, Spinner, Alert, Pagination } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
 
@@ -85,27 +85,24 @@ export default function FavoriteArticlesList() {
             <Row>
               {articles.map((article) => (
                 <Col key={article.id} xs={12} className="mb-3">
-                  <Card className="h-100 article-card position-relative">
-                    <Button
-                      variant="link"
-                      className="position-absolute top-0 end-0 m-2 text-danger"
+                  <Card className="h-100 article-card favorite-article-card position-relative">
+                    <button
+                      type="button"
+                      className="article-unfav-btn"
                       onClick={(e) => handleUnfavorite(article.id, e)}
                       title="取消收藏"
+                      aria-label="取消收藏文章"
                     >
                       <i className="bi bi-bookmark-x-fill"></i>
-                    </Button>
+                    </button>
                     <Card.Body>
-                      <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div className="mb-2">
                         <Link
                           to={`/blog/${article.id}`}
-                          className="text-decoration-none flex-grow-1"
+                          className="text-decoration-none"
                         >
-                          <h6 className="mb-1 article-title pe-5">{article.title}</h6>
+                          <h6 className="mb-1 article-title">{article.title}</h6>
                         </Link>
-                        <div className="text-muted small">
-                          <i className="bi bi-eye me-1"></i>
-                          {article.count || 0}
-                        </div>
                       </div>
                       
                       <p className="text-muted small mb-2 article-description">
@@ -131,9 +128,15 @@ export default function FavoriteArticlesList() {
                             </Badge>
                           ))}
                         </div>
-                        <small className="text-muted">
-                          {formatDate(article.add_date)}
-                        </small>
+                        <div className="d-flex gap-3">
+                          <small className="text-muted">
+                            {formatDate(article.add_date)}
+                          </small>
+                          <small className="text-muted">
+                            <i className="bi bi-eye me-1"></i>
+                            {article.count || 0}
+                          </small>
+                        </div>
                       </div>
                     </Card.Body>
                   </Card>

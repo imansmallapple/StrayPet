@@ -201,22 +201,24 @@ export default function Messages() {
                       </div>
 
                       {/* 操作按钮 */}
-                      <div className="message-actions ms-3">
+                      <div className="message-actions ms-3 d-flex gap-2">
                         {!message.is_read && (
                           <Button
                             size="sm"
-                            variant="outline-primary"
+                            className="btn-mark-read"
                             onClick={() => handleMarkAsRead(message.id)}
-                            className="me-2"
                           >
+                            <i className="bi bi-check-circle me-1"></i>
                             标记已读
                           </Button>
                         )}
                         <Button
                           size="sm"
-                          variant="outline-danger"
+                          className="btn-delete-message"
                           onClick={() => handleDelete(message.id)}
+                          title="删除消息"
                         >
+                          <i className="bi bi-trash3 me-1"></i>
                           删除
                         </Button>
                       </div>
