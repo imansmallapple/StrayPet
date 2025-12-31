@@ -600,6 +600,49 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(friendship)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def list_friends(self, request):
+        """获取当前用户的所有好友列表"""
+        # 获取所有状态为'accepted'的好友关系
+        friendships = Friendship.objects.filter(
+            (Q(from_user=request.user) | Q(to_user=request.user)) &
+            Q(status='accepted')
+        )
+        
+        # 提取好友用户对象
+        friends = []
+        for friendship in friendships:
+            friend = friendship.to_user if friendship.from_user == request.user else friendship.from_user
+            avatar_url = None
+            
+            # 获取 userprofile 和 avatar (使用 related_name 'profile')
+            if hasattr(friend, 'profile') and friend.profile.avatar:
+                avatar_url = friend.profile.avatar.url
+                # 转换相对路径为绝对URL
+                if avatar_url.startswith('/'):
+                    avatar_url = request.build_absolute_uri(avatar_url)
+            
+            friends.append({
+                'id': friend.id,
+                'username': friend.username,
+                'email': friend.email,
+                'avatar': avatar_url,
+            })
+        
+        # 分页
+        page = request.query_params.get('page', 1)
+        page_size = int(request.query_params.get('page_size', 20))
+        from django.core.paginator import Paginator
+        paginator = Paginator(friends, page_size)
+        page_obj = paginator.get_page(page)
+        
+        return Response({
+            'count': len(friends),
+            'results': page_obj.object_list,
+            'page_size': page_size,
+            'total_pages': paginator.num_pages,
+        })
 
 
 class PrivateMessageViewSet(viewsets.ModelViewSet):

@@ -515,7 +515,17 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                 操作
               </h6>
               <div className="action-buttons">
-                {!friendshipStatus?.status ? (
+                {friendshipStatus?.status === 'accepted' ? (
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onClick={() => setShowMessageModal(true)}
+                    className="d-flex align-items-center gap-1"
+                  >
+                    <i className="bi bi-chat-dots"></i>
+                    发送私信
+                  </Button>
+                ) : !friendshipStatus?.status ? (
                   <>
                     <Button
                       variant="primary"
@@ -589,28 +599,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                       </>
                     )}
                   </>
-                ) : friendshipStatus.status === 'accepted' ? (
-                  <>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => setShowMessageModal(true)}
-                      className="d-flex align-items-center gap-1"
-                    >
-                      <i className="bi bi-chat-dots"></i>
-                      发送私信
-                    </Button>
-                    <Button variant="secondary" size="sm" disabled className="d-flex align-items-center gap-1">
-                      <i className="bi bi-check-circle"></i>
-                      已成为好友
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="secondary" size="sm" disabled className="d-flex align-items-center gap-1">
-                    <i className="bi bi-dash-circle"></i>
-                    已拒绝
-                  </Button>
-                )}
+                ) : null}
               </div>
             </div>
           )}

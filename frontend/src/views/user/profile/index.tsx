@@ -7,15 +7,16 @@ import MyArticlesList from './MyArticlesList'
 import FavoriteArticlesList from './FavoriteArticlesList'
 import MessageCenter from './MessageCenter'
 import ProfileInfo from './ProfileInfo'
+import FriendsList from './FriendsList'
 import './index.scss'
 
-type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'message-center'
+type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | 'my-pets' | 'message-center' | 'friends'
 
 export default function Profile() {
   const [me, setMe] = useState<ApiUserMe | null>(null)
   const location = useLocation()
   const hashTab = (location.hash.replace('#', '') as TabKey)
-  const validTabs: TabKey[] = ['info', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'message-center']
+  const validTabs: TabKey[] = ['info', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'message-center', 'friends']
   const activeTab: TabKey = validTabs.includes(hashTab) ? hashTab : 'info'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -118,6 +119,15 @@ export default function Profile() {
               我的宠物
             </Nav.Link>
             <Nav.Link
+              href="#friends"
+              active={activeTab === 'friends'}
+              className="nav-link"
+              style={{ padding: 0 }}
+            >
+              <i className="bi bi-people-fill me-2"></i>
+              我的好友
+            </Nav.Link>
+            <Nav.Link
               href="#message-center"
               active={activeTab === 'message-center'}
               className="nav-link"
@@ -137,6 +147,7 @@ export default function Profile() {
         {activeTab === 'favorite-articles' && <FavoriteArticlesList />}
         {activeTab === 'my-articles' && <MyArticlesList />}
         {activeTab === 'my-pets' && <MyPetsList />}
+        {activeTab === 'friends' && <FriendsList />}
         {activeTab === 'message-center' && <MessageCenter />}
       </div>
     </Container>

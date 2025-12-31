@@ -80,6 +80,9 @@ export const authApi = {
   checkFriendship: (userId: number) =>
     http.get('/user/friendships/check_friendship/', { params: { user_id: userId } }),
 
+  getFriendsList: (page?: number) =>
+    http.get('/user/friendships/list_friends/', { params: { page, page_size: 20 } }),
+
   // 私信相关
   sendMessage: (recipientId: number, content: string) =>
     http.post('/user/messages/', { recipient_id: recipientId, content }),
