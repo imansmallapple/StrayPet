@@ -1,8 +1,9 @@
 // src/views/user/profile/FriendsList.tsx
 import { useState, useEffect } from 'react'
 import { Card, Row, Col, Alert, Spinner, Button, Dropdown } from 'react-bootstrap'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/modules/auth'
+import http from '@/services/http'
 import './FriendsList.scss'
 
 interface Friend {
@@ -13,24 +14,37 @@ interface Friend {
 }
 
 export default function FriendsList() {
+  const navigate = useNavigate()
   const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const handleMessage = (_friendId: number, _friendUsername: string) => {
+    // 导航到个人资料页面的消息标签
+    navigate('/user/profile#message-center')
+  }
+
+  const handleDeleteFriend = async (friendId: number, friendUsername: string) => {
+    if (!confirm(`确定要删除好友 ${friendUsername} 吗？`)) {
+      return
+    }
+    try {
+      await http.delete(`/user/friendships/${friendId}/`)
+      // 从列表中移除该好友
+      setFriends(friends.filter(f => f.id !== friendId))
+      alert('已删除好友')
+    } catch (err: any) {
+      alert(`删除失败: ${err?.response?.data?.detail || err.message}`)
+    }
+  }
+
   useEffect(() => {
-    console.warn('[FriendsList] Component mounted')
     let alive = true
     ;(async () => {
       try {
-        console.warn('[FriendsList] Fetching friends...')
         const { data } = await authApi.getFriendsList()
-        console.warn('[FriendsList] Friends data received:', data)
         if (!alive) return
         const friendsList = data.results || data || []
-        console.warn('[FriendsList] Processed friends:', friendsList.length)
-        friendsList.forEach((friend: Friend, idx: number) => {
-          console.warn(`[FriendsList] Friend ${idx}:`, { id: friend.id, username: friend.username, avatar: friend.avatar })
-        })
         setFriends(friendsList)
       } catch (e: any) {
         if (!alive) return
@@ -101,16 +115,19 @@ export default function FriendsList() {
                       <i className="bi bi-three-dots-vertical"></i>
                     </Dropdown.Toggle>
                     <Dropdown.Menu className="dropdown-menu-centered">
-                      <Dropdown.Item>
+                      <Dropdown.Item onClick={() => {/* 黑名单功能待实现 */}}>
                         <i className="bi bi-person-slash me-2"></i>
                         加入黑名单
                       </Dropdown.Item>
-                      <Dropdown.Item>
+                      <Dropdown.Item onClick={() => {/* 免打扰功能待实现 */}}>
                         <i className="bi bi-bell-slash me-2"></i>
                         免打扰
                       </Dropdown.Item>
                       <Dropdown.Divider />
-                      <Dropdown.Item className="text-danger">
+                      <Dropdown.Item 
+                        className="text-danger"
+                        onClick={() => handleDeleteFriend(friend.id, friend.username)}
+                      >
                         <i className="bi bi-trash me-2"></i>
                         删除好友
                       </Dropdown.Item>
@@ -147,7 +164,7 @@ export default function FriendsList() {
                 </div>
                 <div className="mt-auto d-flex gap-2">
                   <Link 
-                    to={`/user/${friend.id}`}
+                    to={`/user/profile/${friend.id}`}
                     className="btn btn-sm btn-outline-primary flex-grow-1"
                   >
                     <i className="bi bi-person me-1"></i>
@@ -157,9 +174,10 @@ export default function FriendsList() {
                     variant="outline-secondary"
                     size="sm"
                     className="flex-grow-1"
+                    onClick={() => handleMessage(friend.id, friend.username)}
                   >
                     <i className="bi bi-chat-dots me-1"></i>
-                    私信
+                    Message
                   </Button>
                 </div>
               </div>

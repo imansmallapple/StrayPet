@@ -562,12 +562,22 @@ class FriendshipViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):
         """接受好友请求"""
+        from apps.user.models import PrivateMessage
+        
         friendship = self.get_object()
         if friendship.to_user != request.user:
             return Response({'error': '只有接收者能接受好友请求'}, status=status.HTTP_403_FORBIDDEN)
         
         friendship.status = 'accepted'
         friendship.save()
+        
+        # 发送系统消息
+        PrivateMessage.objects.create(
+            sender=request.user,
+            recipient=friendship.from_user,
+            content=f'你们已成为好友，可以开始聊天了！'
+        )
+        
         serializer = self.get_serializer(friendship)
         return Response(serializer.data)
     
@@ -711,11 +721,6 @@ class PrivateMessageViewSet(viewsets.ModelViewSet):
             Q(sender=request.user, recipient_id=user_id) |
             Q(sender_id=user_id, recipient=request.user)
         ).order_by('-created_at')
-        
-        page = self.paginate_queryset(messages, request)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
         
         serializer = self.get_serializer(messages, many=True)
         return Response(serializer.data)

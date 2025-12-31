@@ -435,15 +435,29 @@ class PrivateMessageSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'read_at', 'is_read']
     
     def get_sender(self, obj):
+        avatar_url = None
+        if obj.sender.profile and obj.sender.profile.avatar:
+            avatar_url = obj.sender.profile.avatar.url
+            request = self.context.get('request')
+            if request:
+                avatar_url = request.build_absolute_uri(avatar_url)
+        
         return {
             'id': obj.sender.id,
             'username': obj.sender.username,
-            'avatar': obj.sender.profile.avatar.url if obj.sender.profile.avatar else None
+            'avatar': avatar_url
         }
     
     def get_recipient(self, obj):
+        avatar_url = None
+        if obj.recipient.profile and obj.recipient.profile.avatar:
+            avatar_url = obj.recipient.profile.avatar.url
+            request = self.context.get('request')
+            if request:
+                avatar_url = request.build_absolute_uri(avatar_url)
+        
         return {
             'id': obj.recipient.id,
             'username': obj.recipient.username,
-            'avatar': obj.recipient.profile.avatar.url if obj.recipient.profile.avatar else None
+            'avatar': avatar_url
         }
