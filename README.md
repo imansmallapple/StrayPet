@@ -260,7 +260,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Mapbox mapping service
 - All contributors to the open source community
 
-## 📮 Contact
+## � Documentation & Testing
+
+For detailed implementation documentation, test scripts, and verification reports, see [archived-docs/](./archived-docs/):
+
+- 📖 **Implementation Docs** - Feature implementation guides and quick start references
+- 🧪 **Test Scripts** - API and functional test suites (30+ test files)
+- 🔧 **Debug Scripts** - System diagnostics and troubleshooting utilities
+- ✅ **Verification Docs** - Completion reports and quality assurance checklists
+
+📋 **Quick Index**: [archived-docs/INDEX.md](./archived-docs/INDEX.md) - Complete file reference and navigation guide
+
+## �📮 Contact
 
 - Repository: [https://github.com/imansmallapple/strayPet_server](https://github.com/imansmallapple/strayPet_server)
 - Issue Tracker: [GitHub Issues](https://github.com/imansmallapple/strayPet_server/issues)
