@@ -480,7 +480,7 @@ export default function MessageCenter() {
                       <Card.Header className="bg-white border-bottom">
                         <h5 className="mb-0">{selectedUser.username}</h5>
                       </Card.Header>
-                      <Card.Body className="flex-grow-1 overflow-auto p-3" style={{ minHeight: '300px', backgroundColor: '#f8f9fa' }}>
+                      <Card.Body className="flex-grow-1 overflow-auto p-3" style={{ minHeight: '550px', backgroundColor: '#f8f9fa' }}>
                         <div className="d-flex flex-column gap-3">
                           {privateMessages
                             .reduce((acc, msg) => {
@@ -617,7 +617,7 @@ export default function MessageCenter() {
                           <div ref={messagesEndRef} />
                         </div>
                       </Card.Body>
-                      <Card.Footer className="bg-white border-top">
+                      <Card.Footer className="bg-white border-top position-relative">
                         <div className="mb-3">
                           {imagePreview && (
                             <div className="position-relative d-inline-block mb-2">
@@ -637,7 +637,7 @@ export default function MessageCenter() {
                         
                         {/* Emoji选择器 */}
                         {showEmojiPicker && (
-                          <div className="bg-light p-2 mb-2 rounded border" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '4px' }}>
+                          <div className="bg-light p-2 rounded border position-absolute" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '4px', bottom: '100%', left: 0, right: 0, zIndex: 1000, maxWidth: '100%', marginBottom: '8px' }}>
                             {emojis.map((emoji) => (
                               <button
                                 key={emoji}
