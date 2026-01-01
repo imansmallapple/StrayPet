@@ -245,7 +245,9 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
 
   const avatarUrl = userData?.avatar 
     ? typeof userData.avatar === 'string' 
-      ? userData.avatar  // avatar URL已在handleAvatarUpload和handleResetAvatar中包含时间戳
+      ? userData.avatar.startsWith('http') 
+        ? userData.avatar 
+        : `http://localhost:8000${userData.avatar}`
       : URL.createObjectURL(userData.avatar as any)
     : undefined
 

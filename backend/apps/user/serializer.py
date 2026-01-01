@@ -115,6 +115,15 @@ class UserMeSerializer(serializers.ModelSerializer):
             profile.save()
 
         return instance
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Convert relative avatar URL to absolute URL
+        if data.get('avatar') and not data['avatar'].startswith('http'):
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(data['avatar'])
+        return data
 
 class RegisterSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer):
     # password = serializers.CharField(write_only=True)
@@ -174,6 +183,15 @@ class UserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'avatar', 'phone', 'first_name', 'last_name')
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Convert relative avatar URL to absolute URL
+        if data.get('avatar') and not data['avatar'].startswith('http'):
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(data['avatar'])
+        return data
 
 
 class UpdateEmailSerializer(VerifyEmailCodeSerializer, serializers.ModelSerializer):
@@ -305,6 +323,15 @@ class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone', 'avatar')
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Convert relative avatar URL to absolute URL
+        if data.get('avatar') and not data['avatar'].startswith('http'):
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(data['avatar'])
+        return data
 
 
 class DynamicFieldsModelSerializer(serializers.ModelSerializer):
@@ -375,6 +402,15 @@ class UserDetailSerializer(DynamicFieldsModelSerializer):
             profile.full_clean()
             profile.save()
         return instance
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Convert relative avatar URL to absolute URL
+        if data.get('avatar') and not data['avatar'].startswith('http'):
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(data['avatar'])
+        return data
 
 
 class NotificationSerializer(serializers.ModelSerializer):
