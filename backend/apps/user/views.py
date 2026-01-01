@@ -582,11 +582,23 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         friendship.status = 'accepted'
         friendship.save()
         
-        # 发送系统消息
+        # 创建系统消息：为两边创建相同内容的系统消息
+        message_content = '我们已成为好友，可以开始聊天了！'
+        
+        # 为发送者创建一条
+        PrivateMessage.objects.create(
+            sender=friendship.from_user,
+            recipient=request.user,
+            content=message_content,
+            is_system=True
+        )
+        
+        # 为接收者创建一条（内容相同）
         PrivateMessage.objects.create(
             sender=request.user,
             recipient=friendship.from_user,
-            content=f'你们已成为好友，可以开始聊天了！'
+            content=message_content,
+            is_system=True
         )
         
         serializer = self.get_serializer(friendship)

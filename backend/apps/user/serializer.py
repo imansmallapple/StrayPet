@@ -468,8 +468,8 @@ class PrivateMessageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PrivateMessage
-        fields = ['id', 'sender', 'recipient', 'content', 'is_read', 'created_at', 'read_at']
-        read_only_fields = ['id', 'created_at', 'read_at', 'is_read']
+        fields = ['id', 'sender', 'recipient', 'content', 'is_read', 'is_system', 'created_at', 'read_at']
+        read_only_fields = ['id', 'created_at', 'read_at', 'is_read', 'is_system']
     
     def get_sender(self, obj):
         avatar_url = None

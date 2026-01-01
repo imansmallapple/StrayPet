@@ -208,6 +208,7 @@ class PrivateMessage(models.Model):
     
     content = models.TextField()
     is_read = models.BooleanField(default=False)
+    is_system = models.BooleanField(default=False)  # 标记为系统消息
     
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)

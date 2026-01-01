@@ -28,6 +28,7 @@ interface MessageItem {
   content: string
   created_at: string
   is_read: boolean
+  is_system?: boolean
 }
 
 interface Message {
@@ -57,6 +58,7 @@ export default function MessageCenter() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [hoveredUserId, setHoveredUserId] = useState<number | null>(null)
 
   // 获取当前用户ID
   const getCurrentUserId = () => {
@@ -365,9 +367,41 @@ export default function MessageCenter() {
                                 setSelectedUser(conv.otherUser)
                                 loadConversation(conv.otherUser.id)
                               }}
-                              style={{ cursor: 'pointer' }}
+                              onMouseEnter={() => setHoveredUserId(conv.otherUser.id)}
+                              onMouseLeave={() => setHoveredUserId(null)}
+                              style={{ cursor: 'pointer', position: 'relative' }}
                             >
                               <div className="d-flex gap-2 align-items-start">
+                                {hoveredUserId === conv.otherUser.id && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedUser(null)
+                                    }}
+                                    title="关闭聊天"
+                                    style={{
+                                      width: '20px',
+                                      height: '20px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      color: '#dc3545',
+                                      cursor: 'pointer',
+                                      flexShrink: 0,
+                                      marginTop: '2px',
+                                      fontSize: '0.9rem'
+                                    }}
+                                  >
+                                    <i className="bi bi-x-lg"></i>
+                                  </button>
+                                )}
+                                {hoveredUserId !== conv.otherUser.id && (
+                                  <div style={{ width: '20px', flexShrink: 0 }} />
+                                )}
                                 <div
                                   style={{
                                     width: '40px',
@@ -407,8 +441,55 @@ export default function MessageCenter() {
                       </Card.Header>
                       <Card.Body className="flex-grow-1 overflow-auto p-3" style={{ minHeight: '300px', backgroundColor: '#f8f9fa' }}>
                         <div className="d-flex flex-column gap-3">
-                          {privateMessages.map((msg) => {
+                          {privateMessages
+                            .reduce((acc, msg) => {
+                              // 对于系统消息，如果内容相同且时间接近（在1秒内），则跳过
+                              if (msg.is_system) {
+                                const lastMsg = acc[acc.length - 1]
+                                if (lastMsg && lastMsg.is_system && lastMsg.content === msg.content) {
+                                  const lastTime = new Date(lastMsg.created_at).getTime()
+                                  const curTime = new Date(msg.created_at).getTime()
+                                  if (Math.abs(curTime - lastTime) < 1000) {
+                                    return acc // 跳过重复的系统消息
+                                  }
+                                }
+                              }
+                              return [...acc, msg]
+                            }, [] as MessageItem[])
+                            .map((msg) => {
                             const isOwn = msg.sender.id === getCurrentUserId()
+                            const isSystem = msg.is_system
+                            
+                            // 系统消息显示为居中的灰色文本
+                            if (isSystem) {
+                              return (
+                                <div
+                                  key={msg.id}
+                                  className="d-flex justify-content-center"
+                                  style={{ alignItems: 'center' }}
+                                >
+                                  <div
+                                    style={{
+                                      padding: '8px 14px',
+                                      borderRadius: '12px',
+                                      backgroundColor: '#f0f0f0',
+                                      color: '#999',
+                                      fontSize: '0.85rem',
+                                      textAlign: 'center',
+                                      maxWidth: '75%',
+                                      wordWrap: 'break-word',
+                                      wordBreak: 'break-word'
+                                    }}
+                                  >
+                                    <p className="mb-1">{msg.content}</p>
+                                    <small style={{ fontSize: '0.7rem', color: '#bbb' }}>
+                                      {formatDate(msg.created_at)}
+                                    </small>
+                                  </div>
+                                </div>
+                              )
+                            }
+                            
                             return (
                               <div
                                 key={msg.id}
@@ -436,7 +517,7 @@ export default function MessageCenter() {
                                     <div
                                       style={{
                                         padding: '10px 14px',
-                                        borderRadius: '18px 18px 18px 4px',
+                                        borderRadius: '4px 18px 18px 18px',
                                         backgroundColor: 'white',
                                         color: '#333',
                                         wordWrap: 'break-word',
@@ -474,7 +555,7 @@ export default function MessageCenter() {
                                     <div
                                       style={{
                                         padding: '10px 14px',
-                                        borderRadius: '18px 18px 4px 18px',
+                                        borderRadius: '18px 4px 18px 18px',
                                         backgroundColor: '#0d6efd',
                                         color: 'white',
                                         wordWrap: 'break-word',

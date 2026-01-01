@@ -24,6 +24,7 @@ interface MessageItem {
   content: string
   created_at: string
   is_read: boolean
+  is_system?: boolean
 }
 
 export default function Messages() {
