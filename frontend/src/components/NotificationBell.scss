@@ -146,6 +146,48 @@
             border-color: #667eea;
           }
         }
+
+        .notification-actions {
+          flex-shrink: 0;
+          display: flex;
+          gap: 0.5rem;
+          margin-left: 0.5rem;
+
+          .notification-action-btn {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background-color: #fff;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &.accept-btn {
+              color: #28a745;
+
+              &:hover {
+                background-color: #28a745;
+                color: #fff;
+                border-color: #28a745;
+              }
+            }
+
+            &.reject-btn {
+              color: #dc3545;
+
+              &:hover {
+                background-color: #dc3545;
+                color: #fff;
+                border-color: #dc3545;
+              }
+            }
+          }
+        }
       }
     }
   }

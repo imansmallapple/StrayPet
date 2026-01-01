@@ -129,6 +129,7 @@ class Notification(models.Model):
     NOTIFICATION_TYPES = (
         ('reply', '有人回复了我的评论'),
         ('mention', '有人提到了我'),
+        ('friend_request', '好友申请'),
         ('system', '系统通知'),
     )
     
@@ -138,7 +139,10 @@ class Notification(models.Model):
     # 关联的评论
     comment = models.ForeignKey('comment.Comment', on_delete=models.CASCADE, null=True, blank=True)
     
-    # 触发通知的用户（谁回复了我）
+    # 关联的好友关系
+    friendship = models.ForeignKey('Friendship', on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    
+    # 触发通知的用户（谁回复了我或谁发送了好友申请）
     from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='sent_notifications')
     
     # 通知内容

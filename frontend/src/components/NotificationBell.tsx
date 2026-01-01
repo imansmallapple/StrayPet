@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Badge, Dropdown, Alert, Spinner } from 'react-bootstrap'
 import { useRequest } from 'ahooks'
-import { notificationApi, type Notification } from '@/services/modules/notification'
+import { notificationApi, friendshipApi, type Notification } from '@/services/modules/notification'
 import './NotificationBell.scss'
 
 export default function NotificationBell() {
@@ -43,6 +43,40 @@ export default function NotificationBell() {
       refreshUnreadCount()
     } catch (error) {
       console.error('Failed to mark notification as read:', error)
+    }
+  }
+
+  // 接受好友请求
+  const handleAcceptFriend = async (notificationId: number, friendshipId: number | undefined) => {
+    if (!friendshipId) {
+      console.error('Missing friendship_id')
+      return
+    }
+    try {
+      await friendshipApi.acceptFriendRequest(friendshipId)
+      // 标记通知为已读
+      await notificationApi.markAsRead(notificationId)
+      refreshUnread()
+      refreshUnreadCount()
+    } catch (error) {
+      console.error('Failed to accept friend request:', error)
+    }
+  }
+
+  // 拒绝好友请求
+  const handleRejectFriend = async (notificationId: number, friendshipId: number | undefined) => {
+    if (!friendshipId) {
+      console.error('Missing friendship_id')
+      return
+    }
+    try {
+      await friendshipApi.rejectFriendRequest(friendshipId)
+      // 标记通知为已读
+      await notificationApi.markAsRead(notificationId)
+      refreshUnread()
+      refreshUnreadCount()
+    } catch (error) {
+      console.error('Failed to reject friend request:', error)
     }
   }
 
@@ -103,19 +137,44 @@ export default function NotificationBell() {
                     )}
                     <span className="notification-type ms-2">
                       {notification.notification_type === 'reply' && '回复了你'}
+                      {notification.notification_type === 'friend_request' && '发送了好友申请'}
+                      {notification.notification_type === 'mention' && '提到了你'}
                     </span>
                   </div>
                   <div className="notification-text">{notification.comment_content || notification.content}</div>
                   <small className="text-muted">{notification.created_at}</small>
                 </div>
-                <button
-                  type="button"
-                  className="notification-action"
-                  onClick={() => handleMarkAsRead(notification.id)}
-                  title="标记为已读"
-                >
-                  ✓
-                </button>
+
+                {/* 根据通知类型显示不同的操作按钮 */}
+                {notification.notification_type === 'friend_request' ? (
+                  <div className="notification-actions">
+                    <button
+                      type="button"
+                      className="notification-action-btn accept-btn"
+                      onClick={() => handleAcceptFriend(notification.id, notification.friendship_id)}
+                      title="同意"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      className="notification-action-btn reject-btn"
+                      onClick={() => handleRejectFriend(notification.id, notification.friendship_id)}
+                      title="拒绝"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="notification-action"
+                    onClick={() => handleMarkAsRead(notification.id)}
+                    title="标记为已读"
+                  >
+                    ✓
+                  </button>
+                )}
               </div>
             ))}
           </div>

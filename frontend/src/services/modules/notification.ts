@@ -2,7 +2,7 @@ import http from '@/services/http'
 
 export type Notification = {
   id: number
-  notification_type: 'reply' | 'mention' | 'system'
+  notification_type: 'reply' | 'mention' | 'friend_request' | 'system'
   title: string
   content: string
   from_user?: {
@@ -10,6 +10,7 @@ export type Notification = {
     username: string
   }
   comment_content?: string
+  friendship_id?: number
   is_read: boolean
   created_at: string
   read_at?: string
@@ -39,4 +40,15 @@ export const notificationApi = {
   // 删除通知
   deleteNotification: (notificationId: number) =>
     http.delete(`/user/notifications/${notificationId}/`),
+}
+
+// 好友关系相关 API
+export const friendshipApi = {
+  // 接受好友请求
+  acceptFriendRequest: (friendshipId: number) =>
+    http.post(`/user/friendships/${friendshipId}/accept/`),
+
+  // 拒绝好友请求
+  rejectFriendRequest: (friendshipId: number) =>
+    http.post(`/user/friendships/${friendshipId}/reject/`),
 }

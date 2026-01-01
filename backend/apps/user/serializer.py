@@ -417,10 +417,11 @@ class NotificationSerializer(serializers.ModelSerializer):
     """通知序列化器"""
     from_user = serializers.SerializerMethodField()
     comment_content = serializers.SerializerMethodField()
+    friendship_id = serializers.IntegerField(source='friendship.id', allow_null=True, required=False)
     
     class Meta:
         model = Notification
-        fields = ['id', 'notification_type', 'title', 'content', 'from_user', 'comment_content', 'is_read', 'created_at', 'read_at']
+        fields = ['id', 'notification_type', 'title', 'content', 'from_user', 'comment_content', 'friendship_id', 'is_read', 'created_at', 'read_at']
         read_only_fields = ['id', 'created_at', 'read_at']
     
     def get_from_user(self, obj):

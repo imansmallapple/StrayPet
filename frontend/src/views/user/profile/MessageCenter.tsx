@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Spinner, Alert, Tabs, Tab, Container, Row, Col, Card, Button, Form, InputGroup } from 'react-bootstrap'
+import { Spinner, Alert, Tabs, Tab, Container, Row, Col, Card, Button, Form, InputGroup, Badge } from 'react-bootstrap'
 import { blogApi } from '@/services/modules/blog'
+import { notificationApi, type Notification } from '@/services/modules/notification'
 import http from '@/services/http'
 import './MessageCenter.scss'
 
-type MessageType = 'replies' | 'private'
+type MessageType = 'replies' | 'private' | 'notifications'
 
 interface User {
   id: number
@@ -44,6 +45,7 @@ interface Message {
 export default function MessageCenter() {
   const [messageType, setMessageType] = useState<MessageType>('private')
   const [messages, setMessages] = useState<Message[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [privateMessages, setPrivateMessages] = useState<MessageItem[]>([])
@@ -237,13 +239,30 @@ export default function MessageCenter() {
     }
   }, [])
 
+  const loadNotifications = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const { data } = await notificationApi.getUnread()
+      setNotifications(data || [])
+    } catch (err: any) {
+      console.error('Failed to load notifications:', err)
+      setError('加载通知失败')
+      setNotifications([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (messageType === 'private') {
       loadConversations()
     } else if (messageType === 'replies') {
       loadReplies()
+    } else if (messageType === 'notifications') {
+      loadNotifications()
     }
-  }, [messageType, loadConversations, loadReplies])
+  }, [messageType, loadConversations, loadReplies, loadNotifications])
 
   useEffect(() => {
     scrollToBottom()
@@ -271,6 +290,38 @@ export default function MessageCenter() {
     if (diffDays < 7) return `${diffDays}天前`
 
     return date.toLocaleDateString('zh-CN')
+  }
+
+  const handleAcceptFriendRequest = async (notificationId: number, friendshipId: number | undefined) => {
+    if (!friendshipId) {
+      alert('无效的好友请求')
+      return
+    }
+    try {
+      await notificationApi.markAsRead(notificationId)
+      // Call the friendship API endpoint
+      await http.post(`/user/friendships/${friendshipId}/accept/`)
+      loadNotifications()
+    } catch (error: any) {
+      console.error('Failed to accept friend request:', error)
+      alert('接受好友申请失败')
+    }
+  }
+
+  const handleRejectFriendRequest = async (notificationId: number, friendshipId: number | undefined) => {
+    if (!friendshipId) {
+      alert('无效的好友请求')
+      return
+    }
+    try {
+      await notificationApi.markAsRead(notificationId)
+      // Call the friendship API endpoint
+      await http.post(`/user/friendships/${friendshipId}/reject/`)
+      loadNotifications()
+    } catch (error: any) {
+      console.error('Failed to reject friend request:', error)
+      alert('拒绝好友申请失败')
+    }
   }
 
   return (
@@ -616,6 +667,68 @@ export default function MessageCenter() {
                         <i className="bi bi-reply me-1"></i>
                         回复
                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Tab>
+
+        <Tab eventKey="notifications" title="通知">
+          <div className="message-content notifications-container">
+            {loading ? (
+              <div className="text-center py-5">
+                <Spinner animation="border" variant="primary" />
+                <div className="mt-3">加载中...</div>
+              </div>
+            ) : error ? (
+              <Alert variant="warning">{error}</Alert>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-5 text-muted">
+                <i className="bi bi-bell" style={{ fontSize: '3rem' }}></i>
+                <div className="mt-3">暂无通知</div>
+              </div>
+            ) : (
+              <div className="notifications-list">
+                {notifications.map((notif) => (
+                  <div key={notif.id} className="notification-item card mb-3">
+                    <div className="card-body">
+                      <div className="d-flex align-items-start gap-3">
+                        <div className="flex-grow-1">
+                          <div className="d-flex align-items-center gap-2 mb-2">
+                            <strong>{notif.from_user?.username || '系统'}</strong>
+                            <Badge bg={notif.notification_type === 'friend_request' ? 'info' : 'warning'}>
+                              {notif.notification_type === 'friend_request' ? '好友申请' : 
+                               notif.notification_type === 'reply' ? '回复' : '通知'}
+                            </Badge>
+                            <small className="text-muted ms-auto">{formatDate(notif.created_at)}</small>
+                          </div>
+                          <p className="mb-3 text-muted">{notif.content || notif.title}</p>
+                        </div>
+                      </div>
+
+                      {/* 好友申请特殊处理 */}
+                      {notif.notification_type === 'friend_request' && (
+                        <div className="d-flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-success"
+                            onClick={() => handleAcceptFriendRequest(notif.id, notif.friendship_id)}
+                          >
+                            <i className="bi bi-check-circle me-1"></i>
+                            同意
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleRejectFriendRequest(notif.id, notif.friendship_id)}
+                          >
+                            <i className="bi bi-x-circle me-1"></i>
+                            拒绝
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

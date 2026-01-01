@@ -556,6 +556,17 @@ class FriendshipViewSet(viewsets.ModelViewSet):
             to_user=target_user,
             status='pending'
         )
+        
+        # 创建好友申请通知
+        Notification.objects.create(
+            user=target_user,
+            notification_type='friend_request',
+            from_user=request.user,
+            friendship=friendship,
+            title=f'{request.user.username} 发送了好友申请',
+            content=f'{request.user.username} 想要加你为好友'
+        )
+        
         serializer = self.get_serializer(friendship)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
