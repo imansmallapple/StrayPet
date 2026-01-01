@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Spinner, Alert, Tabs, Tab, Container, Row, Col, Card, Button, Form, InputGroup, Badge } from 'react-bootstrap'
+import { useSearchParams } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
 import { notificationApi, type Notification } from '@/services/modules/notification'
 import http from '@/services/http'
@@ -44,6 +45,7 @@ interface Message {
 }
 
 export default function MessageCenter() {
+  const [searchParams] = useSearchParams()
   const [messageType, setMessageType] = useState<MessageType>('private')
   const [messages, setMessages] = useState<Message[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -59,6 +61,18 @@ export default function MessageCenter() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [hoveredUserId, setHoveredUserId] = useState<number | null>(null)
+  const [closedConversations, setClosedConversations] = useState<Set<number>>(
+    () => {
+      const stored = localStorage.getItem('closedConversations')
+      return new Set(stored ? JSON.parse(stored) : [])
+    }
+  )
+
+  // 保存已关闭的对话到 localStorage
+  const saveClosedConversations = (closed: Set<number>) => {
+    localStorage.setItem('closedConversations', JSON.stringify(Array.from(closed)))
+    setClosedConversations(closed)
+  }
 
   // 获取当前用户ID
   const getCurrentUserId = () => {
@@ -92,8 +106,8 @@ export default function MessageCenter() {
         
         console.warn(`消息: sender=${msg.sender.id}, recipient=${msg.recipient.id}, otherUserId=${otherUserId}, currentUserId=${currentUserId}`)
         
-        // 仅在不是同一个人时记录
-        if (otherUserId !== currentUserId && !convMap.has(otherUserId)) {
+        // 仅在不是同一个人时记录，且不在已关闭列表中
+        if (otherUserId !== currentUserId && !convMap.has(otherUserId) && !closedConversations.has(otherUserId)) {
           console.warn(`添加对话: ${otherUser.username}`)
           convMap.set(otherUserId, {
             otherUser,
@@ -111,7 +125,7 @@ export default function MessageCenter() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [closedConversations])
 
   // 加载与某用户的对话
   const loadConversation = useCallback(async (userId: number) => {
@@ -270,6 +284,24 @@ export default function MessageCenter() {
     scrollToBottom()
   }, [privateMessages])
 
+  // 处理 URL 参数，自动打开指定用户的对话
+  useEffect(() => {
+    const userId = searchParams.get('user')
+    if (userId && conversations.length > 0) {
+      const targetUserId = Number(userId)
+      const targetConversation = conversations.find(c => c.otherUser.id === targetUserId)
+      if (targetConversation) {
+        // 在 loadConversation 完成前先更新 selectedUser
+        const updateAndLoad = async () => {
+          const tempUser = targetConversation.otherUser
+          await loadConversation(tempUser.id)
+          setSelectedUser(tempUser)
+        }
+        updateAndLoad()
+      }
+    }
+  }, [searchParams, conversations, loadConversation])
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '时间未知'
     
@@ -378,7 +410,16 @@ export default function MessageCenter() {
                                     className="btn btn-sm p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      setSelectedUser(null)
+                                      // 添加到已关闭列表
+                                      const newClosed = new Set(closedConversations)
+                                      newClosed.add(conv.otherUser.id)
+                                      saveClosedConversations(newClosed)
+                                      // 从对话列表中移除该对话
+                                      setConversations(conversations.filter(c => c.otherUser.id !== conv.otherUser.id))
+                                      // 如果当前选中的是这个对话，清空选中
+                                      if (selectedUser?.id === conv.otherUser.id) {
+                                        setSelectedUser(null)
+                                      }
                                     }}
                                     title="关闭聊天"
                                     style={{

@@ -19,9 +19,20 @@ export default function FriendsList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const handleMessage = (_friendId: number, _friendUsername: string) => {
-    // 导航到个人资料页面的消息标签
-    navigate('/user/profile#message-center')
+  const handleMessage = (friendId: number, _friendUsername: string) => {
+    // 清除该用户在已关闭列表中的记录
+    const stored = localStorage.getItem('closedConversations')
+    if (stored) {
+      try {
+        const closed = new Set(JSON.parse(stored) as number[])
+        closed.delete(friendId)
+        localStorage.setItem('closedConversations', JSON.stringify(Array.from(closed)))
+      } catch (e) {
+        console.error('清除已关闭对话失败:', e)
+      }
+    }
+    // 导航到消息中心并打开与该好友的对话
+    navigate(`/user/profile?user=${friendId}#message-center`)
   }
 
   const handleDeleteFriend = async (friendId: number, friendUsername: string) => {

@@ -1,6 +1,7 @@
 import { authApi, type UserMe as ApiUserMe } from '@/services/modules/auth'
 import { useEffect, useState, useRef, Fragment } from 'react'
 import { Button, Modal, Form, Spinner, Alert } from 'react-bootstrap'
+import { useNavigate } from 'react-router-dom'
 import './ProfileInfo.scss'
 
 export interface ProfileInfoProps {
@@ -10,6 +11,7 @@ export interface ProfileInfoProps {
 }
 
 export default function ProfileInfo({ me, isOtherUserProfile = false, currentUser }: ProfileInfoProps) {
+  const navigate = useNavigate()
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [userData, setUserData] = useState(me)
@@ -241,6 +243,23 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
     } finally {
       setSendingMessage(false)
     }
+  }
+
+  // 打开与用户的对话
+  const handleOpenChat = () => {
+    // 清除该用户在已关闭列表中的记录
+    const stored = localStorage.getItem('closedConversations')
+    if (stored) {
+      try {
+        const closed = new Set(JSON.parse(stored) as number[])
+        closed.delete(me.id)
+        localStorage.setItem('closedConversations', JSON.stringify(Array.from(closed)))
+      } catch (e) {
+        console.error('清除已关闭对话失败:', e)
+      }
+    }
+    // 导航到消息中心
+    navigate(`/user/profile?tab=message-center&user=${me.id}`)
   }
 
   const avatarUrl = userData?.avatar 
@@ -521,7 +540,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                   <Button
                     variant="success"
                     size="sm"
-                    onClick={() => setShowMessageModal(true)}
+                    onClick={handleOpenChat}
                     className="d-flex align-items-center gap-1"
                   >
                     <i className="bi bi-chat-dots"></i>
@@ -542,7 +561,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     <Button
                       variant="outline-secondary"
                       size="sm"
-                      onClick={() => setShowMessageModal(true)}
+                      onClick={handleOpenChat}
                       className="d-flex align-items-center gap-1"
                     >
                       <i className="bi bi-chat-dots"></i>
@@ -560,7 +579,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                         <Button
                           variant="outline-secondary"
                           size="sm"
-                          onClick={() => setShowMessageModal(true)}
+                          onClick={handleOpenChat}
                           className="d-flex align-items-center gap-1"
                         >
                           <i className="bi bi-chat-dots"></i>
@@ -592,7 +611,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                         <Button
                           variant="outline-secondary"
                           size="sm"
-                          onClick={() => setShowMessageModal(true)}
+                          onClick={handleOpenChat}
                           className="d-flex align-items-center gap-1"
                         >
                           <i className="bi bi-chat-dots"></i>
