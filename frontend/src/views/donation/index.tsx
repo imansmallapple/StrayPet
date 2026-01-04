@@ -1,1220 +1,212 @@
 // src/views/donation/index.tsx
-import {
-  useState,
-  useMemo,
-  useEffect,
-  useRef,
-  type FormEvent,
-  type DragEvent,
-} from 'react'
+import { useState, useEffect } from 'react'
 import {
   Container,
   Row,
   Col,
   Card,
-  Form,
-  Button,
   Alert,
+  Spinner,
   Badge,
 } from 'react-bootstrap'
 
-import '@opentiny/fluent-editor/style.css'
-import FluentEditor from '@opentiny/fluent-editor'
-
 import './index.scss'
-import ListGroup from 'react-bootstrap/ListGroup'
-import { donationApi, buildDonationFormData } from '@/services/modules/donation'
+import { shelterApi, type Shelter } from '@/services/modules/shelter'
 
-type AgeOption = 'baby' | 'very_young' | 'young' | 'adult' | 'senior'
-type SizeOption = 'small' | 'medium' | 'large'
-type ActivityOption = 'couch' | 'normal' | 'active'
-type SexOption = 'boy' | 'girl'
-
-interface TraitDef {
-  key: string
-  label: string
-}
-
-const TRAITS: TraitDef[] = [
-  { key: 'sterilized', label: 'Sterilized/Neutered' },
-  { key: 'vaccinated', label: 'Vaccinated' },
-  { key: 'dewormed', label: 'Dewormed' },
-  { key: 'microchipped', label: 'Microchipped' },
-  { key: 'child_friendly', label: 'Good with children' },
-  { key: 'trained', label: 'House trained' },
-  { key: 'loves_play', label: 'Loves to play' },
-  { key: 'loves_walks', label: 'Loves walks' },
-  { key: 'good_with_dogs', label: 'Good with other dogs' },
-  { key: 'good_with_cats', label: 'Good with cats' },
-  { key: 'affectionate', label: 'Affectionate' },
-  { key: 'needs_attention', label: 'Needs lots of attention' },
-]
-
-interface FormState {
-  city: string
-  name: string
-  /** 富文本 HTML 字符串 */
-  description: string
-  sex: SexOption
-  age: AgeOption
-  size: SizeOption
-  activity: ActivityOption
-  breed: string
-  traits: Record<string, boolean>
-}
-
-// 地址结构，新增 country_code 只用于 Mapbox 过滤
-interface AddressData {
-  country: string
-  region: string
-  city: string
-  street: string
-  postal_code: string
-  latitude?: number
-  longitude?: number
-  country_code?: string
-}
-
-export default function DonationCreate() {
-  const [form, setForm] = useState<FormState>({
-    city: '',
-    name: '',
-    description: '',
-    sex: 'boy',
-    age: 'young',
-    size: 'small',
-    activity: 'couch',
-    breed: 'Hybrid',
-    traits: {},
-  })
-
-  const [activeField, setActiveField] = useState<'country' | 'region' | 'city' | null>(null)
-  const [species, setSpecies] = useState('dog')
-  const [customSpecies, setCustomSpecies] = useState('')
-  const [addressData, setAddressData] = useState<AddressData>({
-    country: '',
-    region: '',
-    city: '',
-    street: '',
-    postal_code: '',
-  })
-
-  // per-field search & suggestion states so the suggestion list anchors to the correct input
-  const [countrySearch, setCountrySearch] = useState('')
-  const [regionSearch, setRegionSearch] = useState('')
-  const [citySearch, setCitySearch] = useState('')
-
-  const [countrySuggestions, setCountrySuggestions] = useState<any[]>([])
-  const [regionSuggestions, setRegionSuggestions] = useState<any[]>([])
-  const [citySuggestions, setCitySuggestions] = useState<any[]>([])
-
-  const [showCountrySuggestions, setShowCountrySuggestions] = useState(false)
-  const [showRegionSuggestions, setShowRegionSuggestions] = useState(false)
-  const [showCitySuggestions, setShowCitySuggestions] = useState(false)
-
-  const [countryActiveIndex, setCountryActiveIndex] = useState(-1)
-  const [regionActiveIndex, setRegionActiveIndex] = useState(-1)
-  const [cityActiveIndex, setCityActiveIndex] = useState(-1)
-
-  const countrySuggestionsWrapper = useRef<HTMLDivElement | null>(null)
-  const regionSuggestionsWrapper = useRef<HTMLDivElement | null>(null)
-  const citySuggestionsWrapper = useRef<HTMLDivElement | null>(null)
-  const countryInputRef = useRef<HTMLInputElement | null>(null)
-  const regionInputRef = useRef<HTMLInputElement | null>(null)
-  const cityInputRef = useRef<HTMLInputElement | null>(null)
-  const [contactPhone, setContactPhone] = useState('')
-
-  const [photos, setPhotos] = useState<File[]>([])
-  const [coverPhotoIndex, setCoverPhotoIndex] = useState(0)
+export default function DonationPage() {
+  const [shelters, setShelters] = useState<Shelter[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
 
-  // FluentEditor 实例 refs
-  const editorContainerRef = useRef<HTMLDivElement | null>(null)
-  const fluentRef = useRef<any | null>(null)
-
-  // 初始化 FluentEditor（只跑一次）
   useEffect(() => {
-    if (!editorContainerRef.current) return
-
-    const instance = new (FluentEditor as any)(editorContainerRef.current, {
-      theme: 'snow',
-      modules: {
-        // 不启用 syntax，避免要求 highlight.js
-        file: true,
-        'emoji-toolbar': true,
-      },
-    })
-
-    fluentRef.current = instance
-
-    // 初始内容
-    if (form.description) {
-      if (instance.clipboard?.dangerouslyPasteHTML) {
-        instance.clipboard.dangerouslyPasteHTML(form.description)
-      } else if (instance.root) {
-        instance.root.innerHTML = form.description
-      }
-    }
-
-    // 内容变化 -> 同步到 form.description
-    const handler = () => {
-      const root: HTMLElement | null = instance.root ?? null
-      const html = root?.innerHTML ?? ''
-      setForm(prev => ({ ...prev, description: html }))
-    }
-
-    if (instance.on) {
-      instance.on('text-change', handler)
-    }
-
-    return () => {
-      if (instance.off) {
-        instance.off('text-change', handler)
-      }
-      fluentRef.current = null
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchShelters()
   }, [])
 
-  // 当外部把 description 重置时，同步到编辑器
-  useEffect(() => {
-    const instance = fluentRef.current
-    if (!instance) return
-
-    const root: HTMLElement | null = instance.root ?? null
-    const current = root?.innerHTML ?? ''
-    if (current !== form.description) {
-      if (instance.clipboard?.dangerouslyPasteHTML) {
-        instance.clipboard.dangerouslyPasteHTML(form.description || '')
-      } else if (root) {
-        root.innerHTML = form.description || ''
-      }
-    }
-  }, [form.description])
-
-  // ---------- 照片预览 ----------
-  const photoPreviews = useMemo(
-    () => photos.map(f => URL.createObjectURL(f)),
-    [photos],
-  )
-
-  useEffect(() => {
-    return () => {
-      photoPreviews.forEach(url => URL.revokeObjectURL(url))
-    }
-  }, [photoPreviews])
-
-  const handleChange = (
-    field: keyof FormState,
-    value: string | SexOption | AgeOption | SizeOption | ActivityOption,
-  ) => {
-    setForm(prev => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
-
-  type AddressTextField = 'country' | 'region' | 'city' | 'street' | 'postal_code'
-  const handleAddressChange = (field: AddressTextField, value: string) => {
-    setAddressData(prev => ({ ...prev, [field]: value }))
-  }
-
-  // Mapbox autocomplete: separate search hooks for Country, Region, City
-  useEffect(() => {
-    const token = import.meta.env.VITE_MAPBOX_TOKEN
-    if (!token) return
-
-    const handle = setTimeout(async () => {
-      if (!countrySearch || countrySearch.length < 1) {
-        setCountrySuggestions([])
-        setShowCountrySuggestions(false)
-        return
-      }
-
-      try {
-        const q = encodeURIComponent(countrySearch)
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${token}&types=country&autocomplete=true&limit=6`
-        const r = await fetch(url)
-        const j = await r.json()
-        const feats: any[] = j.features ?? []
-        setCountrySuggestions(feats)
-        setShowCountrySuggestions(feats.length > 0)
-        setCountryActiveIndex(-1)
-      } catch (_err) {
-        setCountrySuggestions([])
-        setShowCountrySuggestions(false)
-      }
-    }, 200)
-
-    return () => clearTimeout(handle)
-  }, [countrySearch])
-
-  useEffect(() => {
-    const token = import.meta.env.VITE_MAPBOX_TOKEN
-    if (!token) return
-
-    const handle = setTimeout(async () => {
-      if (!regionSearch || regionSearch.length < 1) {
-        setRegionSuggestions([])
-        setShowRegionSuggestions(false)
-        return
-      }
-
-      try {
-        const countryParam = addressData.country_code
-          ? `&country=${encodeURIComponent(addressData.country_code)}`
-          : ''
-        const q = encodeURIComponent(regionSearch)
-        const url =
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/` +
-          `${q}.json?access_token=${token}` +
-          `&types=region&autocomplete=true&limit=6${countryParam}`
-
-        const r = await fetch(url)
-        const j = await r.json()
-        let feats: any[] = j.features ?? []
-
-        // 如果用户在 Country 里填了名字（例如 "Poland"），
-        // 即使没有 country_code，也用名字再本地过滤一下。
-        if (addressData.country) {
-          const wanted = addressData.country.trim().toLowerCase()
-          feats = feats.filter(f => {
-            const ctx = f.context ?? []
-            const c = ctx.find(
-              (x: any) => (x.id || '').startsWith('country.')
-            )
-            const name = (c?.text || '').trim().toLowerCase()
-            const sc = (c?.short_code || '').trim().toLowerCase()
-            return (name && name === wanted) || (sc && sc === wanted)
-          })
-        }
-
-        setRegionSuggestions(feats)
-        setShowRegionSuggestions(feats.length > 0)
-        setRegionActiveIndex(-1)
-      } catch (_err) {
-        setRegionSuggestions([])
-        setShowRegionSuggestions(false)
-      }
-    }, 200)
-
-    return () => clearTimeout(handle)
-  }, [regionSearch, addressData.country_code, addressData.country])
-
-
-  useEffect(() => {
-    const token = import.meta.env.VITE_MAPBOX_TOKEN
-    if (!token) return
-
-    const handle = setTimeout(async () => {
-      if (!citySearch || citySearch.length < 1) {
-        setCitySuggestions([])
-        setShowCitySuggestions(false)
-        return
-      }
-
-      try {
-        const countryParam = addressData.country_code
-          ? `&country=${encodeURIComponent(addressData.country_code)}`
-          : ''
-        const q = encodeURIComponent(citySearch)
-        const url =
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/` +
-          `${q}.json?access_token=${token}` +
-          `&types=place,locality&autocomplete=true&limit=6${countryParam}`
-
-        const r = await fetch(url)
-        const j = await r.json()
-        let feats: any[] = j.features ?? []
-
-        // 先按 Country 名字过滤（如果有）
-        if (addressData.country) {
-          const wantedCountry = addressData.country.trim().toLowerCase()
-          feats = feats.filter(f => {
-            const ctx = f.context ?? []
-            const c = ctx.find(
-              (x: any) => (x.id || '').startsWith('country.')
-            )
-            const name = (c?.text || '').trim().toLowerCase()
-            const sc = (c?.short_code || '').trim().toLowerCase()
-            return (name && name === wantedCountry) || (sc && sc === wantedCountry)
-          })
-        }
-
-        // 再按 Region 名字过滤（如果有）
-        if (addressData.region) {
-          const wantedRegion = addressData.region.trim().toLowerCase()
-          feats = feats.filter(f => {
-            const ctx = f.context ?? []
-            const reg = ctx.find(
-              (x: any) => (x.id || '').startsWith('region.')
-            )?.text
-            const regName = (reg || '').trim().toLowerCase()
-            return !regName || regName === wantedRegion
-          })
-        }
-
-        setCitySuggestions(feats)
-        setShowCitySuggestions(feats.length > 0)
-        setCityActiveIndex(-1)
-      } catch (_err) {
-        setCitySuggestions([])
-        setShowCitySuggestions(false)
-      }
-    }, 200)
-
-    return () => clearTimeout(handle)
-  }, [citySearch, addressData.country_code, addressData.country, addressData.region])
-
-
-  // click outside to close suggestions
-  useEffect(() => {
-    const handler = (ev: MouseEvent) => {
-      const t = ev.target as Node
-      const cwrap = countrySuggestionsWrapper.current
-      const rwrap = regionSuggestionsWrapper.current
-      const ciwrap = citySuggestionsWrapper.current
-      if (cwrap && !cwrap.contains(t)) setShowCountrySuggestions(false)
-      if (rwrap && !rwrap.contains(t)) setShowRegionSuggestions(false)
-      if (ciwrap && !ciwrap.contains(t)) setShowCitySuggestions(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  function fillAddressFromFeature(
-    feature: any,
-    field?: 'country' | 'region' | 'city'
-  ) {
-    if (!feature) return
-
-    const ctx: any[] = feature.context ?? []
-    const placeTypes: string[] = feature.place_type ?? []
-
-    const countryCtx = ctx.find(c => (c.id || '').startsWith('country.'))
-    const regionCtx = ctx.find(c => (c.id || '').startsWith('region.'))
-    const placeCtx =
-      ctx.find(c => (c.id || '').startsWith('place.')) ||
-      ctx.find(c => (c.id || '').startsWith('locality.'))
-
-    // 文本显示用完整名字（Poland），short_code 只用来过滤
-    let country =
-      countryCtx?.text ||
-      countryCtx?.short_code ||
-      ''
-
-    const countryCode =
-      (countryCtx?.short_code || '').toLowerCase() || undefined
-
-    let region = regionCtx?.text || ''
-    let city = placeCtx?.text || ''
-
-    const postcodeCtx = ctx.find(c => (c.id || '').startsWith('postcode.'))
-    const postcode = postcodeCtx?.text || ''
-
-    const lon = feature.geometry?.coordinates?.[0]
-    const lat = feature.geometry?.coordinates?.[1]
-
-    // 顶层结果兜底
-    if (!country && placeTypes.includes('country')) {
-      country = feature.text || feature.place_name || country
-    }
-    if (!region && placeTypes.includes('region')) {
-      region = feature.text || feature.place_name || region
-    }
-    if (!city && (placeTypes.includes('place') || placeTypes.includes('locality'))) {
-      city = feature.text || feature.place_name || city
-    }
-
-    // 先在外面算好 usingField，外面和 setState 里都共用
-    const usingField: 'country' | 'region' | 'city' | null =
-      field ?? activeField
-
-    setAddressData(prev => {
-      const next: AddressData = { ...prev }
-
-      // 只有真正 address 结果才会填 street
-      if (feature.properties && feature.properties.address) {
-        next.street = `${feature.properties.address} ${feature.text}`
-      }
-
-      // 保存国家代码（内部使用，输入框仍显示完整国家名）
-      if (countryCode) {
-        next.country_code = countryCode
-      }
-
-      // 根据 usingField 决定填哪些字段
-      if (usingField === 'country') {
-        if (country) next.country = country
-      } else if (usingField === 'region') {
-        if (region) next.region = region
-        if (!next.country && country) next.country = country
-      } else if (usingField === 'city') {
-        if (city) next.city = city
-        if (!next.region && region) next.region = region
-        if (!next.country && country) next.country = country
-      } else {
-        // 没指定 field，就“有就填”
-        if (country) next.country = country
-        if (region) next.region = region
-        if (city) next.city = city
-      }
-
-      if (postcode) next.postal_code = postcode
-      if (typeof lat === 'number') next.latitude = lat
-      if (typeof lon === 'number') next.longitude = lon
-
-      return next
-    })
-
-    // 选中后清空对应搜索 & 下拉（⚠️ 不再用 addressSearch）
-    if (usingField === 'country') {
-      setCountrySearch('')
-      setCountrySuggestions([])
-      setShowCountrySuggestions(false)
-      setCountryActiveIndex(-1)
-      // 选完国家，引导用户输入 region
-      setTimeout(() => regionInputRef.current?.focus(), 0)
-    } else if (usingField === 'region') {
-      setRegionSearch('')
-      setRegionSuggestions([])
-      setShowRegionSuggestions(false)
-      setRegionActiveIndex(-1)
-      // 选完 region，引导用户输入 city
-      setTimeout(() => cityInputRef.current?.focus(), 0)
-    } else if (usingField === 'city') {
-      setCitySearch('')
-      setCitySuggestions([])
-      setShowCitySuggestions(false)
-      setCityActiveIndex(-1)
-    } else {
-      // 兜底：清空所有
-      setCountrySearch('')
-      setRegionSearch('')
-      setCitySearch('')
-      setCountrySuggestions([])
-      setRegionSuggestions([])
-      setCitySuggestions([])
-      setShowCountrySuggestions(false)
-      setShowRegionSuggestions(false)
-      setShowCitySuggestions(false)
-      setCountryActiveIndex(-1)
-      setRegionActiveIndex(-1)
-      setCityActiveIndex(-1)
-    }
-  }
-
-  const handleTraitChange = (key: string, checked: boolean) => {
-    setForm(prev => ({
-      ...prev,
-      traits: {
-        ...prev.traits,
-        [key]: checked,
-      },
-    }))
-  }
-
-  const handlePhotoSelect = (files: FileList | null) => {
-    if (!files || !files.length) return
-    setPhotos(prev => [...prev, ...Array.from(files)])
-  }
-
-  const handleRemovePhoto = (index: number) => {
-    setPhotos(prev => {
-      const updated = prev.filter((_, i) => i !== index)
-      if (coverPhotoIndex >= updated.length) {
-        setCoverPhotoIndex(Math.max(0, updated.length - 1))
-      } else if (coverPhotoIndex === index) {
-        setCoverPhotoIndex(0)
-      }
-      return updated
-    })
-  }
-
-  const handleSetCover = (index: number) => {
-    setCoverPhotoIndex(index)
-  }
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const files = e.dataTransfer.files
-    handlePhotoSelect(files)
-  }
-
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  const reorderPhotosWithCoverFirst = () => {
-    if (photos.length === 0) return []
-    if (coverPhotoIndex === 0) return photos
-    const reordered = [...photos]
-    const [cover] = reordered.splice(coverPhotoIndex, 1)
-    reordered.unshift(cover)
-    return reordered
-  }
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(null)
-
-    if (!addressData.city.trim()) {
-      setError('Please fill in the city where the pet is located.')
-      return
-    }
-    if (!form.name.trim()) {
-      setError('Please fill in the pet name.')
-      return
-    }
-    if (!photos.length) {
-      setError('Please add at least one photo.')
-      return
-    }
-
-    setSubmitting(true)
+  const fetchShelters = async () => {
     try {
-      const sex_map: Record<SexOption, 'male' | 'female'> = {
-        boy: 'male',
-        girl: 'female',
-      }
-      const age_map: Record<string, { y: number; m: number }> = {
-        baby: { y: 0, m: 3 },
-        very_young: { y: 0, m: 6 },
-        young: { y: 1, m: 0 },
-        adult: { y: 3, m: 0 },
-        senior: { y: 7, m: 0 },
-      }
-
-      const mappedAge = age_map[form.age]
-      const addressObj: any = {}
-      if (addressData.country)      addressObj.country = addressData.country
-      if (addressData.region)       addressObj.region = addressData.region
-      if (addressData.city)         addressObj.city = addressData.city
-      if (addressData.street)       addressObj.street = addressData.street
-      if (addressData.postal_code)  addressObj.postal_code = addressData.postal_code
-      if (typeof addressData.latitude  === 'number') addressObj.latitude  = addressData.latitude
-      if (typeof addressData.longitude === 'number') addressObj.longitude = addressData.longitude
-      if (addressData.country_code) addressObj.country_code = addressData.country_code
-
-      const finalSpecies = species === 'other' ? (customSpecies || 'other') : species
-
-      const payload = {
-        name: form.name,
-        species: finalSpecies,
-        breed: form.breed,
-        sex: sex_map[form.sex] ?? 'male',
-        age_years: mappedAge?.y ?? 0,
-        age_months: mappedAge?.m ?? 0,
-        description: form.description,
-        address_data: Object.keys(addressObj).length ? addressObj : undefined,
-        dewormed: !!form.traits['dewormed'],
-        vaccinated: !!form.traits['vaccinated'],
-        microchipped: !!form.traits['microchipped'],
-        sterilized: !!form.traits['sterilized'],
-        child_friendly: !!form.traits['child_friendly'],
-        trained: !!form.traits['trained'],
-        loves_play: !!form.traits['loves_play'],
-        loves_walks: !!form.traits['loves_walks'],
-        good_with_dogs: !!form.traits['good_with_dogs'],
-        good_with_cats: !!form.traits['good_with_cats'],
-        affectionate: !!form.traits['affectionate'],
-        needs_attention: !!form.traits['needs_attention'],
-        is_stray: false,
-        contact_phone: contactPhone,
-        photos: reorderPhotosWithCoverFirst(),
-      }
-
-      console.warn('[donation] payload', payload)
-      const fd = buildDonationFormData(payload)
-
-      const res = await donationApi.create(fd)
-      console.warn('[donation] backend result', res)
-
-      setSuccess('Your pet has been submitted for adoption review.')
-
-      setForm(prev => ({
-        ...prev,
-        name: '',
-        description: '',
-      }))
-      setPhotos([])
-      setCoverPhotoIndex(0)
-      setSpecies('dog')
-      setCustomSpecies('')
-      setAddressData({
-        country: '',
-        region: '',
-        city: '',
-        street: '',
-        postal_code: '',
-      })
-      setContactPhone('')
+      setLoading(true)
+      // 调用后端 API 获取收容所列表
+      const response = await shelterApi.list({ is_active: true })
+      setShelters(response.data.results || [])
+      setError(null)
     } catch (err) {
-      console.error(err)
-      const errRes = (err as any)?.response?.data
-      let msg = (err as any)?.message || 'Something went wrong while submitting the pet.'
-      if (errRes) {
-        if (typeof errRes === 'string') {
-          msg = errRes
-        } else if (errRes.detail) {
-          msg = errRes.detail
-        } else if (typeof errRes === 'object') {
-          const parts: string[] = []
-          for (const k of Object.keys(errRes)) {
-            const val = errRes[k]
-            if (Array.isArray(val)) {
-              parts.push(`${k}: ${val.join('; ')}`)
-            } else if (typeof val === 'string') {
-              parts.push(`${k}: ${val}`)
-            }
-          }
-          if (parts.length) msg = parts.join(' | ')
-        }
-      }
-      setError(String(msg))
+      console.error('Error fetching shelters:', err)
+      setError('Failed to load shelter list')
+      setShelters([])
     } finally {
-      setSubmitting(false)
+      setLoading(false)
     }
   }
 
   return (
     <div className="donation-page">
-      <Container>
-        <h1 className="donation-title">Create an adoption listing</h1>
+      <Container className="py-5">
+        {/* 标题部分 */}
+        <div className="mb-5 text-center">
+          <h1 className="donation-title mb-3">Found a Lost or Stray Dog?</h1>
+          <p className="lead text-muted">
+            If you find a lost dog outside, don't assume it has no owner. The dog might just be lost, and someone might be frantically searching for it.
+          </p>
+        </div>
 
-        <Form onSubmit={handleSubmit} noValidate>
-          {error && (
-            <Alert variant="warning" className="mb-3">
-              {error}
+        {/* 关键信息卡片 */}
+        <Row className="mb-5">
+          <Col lg={12}>
+            <Alert variant="info" className="mb-4">
+              <Alert.Heading>If you find a lost dog outside, you have a responsibility to notify your local shelter first.</Alert.Heading>
+              <hr />
+              <p className="mb-0">
+                We appreciate your effort in finding a lost pet. Please contact the shelter below - they will help you reunite the pet with its owner or provide proper care for the animal.
+              </p>
             </Alert>
-          )}
-          {success && (
-            <Alert variant="success" className="mb-3">
-              {success}
-            </Alert>
-          )}
+          </Col>
+        </Row>
 
-          {/* 主信息卡片 */}
-          <Card className="donation-section mb-4">
-            <Card.Header className="donation-section-header">
-              <span className="text">Main information</span>
-            </Card.Header>
-            <Card.Body>
-              <Row className="g-4">
-                {/* 左侧：描述 */}
-                <Col md={6}>
-                  <Alert variant="warning" className="donation-hint">
-                    Please do not include phone numbers in advertisements. The phone number will be
-                    visible next to the pet.
-                  </Alert>
+        {/* 操作指南部分 */}
+        <Row className="mb-5">
+          <Col lg={12}>
+            <h2 className="mb-4">What to Do When You Find a Pet</h2>
+            <div className="guides-grid">
+              <Card className="guide-card h-100">
+                <Card.Body>
+                  <div className="guide-number">1</div>
+                  <h5 className="card-title">Walk the Dog Around the Neighborhood</h5>
+                  <p className="card-text">
+                    Check the dog's tag and ask nearby residents if they recognize the dog. Most lost dogs hide close to home. Someone nearby might help you locate the owner.
+                  </p>
+                </Card.Body>
+              </Card>
 
-                  <Form.Group controlId="description">
-                    <Form.Label>Pet description</Form.Label>
-                    <div className="donation-editor-wrapper">
-                      {/* FluentEditor 挂载点 */}
-                      <div ref={editorContainerRef} />
-                    </div>
-                  </Form.Group>
-                </Col>
+              <Card className="guide-card h-100">
+                <Card.Body>
+                  <div className="guide-number">2</div>
+                  <h5 className="card-title">Post Photos on Social Media & Community Groups</h5>
+                  <p className="card-text">
+                    Use social media to share pet information quickly. Utilize multiple platforms and neighborhood networks, including local forums. Nextdoor and Neighbors by Ring help you reach the community and increase chances of finding the owner.
+                  </p>
+                </Card.Body>
+              </Card>
 
-                {/* 右侧：名字 + 各种 select + traits */}
-                <Col md={6}>
-                  <Row className="g-3">
-                    <Col xs={12}>
-                      <Form.Group controlId="name">
-                        <Form.Label>Pet name</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="How is the pet called?"
-                          value={form.name}
-                          onChange={e => handleChange('name', e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
+              <Card className="guide-card h-100">
+                <Card.Body>
+                  <div className="guide-number">3</div>
+                  <h5 className="card-title">Check for a Microchip</h5>
+                  <p className="card-text">
+                    Most veterinary clinics and pet stores have microchip scanners and can scan for free. This can help identify the owner and facilitate quick reunification.
+                  </p>
+                </Card.Body>
+              </Card>
 
-                    <Col md={6}>
-                      <Form.Group controlId="sex">
-                        <Form.Label>Sex</Form.Label>
-                        <Form.Select
-                          value={form.sex}
-                          onChange={e => handleChange('sex', e.target.value as SexOption)}
-                        >
-                          <option value="boy">Boy</option>
-                          <option value="girl">Girl</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
+              <Card className="guide-card h-100">
+                <Card.Body>
+                  <div className="guide-number">4</div>
+                  <h5 className="card-title">Report the Lost Pet</h5>
+                  <p className="card-text">
+                    Contact your local animal shelter and inform them you've found a lost dog. This will help the owner find their pet once they're notified.
+                  </p>
+                </Card.Body>
+              </Card>
+            </div>
+          </Col>
+        </Row>
 
-                    <Col md={6}>
-                      <Form.Group controlId="age">
-                        <Form.Label>Age</Form.Label>
-                        <Form.Select
-                          value={form.age}
-                          onChange={e => handleChange('age', e.target.value as AgeOption)}
-                        >
-                          <option value="baby">Baby (0–3 months)</option>
-                          <option value="very_young">Very young (3–6 months)</option>
-                          <option value="young">Young / Junior (6–12 months)</option>
-                          <option value="adult">Adult (1–7 years)</option>
-                          <option value="senior">Senior (7+ years)</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
+        {/* 收容所列表部分 */}
+        <Row className="mb-5">
+          <Col lg={12}>
+            <h2 className="mb-4">Find a Local Animal Shelter Near You</h2>
+            
+            {error && (
+              <Alert variant="danger" className="mb-4">
+                {error}
+              </Alert>
+            )}
 
-                    <Col md={6}>
-                      <Form.Group controlId="size">
-                        <Form.Label>Size</Form.Label>
-                        <Form.Select
-                          value={form.size}
-                          onChange={e => handleChange('size', e.target.value as SizeOption)}
-                        >
-                          <option value="small">Small</option>
-                          <option value="medium">Medium</option>
-                          <option value="large">Large</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="activity">
-                        <Form.Label>Activity</Form.Label>
-                        <Form.Select
-                          value={form.activity}
-                          onChange={e => handleChange('activity', e.target.value as ActivityOption)}
-                        >
-                          <option value="couch">Couch Potatoes</option>
-                          <option value="normal">Normal</option>
-                          <option value="active">Very active</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} className="mt-3">
-                      <Form.Group>
-                        <Form.Label>Species</Form.Label>
-                        <div className="d-flex align-items-center gap-3 flex-wrap">
-                          <Form.Check
-                            inline
-                            type="radio"
-                            id="species-dog"
-                            label="Dog"
-                            name="species"
-                            checked={species === 'dog'}
-                            onChange={() => setSpecies('dog')}
-                          />
-                          <Form.Check
-                            inline
-                            type="radio"
-                            id="species-cat"
-                            label="Cat"
-                            name="species"
-                            checked={species === 'cat'}
-                            onChange={() => setSpecies('cat')}
-                          />
-                          <Form.Check
-                            inline
-                            type="radio"
-                            id="species-other"
-                            label="Other"
-                            name="species"
-                            checked={species === 'other'}
-                            onChange={() => setSpecies('other')}
-                          />
-                          {species === 'other' && (
-                            <Form.Control
-                              type="text"
-                              placeholder="Enter species"
-                              value={customSpecies}
-                              onChange={e => setCustomSpecies(e.target.value)}
-                              style={{ width: '200px', display: 'inline-block' }}
-                            />
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-
-                    <Col xs={12}>
-                      <Form.Group controlId="breed">
-                        <Form.Label>Race or in the form of a race</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={form.breed}
-                          onChange={e => handleChange('breed', e.target.value)}
-                          placeholder="Hybrid, German Shepherd, ..."
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12} className="mt-3">
-                      <Form.Group controlId="contactPhone">
-                        <Form.Label>Contact phone</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={contactPhone}
-                          onChange={e => setContactPhone(e.target.value)}
-                          placeholder="Phone number for the listing"
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    {/* ---- Location Block ---- */}
-                    <Col xs={12} className="mt-3">
-                      <Form.Label>Location</Form.Label>
-
-                      <Row className="g-2">
-                        {/* Country */}
-                        <Col xs={12} sm={6}>
-                          <div
-                            ref={countrySuggestionsWrapper}
-                            style={{ position: 'relative' }}
-                          >
-                            <Form.Control
-                              type="text"
-                              placeholder="Country"
-                              ref={countryInputRef}
-                              value={addressData.country}
-                              onChange={e => {
-                                const v = e.target.value
-                                handleAddressChange('country', v)
-                                setActiveField('country')
-                                setCountrySearch(v)
-                                if (!v || v.length < 1) {
-                                  setCountrySuggestions([])
-                                  setShowCountrySuggestions(false)
-                                }
-                              }}
-                              onFocus={() => {
-                                setActiveField('country')
-                                if (countrySearch && countrySuggestions.length > 0) {
-                                  setShowCountrySuggestions(true)
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (!showCountrySuggestions || countrySuggestions.length === 0) return
-                                if (e.key === 'ArrowDown') {
-                                  e.preventDefault()
-                                  setCountryActiveIndex(i => Math.min(i + 1, countrySuggestions.length - 1))
-                                } else if (e.key === 'ArrowUp') {
-                                  e.preventDefault()
-                                  setCountryActiveIndex(i => Math.max(i - 1, 0))
-                                } else if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  if (countryActiveIndex >= 0 && countryActiveIndex < countrySuggestions.length) {
-                                    fillAddressFromFeature(countrySuggestions[countryActiveIndex], 'country')
-                                  }
-                                } else if (e.key === 'Escape') {
-                                  setShowCountrySuggestions(false)
-                                }
-                              }}
-                            />
-
-                            {activeField === 'country' &&
-                              showCountrySuggestions &&
-                              countrySuggestions.length > 0 && (
-                                <ListGroup
-                                  className="position-absolute w-100 shadow-sm address-suggestions"
-                                  style={{ top: 'calc(100% + 6px)', left: 0, zIndex: 999 }}
-                                >
-                                  {countrySuggestions.map((s, idx) => (
-                                    <ListGroup.Item
-                                      key={s.id}
-                                      action
-                                      onMouseDown={e => e.preventDefault()}
-                                      onClick={() => fillAddressFromFeature(s, 'country')}
-                                      active={idx === countryActiveIndex}
-                                    >
-                                      {s.place_name}
-                                    </ListGroup.Item>
-                                  ))}
-                                </ListGroup>
-                              )}
-                          </div>
-                        </Col>
-
-                        {/* Region */}
-                        <Col xs={12} sm={6}>
-                          <div
-                            ref={regionSuggestionsWrapper}
-                            style={{ position: 'relative' }}
-                          >
-                            <Form.Control
-                              type="text"
-                              placeholder="Region"
-                              ref={regionInputRef}
-                              value={addressData.region}
-                              onChange={e => {
-                                const v = e.target.value
-                                handleAddressChange('region', v)
-                                setActiveField('region')
-                                setRegionSearch(v)
-                                if (!v || v.length < 1) {
-                                  setRegionSuggestions([])
-                                  setShowRegionSuggestions(false)
-                                }
-                              }}
-                              onFocus={() => {
-                                setActiveField('region')
-                                if (regionSearch && regionSuggestions.length > 0) {
-                                  setShowRegionSuggestions(true)
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (!showRegionSuggestions || regionSuggestions.length === 0) return
-                                if (e.key === 'ArrowDown') {
-                                  e.preventDefault()
-                                  setRegionActiveIndex(i => Math.min(i + 1, regionSuggestions.length - 1))
-                                } else if (e.key === 'ArrowUp') {
-                                  e.preventDefault()
-                                  setRegionActiveIndex(i => Math.max(i - 1, 0))
-                                } else if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  if (regionActiveIndex >= 0 && regionActiveIndex < regionSuggestions.length) {
-                                    fillAddressFromFeature(regionSuggestions[regionActiveIndex], 'region')
-                                  }
-                                } else if (e.key === 'Escape') {
-                                  setShowRegionSuggestions(false)
-                                }
-                              }}
-                            />
-
-                            {activeField === 'region' &&
-                              showRegionSuggestions &&
-                              regionSuggestions.length > 0 && (
-                                <ListGroup
-                                  className="position-absolute w-100 shadow-sm address-suggestions"
-                                  style={{ top: 'calc(100% + 6px)', left: 0, zIndex: 999 }}
-                                >
-                                  {regionSuggestions.map((s, idx) => (
-                                    <ListGroup.Item
-                                      key={s.id}
-                                      action
-                                      onMouseDown={e => e.preventDefault()}
-                                      onClick={() => fillAddressFromFeature(s, 'region')}
-                                      active={idx === regionActiveIndex}
-                                    >
-                                      {s.place_name}
-                                    </ListGroup.Item>
-                                  ))}
-                                </ListGroup>
-                              )}
-                          </div>
-                        </Col>
-
-                        {/* City */}
-                        <Col xs={12} sm={6} className="mt-2">
-                          <div
-                            ref={citySuggestionsWrapper}
-                            style={{ position: 'relative' }}
-                          >
-                            <Form.Control
-                              type="text"
-                              placeholder="City"
-                              ref={cityInputRef}
-                              value={addressData.city}
-                              onChange={e => {
-                                const v = e.target.value
-                                handleAddressChange('city', v)
-                                setActiveField('city')
-                                setCitySearch(v)
-                                if (!v || v.length < 1) {
-                                  setCitySuggestions([])
-                                  setShowCitySuggestions(false)
-                                }
-                              }}
-                              onFocus={() => {
-                                setActiveField('city')
-                                if (citySearch && citySuggestions.length > 0) {
-                                  setShowCitySuggestions(true)
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (!showCitySuggestions || citySuggestions.length === 0) return
-                                if (e.key === 'ArrowDown') {
-                                  e.preventDefault()
-                                  setCityActiveIndex(i => Math.min(i + 1, citySuggestions.length - 1))
-                                } else if (e.key === 'ArrowUp') {
-                                  e.preventDefault()
-                                  setCityActiveIndex(i => Math.max(i - 1, 0))
-                                } else if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  if (cityActiveIndex >= 0 && cityActiveIndex < citySuggestions.length) {
-                                    fillAddressFromFeature(citySuggestions[cityActiveIndex], 'city')
-                                  }
-                                } else if (e.key === 'Escape') {
-                                  setShowCitySuggestions(false)
-                                }
-                              }}
-                            />
-
-                            {activeField === 'city' &&
-                              showCitySuggestions &&
-                              citySuggestions.length > 0 && (
-                                <ListGroup
-                                  className="position-absolute w-100 shadow-sm address-suggestions"
-                                  style={{ top: 'calc(100% + 6px)', left: 0, zIndex: 999 }}
-                                >
-                                  {citySuggestions.map((s, idx) => (
-                                    <ListGroup.Item
-                                      key={s.id}
-                                      action
-                                      onMouseDown={e => e.preventDefault()}
-                                      onClick={() => fillAddressFromFeature(s, 'city')}
-                                      active={idx === cityActiveIndex}
-                                    >
-                                      {s.place_name}
-                                    </ListGroup.Item>
-                                  ))}
-                                </ListGroup>
-                              )}
-                          </div>
-                        </Col>
-
-                        {/* Postal */}
-                        <Col xs={12} sm={6} className="mt-2">
-                          <Form.Control
-                            type="text"
-                            placeholder="Postal code"
-                            value={addressData.postal_code}
-                            onChange={e =>
-                              handleAddressChange('postal_code', e.target.value)
-                            }
-                          />
-                        </Col>
-
-                        {/* Street */}
-                        <Col xs={12} className="mt-2">
-                          <Form.Control
-                            type="text"
-                            placeholder="Street and building"
-                            value={addressData.street}
-                            onChange={e => handleAddressChange('street', e.target.value)}
-                          />
-                        </Col>
-
-                        <Col xs={12} className="mt-2">
-                          <Form.Text className="text-muted">
-                            Tip: Start typing country / region / city and pick from suggestions; fields
-                            will be filled automatically.
-                          </Form.Text>
-                        </Col>
-                      </Row>
-                    </Col>
-                  </Row>
-
-                  <hr className="donation-traits-sep" />
-
-                  <div className="donation-traits-grid">
-                    {TRAITS.map(t => (
-                      <Form.Check
-                        key={t.key}
-                        type="checkbox"
-                        id={`trait-${t.key}`}
-                        label={t.label}
-                        className="donation-trait-item"
-                        checked={!!form.traits[t.key]}
-                        onChange={e => handleTraitChange(t.key, e.target.checked)}
-                      />
-                    ))}
-                  </div>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
-
-          {/* 照片上传区域 */}
-          <Card className="donation-section">
-            <Card.Header className="donation-section-header">
-              <span className="text">Photos</span>
-            </Card.Header>
-            <Card.Body>
-              <div
-                className="donation-photo-dropzone"
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onClick={() => {
-                  const input = document.getElementById(
-                    'pet-photos-input',
-                  ) as HTMLInputElement | null
-                  input?.click()
-                }}
-              >
-                <input
-                  id="pet-photos-input"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="d-none"
-                  onChange={e => handlePhotoSelect(e.target.files)}
-                />
-                <div className="icon-wrapper">📷</div>
-                <div className="title">Click to add photos</div>
-                <div className="subtitle">
-                  You must add at least one photo.
-                  <br />
-                  Select multiple photos to upload.
-                </div>
-                <div className="hint">
-                  Minimum image size is:{' '}
-                  <Badge bg="light" text="secondary">
-                    700x350
-                  </Badge>
-                </div>
+            {loading ? (
+              <div className="text-center py-5">
+                <Spinner animation="border" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </Spinner>
               </div>
+            ) : shelters.length === 0 ? (
+              <Alert variant="warning">
+                No shelter information available at this time. Please try again later.
+              </Alert>
+            ) : (
+              <div className="shelters-grid">
+                {shelters.map((shelter) => (
+                  <Card key={shelter.id} className="shelter-card h-100">
+                    <Card.Body>
+                      <div className="shelter-header mb-3">
+                        <h5 className="shelter-name">
+                          {shelter.name}
+                          {shelter.is_verified && (
+                            <Badge bg="success" className="ms-2">Verified</Badge>
+                          )}
+                        </h5>
+                      </div>
 
-              {photoPreviews.length > 0 && (
-                <>
-                  <div className="mt-3 mb-2">
-                    <strong>{photoPreviews.length}</strong> photo(s) selected. Click on a photo to set it as the cover image.
-                  </div>
-                  <div className="donation-photo-preview-grid">
-                    {photoPreviews.map((url, idx) => (
-                      <div 
-                        className={`photo-preview-item ${idx === coverPhotoIndex ? 'is-cover' : ''}`} 
-                        key={url}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleSetCover(idx)
-                        }}
-                      >
-                        <img src={url} alt={`preview-${idx}`} />
-                        {idx === coverPhotoIndex && (
-                          <div className="cover-badge">
-                            <Badge bg="success">Cover</Badge>
+                      <p className="card-text shelter-description">
+                        {shelter.description}
+                      </p>
+
+                      <div className="shelter-info mb-3">
+                        <div className="info-item">
+                          <strong>Capacity:</strong>
+                          {shelter.current_animals} / {shelter.capacity}
+                        </div>
+                        <div className="info-item">
+                          <strong>Founded:</strong>
+                          {shelter.founded_year || 'Unknown'}
+                        </div>
+                      </div>
+
+                      <div className="shelter-contact mb-3">
+                        {shelter.email && (
+                          <div className="contact-item">
+                            <i className="bi bi-envelope"></i>
+                            <a href={`mailto:${shelter.email}`}>{shelter.email}</a>
                           </div>
                         )}
-                        <button
-                          type="button"
-                          className="remove-photo-btn"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleRemovePhoto(idx)
-                          }}
-                          title="Remove photo"
-                        >
-                          ×
-                        </button>
+                        {shelter.phone && (
+                          <div className="contact-item">
+                            <i className="bi bi-telephone"></i>
+                            <a href={`tel:${shelter.phone}`}>{shelter.phone}</a>
+                          </div>
+                        )}
+                        {shelter.website && (
+                          <div className="contact-item">
+                            <i className="bi bi-globe"></i>
+                            <a href={shelter.website} target="_blank" rel="noopener noreferrer">
+                              Visit Website
+                            </a>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </Card.Body>
-          </Card>
 
-          <div className="d-flex justify-content-end mt-4">
-            <Button
-              type="submit"
-              variant="success"
-              size="lg"
-              disabled={submitting}
-            >
-              {submitting ? 'Submitting…' : 'Submit pet for adoption'}
-            </Button>
-          </div>
-        </Form>
+                      <div className="shelter-social">
+                        {shelter.facebook_url && (
+                          <a href={shelter.facebook_url} target="_blank" rel="noopener noreferrer" className="social-link" title="Facebook">
+                            <i className="bi bi-facebook"></i>
+                          </a>
+                        )}
+                        {shelter.instagram_url && (
+                          <a href={shelter.instagram_url} target="_blank" rel="noopener noreferrer" className="social-link" title="Instagram">
+                            <i className="bi bi-instagram"></i>
+                          </a>
+                        )}
+                        {shelter.twitter_url && (
+                          <a href={shelter.twitter_url} target="_blank" rel="noopener noreferrer" className="social-link" title="Twitter">
+                            <i className="bi bi-twitter"></i>
+                          </a>
+                        )}
+                      </div>
+                    </Card.Body>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </Col>
+        </Row>
       </Container>
     </div>
   )

@@ -161,6 +161,12 @@ class Donation(models.Model):
     is_stray = models.BooleanField("Found as Stray", default=False)
     contact_phone = models.CharField("Contact Phone", max_length=30, blank=True, default="")
 
+    # 关联的收容所
+    shelter = models.ForeignKey(
+        "pet.Shelter", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="donations", verbose_name="Associated Shelter"
+    )
+
     # 审核流
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default="submitted", db_index=True)
     reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,

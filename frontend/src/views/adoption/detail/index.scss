@@ -232,28 +232,76 @@
     border: none;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
     background: #ffffff;
+    overflow: hidden;
+}
+
+.pet-detail-shelter-card .card-body {
+    padding: 24px;
+}
+
+/* 收容所头部 */
+.shelter-header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.shelter-logo {
+    margin-bottom: 12px;
+}
+
+.logo-placeholder {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto;
 }
 
 .shelter-name {
     font-weight: 700;
-    font-size: 18px;
-    color: #48a53a;
+    font-size: 20px;
+    color: #1f2937;
+    margin: 12px 0 4px;
 }
 
-.shelter-sub {
+.shelter-tagline {
     font-size: 13px;
-    color: #6b7280;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+/* 地址部分 */
+.shelter-address-section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
 }
 
 .shelter-address {
-    margin-top: 6px;
     font-size: 14px;
     color: #111827;
+    line-height: 1.6;
+    margin: 0;
 }
 
-/* External map preview card */
+/* 地图部分 */
 .external-map-card {
-    margin-top: 14px;
+    margin: 20px 0;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     background: #ffffff;
@@ -322,6 +370,82 @@
     margin-top: 16px;
 }
 
+/* 联系信息部分 */
+.shelter-contact-section {
+    margin-bottom: 20px;
+    padding: 16px 0;
+    border-top: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.shelter-contact-section .section-title {
+    margin-bottom: 12px;
+}
+
+.contact-btn {
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.contact-btn.btn-outline-success {
+    border-color: #6ac657;
+    color: #6ac657;
+
+    &:hover {
+        background: #6ac657;
+        border-color: #6ac657;
+        color: #fff;
+    }
+}
+
+.contact-btn.btn-outline-warning {
+    border-color: #f59e0b;
+    color: #d97706;
+
+    &:hover {
+        background: #f59e0b;
+        border-color: #f59e0b;
+        color: #fff;
+    }
+}
+
+/* 网站链接 */
+.shelter-footer {
+    text-align: center;
+    margin: 16px 0;
+    padding: 12px 0;
+}
+
+.shelter-website-link {
+    font-size: 14px;
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+    }
+}
+
+/* 元数据 */
+.shelter-metadata {
+    text-align: center;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+    color: #9ca3af;
+    font-size: 12px;
+}
 .shelter-footer {
     margin-top: 12px;
     font-size: 13px;

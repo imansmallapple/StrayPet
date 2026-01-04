@@ -305,3 +305,195 @@
     background-color: #eef2ff;
     color: #0b69d4;
 }
+
+/* ========== 收容所列表新样式 ========== */
+
+.guides-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.guide-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+    }
+}
+
+.guide-number {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.guide-card .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 12px;
+}
+
+.guide-card .card-text {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.shelters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.shelter-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+    }
+}
+
+.shelter-header {
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 12px;
+}
+
+.shelter-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shelter-description {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.6;
+    max-height: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shelter-info {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13px;
+}
+
+.info-item {
+    margin-bottom: 8px;
+    color: #475569;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    strong {
+        color: #1e293b;
+    }
+}
+
+.shelter-contact {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    i {
+        color: #94a3b8;
+        font-size: 14px;
+    }
+
+    a {
+        color: #0b69d4;
+        text-decoration: none;
+        word-break: break-word;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.shelter-social {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.social-link {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border-radius: 6px;
+    color: #475569;
+    text-decoration: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #0b69d4;
+        color: #ffffff;
+    }
+
+    i {
+        font-size: 16px;
+    }
+}
+
+.cta-button {
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 32px;
+    font-weight: 700;
+    font-size: 16px;
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+        background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    }
+}

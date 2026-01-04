@@ -304,43 +304,76 @@ export default function AdoptDetail() {
             </Card>
           </Col>
 
-          {/* 右侧：救助站卡片 */}
+          {/* 右侧：收容所卡片 */}
           <Col lg={4}>
             <Card className="pet-detail-shelter-card">
               <Card.Body>
-                <div className="shelter-address">
-                  {pet.shelter_address || ((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : 'No address available')}
+                {/* 收容所徽标和名称 */}
+                <div className="shelter-header">
+                  <div className="shelter-logo">
+                    {/* 收容所图标 */}
+                    <div className="logo-placeholder">🏛️</div>
+                  </div>
+                  <h4 className="shelter-name">{pet.shelter_name || 'Local Animal Shelter'}</h4>
+                  <p className="shelter-tagline">For Animal Adoption</p>
                 </div>
 
-                {/* Interactive map with Google Maps link */}
+                {/* 地址信息 */}
+                <div className="shelter-address-section">
+                  <h6 className="section-title">Location</h6>
+                  <p className="shelter-address">
+                    {pet.shelter_address || ((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : 'No address available')}
+                  </p>
+                </div>
+
+                {/* 地图 */}
                 <ExternalMapPreview
                   address={address}
                   lat={typeof (pet as any)?.address_lat === 'number' ? (pet as any).address_lat : undefined}
                   lon={typeof (pet as any)?.address_lon === 'number' ? (pet as any).address_lon : undefined}
                 />
 
-                <div className="shelter-actions">
+                {/* 联系信息 */}
+                <div className="shelter-contact-section">
+                  <h6 className="section-title">Interested in adopting this pet?</h6>
+                  {pet.shelter_phone && (
+                    <Button
+                      type="button"
+                      variant="outline-success"
+                      className="w-100 mb-2 contact-btn"
+                      href={`tel:${pet.shelter_phone}`}
+                    >
+                      📞 {pet.shelter_phone}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline-warning"
-                    className="w-100"
+                    className="w-100 contact-btn"
                     onClick={() => navigate(`/adopt/${pet.id}/apply`)}
                   >
-                    📝 Ask about this pet
+                    💬 Ask about this pet
                   </Button>
                 </div>
 
+                {/* 网站链接 */}
                 {pet.shelter_website && (
                   <div className="shelter-footer">
                     <a
                       href={pet.shelter_website}
                       target="_blank"
                       rel="noreferrer"
+                      className="shelter-website-link"
                     >
-                      Visit shelter website
+                      Visit shelter website →
                     </a>
                   </div>
                 )}
+
+                {/* 最后活动时间 */}
+                <div className="shelter-metadata">
+                  <small>Last updated: {pet.pub_date?.slice(0, 10) || 'Recently'}</small>
+                </div>
               </Card.Body>
             </Card>
           </Col>

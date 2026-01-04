@@ -40,6 +40,12 @@ export type Pet = {
   needs_attention?: boolean
   sterilized?: boolean
   contact_phone?: string
+  
+  // Shelter information
+  shelter_name?: string
+  shelter_address?: string
+  shelter_phone?: string
+  shelter_website?: string
 }
 
 export type PetListParams = {

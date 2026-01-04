@@ -252,6 +252,11 @@ class PetListSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()  # 多张照片数组
     is_favorited = serializers.SerializerMethodField()
     favorites_count = serializers.IntegerField(source='favorites.count', read_only=True)
+    # 收容所信息
+    shelter_name = serializers.SerializerMethodField()
+    shelter_address = serializers.SerializerMethodField()
+    shelter_phone = serializers.SerializerMethodField()
+    shelter_website = serializers.SerializerMethodField()
 
     class Meta:
         model = Pet
@@ -266,6 +271,7 @@ class PetListSerializer(serializers.ModelSerializer):
             "status", "created_by", "applications_count",
             "add_date", "pub_date",
             "is_favorited", "favorites_count",
+            "shelter_name", "shelter_address", "shelter_phone", "shelter_website",
         )
         read_only_fields = ("status", "created_by", "applications_count", "add_date", "pub_date")
 
@@ -342,6 +348,43 @@ class PetListSerializer(serializers.ModelSerializer):
         if getattr(obj, 'address_id', None) and getattr(obj, 'address', None) and getattr(obj.address, 'longitude', None) is not None:
             return obj.address.longitude
         return None
+
+    def get_shelter_name(self, obj: Pet) -> str:
+        """从关联的Donation获取收容所名称"""
+        donation = getattr(obj, 'from_donor', None)
+        if donation and donation.shelter:
+            return donation.shelter.name
+        return ""
+
+    def get_shelter_address(self, obj: Pet) -> str:
+        """从关联的Donation获取收容所地址"""
+        donation = getattr(obj, 'from_donor', None)
+        if donation and donation.shelter and donation.shelter.address:
+            addr = donation.shelter.address
+            parts = [
+                addr.street,
+                addr.building_number,
+                addr.city.name if addr.city_id else "",
+                addr.region.name if addr.region_id else "",
+                addr.country.name if addr.country_id else "",
+                addr.postal_code,
+            ]
+            return ", ".join([p for p in parts if p])
+        return ""
+
+    def get_shelter_phone(self, obj: Pet) -> str:
+        """从关联的Donation获取收容所电话"""
+        donation = getattr(obj, 'from_donor', None)
+        if donation and donation.shelter:
+            return donation.shelter.phone or ""
+        return ""
+
+    def get_shelter_website(self, obj: Pet) -> str:
+        """从关联的Donation获取收容所网站"""
+        donation = getattr(obj, 'from_donor', None)
+        if donation and donation.shelter:
+            return donation.shelter.website or ""
+        return ""
 
 
 class PetCreateUpdateSerializer(serializers.ModelSerializer):
