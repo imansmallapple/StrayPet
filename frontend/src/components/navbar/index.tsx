@@ -9,17 +9,17 @@ export default function TopNavbar() {
       <div className="brand">Stray Pet</div>
 
       <nav className="site-nav">
-        <NavLink to="/adopt">Adopt</NavLink>
-        <NavLink to="/lost">Lost Pet</NavLink>
-        <NavLink to="/donation">Found/Stray</NavLink>
-        <NavLink to="/shelters">Shelters</NavLink>
-        <NavLink to="/blog">Blog</NavLink>
         <NavLink
-          to="/home"
-          className={({ isActive }) => (isActive ? 'active' : undefined)}
+          to="/"
+          className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
         >
-          home
+          Home
         </NavLink>
+        <NavLink to="/adopt" className="nav-link">Adopt</NavLink>
+        <NavLink to="/lost" className="nav-link">Lost Pet</NavLink>
+        <NavLink to="/donation" className="nav-link">Found/Stray</NavLink>
+        <NavLink to="/shelters" className="nav-link">Shelters</NavLink>
+        <NavLink to="/blog" className="nav-link">Blog</NavLink>
       </nav>
 
       <div className="header-right">

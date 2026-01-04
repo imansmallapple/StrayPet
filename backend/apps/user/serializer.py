@@ -278,13 +278,15 @@ class CaptchaSerializer(serializers.Serializer):
         label="Verification code",
         max_length=4,
         min_length=4,
-        write_only=True
+        write_only=True,
+        required=True
     )
     uid = serializers.CharField(
         label='Verification code id',
         max_length=100,
         min_length=10,
-        write_only=True
+        write_only=True,
+        required=True
     )
 
     def validate(self, attrs):

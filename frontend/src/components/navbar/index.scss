@@ -1,55 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Aharoni:wght@400;700&display=swap');
+
 /* 顶部导航整体容器：占满宽度，贴着页面顶部 */
 .site-header {
     width: 100%;
-    height: 64px;
+    height: 70px;
     padding: 0 48px;
     display: flex;
     align-items: center;
     box-sizing: border-box;
 
-    /* 贴顶 + 轻微底边线 */
+    /* 贴顶 + 优雅底边线 */
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+    border-bottom: 2px solid #e0e7ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
     /* 不要药丸效果 */
     margin: 0;
     border-radius: 0;
-    box-shadow: none;
 }
 
 /* 左侧品牌名 */
 .brand {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
+    font-family: 'Aharoni', sans-serif;
+    letter-spacing: 0.5px;
+    color: #1f2937;
 }
 
 /* 中间导航菜单 */
 .site-nav {
     display: flex;
-    gap: 24px;
+    gap: 12px;
     margin: 0 auto;
 }
 
-.site-nav a {
-    padding: 6px 14px;
-    border-radius: 999px;
+.nav-link {
+    padding: 8px 16px;
+    border-radius: 8px;
     font-size: 15px;
+    font-weight: 700;
+    font-family: 'Aharoni', sans-serif;
     text-decoration: none;
-    color: #111827;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    color: #4b5563;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    letter-spacing: 0.3px;
 }
 
-.site-nav a:hover {
-    background: rgba(17, 24, 39, 0.06);
+.nav-link:hover {
+    background: rgba(79, 70, 229, 0.08);
+    color: #4f46e5;
+    transform: translateY(-1px);
 }
 
-/* 当前激活路由高亮（黑色小圆角标签） */
-.site-nav a.active {
-    background: #000000;
+/* 当前激活路由高亮 - 优雅的蓝色渐变背景 */
+.nav-link.active {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
     color: #ffffff;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.nav-link.active:hover {
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+    transform: translateY(-2px);
 }
 
 /* 右侧登录小组件 */
@@ -57,4 +74,5 @@
     margin-left: auto;
     display: flex;
     align-items: center;
+    gap: 16px;
 }
