@@ -712,9 +712,21 @@ class LostSerializer(serializers.ModelSerializer):
                     address_data = json.loads(address_data)
                 except Exception:
                     address_data = None
+            
+            # Only process address_data if it has non-null/non-empty values
             if address_data:
-                address = _create_or_resolve_address(address_data)
-                validated_data['address'] = address
+                # Check if there's any meaningful data
+                has_data = any(v for v in address_data.values() if v is not None and v != '' and v != 0)
+                if has_data:
+                    try:
+                        address = _create_or_resolve_address(address_data)
+                        validated_data['address'] = address
+                    except Exception as e:
+                        # Log error but don't fail the request
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f"Failed to create address from data {address_data}: {e}")
+        
         return super().create(validated_data)
 
     def get_photo_url(self, obj):

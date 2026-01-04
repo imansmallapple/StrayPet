@@ -72,6 +72,18 @@ export default function ReportLostPet({ onSuccess }: ReportLostPetProps) {
         lng: lng ? Number(lng) : null,
       }
 
+      // Format lost_time properly from datetime-local input
+      // datetime-local gives us "2026-01-04T12:30", we need to format it for Django
+      let formattedLostTime = lostTime
+      if (lostTime && !lostTime.includes('Z')) {
+        // Append :00Z to convert local time to ISO format with Z suffix
+        formattedLostTime = lostTime.includes(':') && !lostTime.endsWith(':00') 
+          ? `${lostTime}:00Z` 
+          : lostTime.endsWith(':00') 
+          ? `${lostTime}Z` 
+          : lostTime
+      }
+
       const payload = {
         pet_name: petName || undefined,
         species,
@@ -79,7 +91,7 @@ export default function ReportLostPet({ onSuccess }: ReportLostPetProps) {
         color: color || undefined,
         sex,
         size: size || undefined,
-        lost_time: new Date(lostTime).toISOString(),
+        lost_time: formattedLostTime,
         description: description || undefined,
         reward: reward || undefined,
         photo: photo || undefined,

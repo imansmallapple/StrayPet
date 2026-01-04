@@ -82,10 +82,24 @@ export function buildLostFormData(p: LostCreatePayload | LostUpdatePayload): For
   if (typeof p.address === 'number') {
     fd.append('address', String(p.address))
   } else if ((p as any).address_data) {
-    fd.append('address_data', JSON.stringify((p as any).address_data))
+    // Only send address_data if it has non-null/non-empty values
+    const addressData = (p as any).address_data
+    const hasAddressData = Object.values(addressData).some(v => v !== null && v !== '' && v !== undefined)
+    if (hasAddressData) {
+      fd.append('address_data', JSON.stringify(addressData))
+    }
   }
   
-  if (p.lost_time) fd.append('lost_time', p.lost_time)
+  if (p.lost_time) {
+    // Ensure lost_time is properly formatted for Django
+    // It should be an ISO format string, optionally with Z suffix
+    let lostTime = p.lost_time
+    if (typeof lostTime === 'string' && !lostTime.includes('Z')) {
+      // If datetime is missing Z suffix, add it
+      lostTime = lostTime.endsWith(':00') ? `${lostTime}Z` : `${lostTime}Z`
+    }
+    fd.append('lost_time', lostTime)
+  }
   if (p.description) fd.append('description', p.description)
   if (p.reward !== undefined && p.reward !== null && p.reward !== '') {
     fd.append('reward', String(p.reward))

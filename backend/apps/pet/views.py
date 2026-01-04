@@ -241,13 +241,14 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 class LostViewSet(viewsets.ModelViewSet):
     serializer_class = LostSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    # Allow anyone to read, authenticated users and owners to write
+    permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = LostFilter
     ordering_fields = ['created_at', 'lost_time']
     ordering = ['-created_at']
 
-    # 仅写操作做 JWT 认证，读操作不解析 Authorization（坏 token 也不影响 GET）
+    # Optional JWT authentication for write operations
     authentication_classes = [JWTAuthentication]
     def get_authenticators(self):
         if self.request and self.request.method in SAFE_METHODS:
@@ -258,7 +259,18 @@ class LostViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser]
 
     def perform_create(self, serializer):
-        serializer.save(reporter=self.request.user)
+        # If user is authenticated, set them as reporter, otherwise create anonymous entry
+        if self.request.user and self.request.user.is_authenticated:
+            serializer.save(reporter=self.request.user)
+        else:
+            # For anonymous submissions, we need to create/get an anonymous user
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            anonymous_user, _ = User.objects.get_or_create(
+                username='anonymous',
+                defaults={'email': 'anonymous@straypet.local'}
+            )
+            serializer.save(reporter=anonymous_user)
 
     def get_queryset(self):
         return (
