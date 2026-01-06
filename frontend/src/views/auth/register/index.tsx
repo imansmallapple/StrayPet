@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { authApi } from '@/services/modules/auth'
+import { authApi, setAccessHeader } from '@/services/modules/auth'
 
 export default function Register() {
   const [loading, setLoading] = useState(false)
@@ -51,6 +51,10 @@ export default function Register() {
       if (data?.tokens?.access) {
         localStorage.setItem('accessToken', data.tokens.access)
         if (data.tokens.refresh) localStorage.setItem('refreshToken', data.tokens.refresh)
+        setAccessHeader(data.tokens.access)
+        const me = await authApi.getMe().then(r => r.data)
+        localStorage.setItem('user', JSON.stringify(me))
+        window.dispatchEvent(new Event('auth:updated'))
         alert('注册成功，已为你登录')
         nav('/home')
       } else {
