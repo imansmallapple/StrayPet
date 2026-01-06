@@ -58,18 +58,20 @@ export default function FriendsList() {
   const handleDeleteFriend = async () => {
     if (!deleteConfirm.friendId || !deleteConfirm.friendshipId) return
     
-    const friendName = deleteConfirm.friendUsername || ''
+    const friendNameToShow = deleteConfirm.friendUsername || 'Friend'
     setDeleting(true)
     try {
       await http.delete(`/user/friendships/${deleteConfirm.friendshipId}/`)
       
       // 从列表中移除该好友
       setFriends(friends.filter(f => f.id !== deleteConfirm.friendId))
-      closeDeleteConfirm()
       
-      // 显示Toast提示
-      setDeleteToastUsername(friendName)
+      // 显示成功提示气泡
+      setDeleteToastUsername(friendNameToShow)
       setShowDeleteToast(true)
+      
+      // 关闭确认框（在设置完toast状态后）
+      closeDeleteConfirm()
       
     } catch (err: any) {
       alert(`Failed to delete friend: ${err?.response?.data?.detail || err.message}`)
@@ -294,20 +296,28 @@ export default function FriendsList() {
       {showDeleteToast && (
         <div style={{ 
           position: 'fixed', 
-          top: '150px', 
+          top: '100px', 
           left: '50%', 
-          marginLeft: '-175px', 
-          zIndex: 10000,
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
           backgroundColor: '#efe', 
-          border: '1px solid #cfc',
+          border: '2px solid #cfc',
           color: '#3c3',
-          padding: '10px 12px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          animation: 'slideDown 0.3s ease'
+          padding: '15px 20px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: '500',
+          animation: 'slideDown 0.3s ease forwards',
+          minWidth: '320px',
+          textAlign: 'center',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
         }}>
-          <i className="bi bi-check-circle me-2"></i>
-          <strong>{deleteToastUsername}</strong> has been removed from your friends list
+          <i className="bi bi-check-circle"></i>
+          <span>{deleteToastUsername ? `${deleteToastUsername} has been removed from your friends list` : 'Friend removed successfully'}</span>
         </div>
       )}
     </>

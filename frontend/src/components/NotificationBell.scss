@@ -192,3 +192,14 @@
     }
   }
 }
+// 成功提示气泡动画
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

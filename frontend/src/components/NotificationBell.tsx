@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Badge, Dropdown, Alert, Spinner } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
@@ -31,6 +31,8 @@ export default function NotificationBell() {
   const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   // 获取未读通知数
   const { refresh: refreshUnreadCount } = useRequest(
@@ -84,6 +86,9 @@ export default function NotificationBell() {
       refreshUnreadCount()
       // 触发事件通知其他组件刷新好友列表
       window.dispatchEvent(new Event('friendship:updated'))
+      // 显示成功提示
+      setToastMessage('Friend request accepted!')
+      setShowToast(true)
     } catch (error) {
       console.error('Failed to accept friend request:', error)
     }
@@ -105,6 +110,17 @@ export default function NotificationBell() {
       console.error('Failed to reject friend request:', error)
     }
   }
+
+  // 处理toast自动关闭
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+    return undefined
+  }, [showToast])
 
   // 标记所有为已读
   const handleMarkAllAsRead = async () => {
@@ -213,6 +229,30 @@ export default function NotificationBell() {
           </div>
         )}
       </Dropdown.Menu>
+
+      {/* 成功提示气泡 */}
+      {showToast && (
+        <div style={{ 
+          position: 'fixed', 
+          top: '100px', 
+          left: '50%', 
+          marginLeft: '-150px',
+          zIndex: 10000,
+          backgroundColor: '#efe', 
+          border: '1px solid #cfc',
+          color: '#3c3',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          fontSize: '14px',
+          animation: 'slideDown 0.3s ease',
+          minWidth: '300px',
+          textAlign: 'center',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        }}>
+          <i className="bi bi-check-circle me-2"></i>
+          {toastMessage}
+        </div>
+      )}
     </Dropdown>
   )
 }
