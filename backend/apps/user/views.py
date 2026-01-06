@@ -556,16 +556,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
             to_user=target_user,
             status='pending'
         )
-        
-        # 创建好友申请通知
-        Notification.objects.create(
-            user=target_user,
-            notification_type='friend_request',
-            from_user=request.user,
-            friendship=friendship,
-            title=f'{request.user.username} 发送了好友申请',
-            content=f'{request.user.username} 想要加你为好友'
-        )
+        # Signal会自动创建通知，无需在这里重复创建
         
         serializer = self.get_serializer(friendship)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -616,6 +607,18 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(friendship)
         return Response(serializer.data)
     
+    def destroy(self, request, pk=None):
+        """删除好友"""
+        friendship = self.get_object()
+        
+        # 检查当前用户是否与此好友有关系
+        if friendship.from_user != request.user and friendship.to_user != request.user:
+            return Response({'error': '你无权删除此好友关系'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # 删除好友关系
+        friendship.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
     @action(detail=False, methods=['get'])
     def check_friendship(self, request):
         """检查与某用户的好友关系"""
@@ -658,6 +661,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
             
             friends.append({
                 'id': friend.id,
+                'friendship_id': friendship.id,  # 添加friendship_id用于删除好友
                 'username': friend.username,
                 'email': friend.email,
                 'avatar': avatar_url,

@@ -27,10 +27,11 @@ def create_friend_request_notification(sender, instance, created, **kwargs):
             # 为接收方创建通知
             notification = Notification.objects.create(
                 user=instance.to_user,
-                notification_type='system',
-                title=f'{instance.from_user.username} 发送了好友申请',
-                content=f'{instance.from_user.username} 想要加你为好友',
+                notification_type='friend_request',
+                title=f'{instance.from_user.username} sent a friend request',
+                content=f'{instance.from_user.username} wants to add you as a friend',
                 from_user=instance.from_user,
+                friendship=instance,
                 is_read=False
             )
             logger.info(f'Notification created successfully: {notification.id}')

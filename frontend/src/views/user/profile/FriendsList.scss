@@ -17,4 +17,26 @@
   min-width: 160px;
 }
 
+// 保持删除菜单项为红色，背景无色
+.dropdown-item.text-danger {
+  color: #dc3545 !important;
+  
+  &:hover,
+  &:focus,
+  &:active {
+    color: #dc3545 !important;
+    background-color: transparent !important;
+  }
+}
 
+// 成功提示气泡动画
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -189,8 +189,11 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
     try {
       const { data } = await authApi.acceptFriendRequest(friendshipStatus.id)
       setFriendshipStatus(data)
+      // 触发事件通知其他组件刷新好友列表
+      window.dispatchEvent(new Event('friendship:updated'))
+      alert('Friend request accepted!')
     } catch (error: any) {
-      alert(error?.response?.data?.error || '接受好友请求失败')
+      alert(error?.response?.data?.error || 'Failed to accept friend request')
     } finally {
       setLoadingFriendship(false)
     }

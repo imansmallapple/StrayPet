@@ -1,10 +1,34 @@
 import { useState } from 'react'
 import { Badge, Dropdown, Alert, Spinner } from 'react-bootstrap'
+import { useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { notificationApi, friendshipApi, type Notification } from '@/services/modules/notification'
 import './NotificationBell.scss'
 
+// 格式化时间
+function formatDate(dateString: string): string {
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+
+    // 否则显示 MM-DD HH:mm 格式
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/, /, ' ')
+  } catch {
+    return dateString
+  }
+}
+
 export default function NotificationBell() {
+  const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
 
@@ -58,6 +82,8 @@ export default function NotificationBell() {
       await notificationApi.markAsRead(notificationId)
       refreshUnread()
       refreshUnreadCount()
+      // 触发事件通知其他组件刷新好友列表
+      window.dispatchEvent(new Event('friendship:updated'))
     } catch (error) {
       console.error('Failed to accept friend request:', error)
     }
@@ -91,10 +117,6 @@ export default function NotificationBell() {
     }
   }
 
-  if (unreadCount === 0) {
-    return null
-  }
-
   return (
     <Dropdown className="notification-bell" show={showNotifications} onToggle={setShowNotifications}>
       <Dropdown.Toggle variant="link" className="notification-toggle" id="notification-dropdown">
@@ -104,14 +126,14 @@ export default function NotificationBell() {
 
       <Dropdown.Menu className="notification-menu">
         <div className="notification-header">
-          <h6 className="mb-0">通知 ({unreadCount})</h6>
+          <h6 className="mb-0">Notifications ({unreadCount})</h6>
           {unreadCount > 0 && (
             <small
               className="text-muted cursor-pointer"
               onClick={handleMarkAllAsRead}
               style={{ cursor: 'pointer' }}
             >
-              全部标记为已读
+              Mark all as read
             </small>
           )}
         </div>
@@ -124,7 +146,7 @@ export default function NotificationBell() {
           </div>
         ) : unreadNotifications.length === 0 ? (
           <Alert variant="info" className="mb-0 mx-2 mt-2">
-            暂无未读通知
+            No message
           </Alert>
         ) : (
           <div className="notification-list">
@@ -133,16 +155,27 @@ export default function NotificationBell() {
                 <div className="notification-content">
                   <div className="notification-title">
                     {notification.from_user && (
-                      <strong>{notification.from_user.username}</strong>
+                      <strong
+                        style={{ cursor: 'pointer', color: '#667eea' }}
+                        onClick={() => {
+                          if (notification.from_user?.id) {
+                            navigate(`/user/profile/${notification.from_user.id}`)
+                            setShowNotifications(false)
+                          }
+                        }}
+                        title="View user profile"
+                      >
+                        {notification.from_user.username}
+                      </strong>
                     )}
                     <span className="notification-type ms-2">
-                      {notification.notification_type === 'reply' && '回复了你'}
-                      {notification.notification_type === 'friend_request' && '发送了好友申请'}
-                      {notification.notification_type === 'mention' && '提到了你'}
+                      {notification.notification_type === 'reply' && 'replied to you'}
+                      {notification.notification_type === 'friend_request' && 'sent a friend request'}
+                      {notification.notification_type === 'mention' && 'mentioned you'}
                     </span>
                   </div>
                   <div className="notification-text">{notification.comment_content || notification.content}</div>
-                  <small className="text-muted">{notification.created_at}</small>
+                  <small className="text-muted">{formatDate(notification.created_at)}</small>
                 </div>
 
                 {/* 根据通知类型显示不同的操作按钮 */}
@@ -152,7 +185,7 @@ export default function NotificationBell() {
                       type="button"
                       className="notification-action-btn accept-btn"
                       onClick={() => handleAcceptFriend(notification.id, notification.friendship_id)}
-                      title="同意"
+                      title="Accept"
                     >
                       ✓
                     </button>
@@ -160,7 +193,7 @@ export default function NotificationBell() {
                       type="button"
                       className="notification-action-btn reject-btn"
                       onClick={() => handleRejectFriend(notification.id, notification.friendship_id)}
-                      title="拒绝"
+                      title="Reject"
                     >
                       ✕
                     </button>
@@ -170,7 +203,7 @@ export default function NotificationBell() {
                     type="button"
                     className="notification-action"
                     onClick={() => handleMarkAsRead(notification.id)}
-                    title="标记为已读"
+                    title="Mark as read"
                   >
                     ✓
                   </button>

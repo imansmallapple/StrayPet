@@ -420,6 +420,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     from_user = serializers.SerializerMethodField()
     comment_content = serializers.SerializerMethodField()
     friendship_id = serializers.IntegerField(source='friendship.id', allow_null=True, required=False)
+    content = serializers.SerializerMethodField()
     
     class Meta:
         model = Notification
@@ -438,6 +439,25 @@ class NotificationSerializer(serializers.ModelSerializer):
         if obj.comment:
             return obj.comment.content
         return None
+    
+    def get_content(self, obj):
+        """将中文内容翻译为英文"""
+        content = obj.content or ''
+        
+        # 翻译常见的中文短语
+        translations = {
+            '想要加你为好友': 'wants to add you as a friend',
+            '想要加你为好友': 'wants to add you as a friend',
+            '回复了你': 'replied to you',
+            '提到了你': 'mentioned you',
+        }
+        
+        # 进行翻译
+        result = content
+        for chinese, english in translations.items():
+            result = result.replace(chinese, english)
+        
+        return result
 
 
 class FriendshipSerializer(serializers.ModelSerializer):
