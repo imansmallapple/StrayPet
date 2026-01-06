@@ -50,15 +50,15 @@ export default function Register() {
     setSuccessMessage('')
 
     if (!username || !email || !password || !password1 || !code) {
-      setErrorMessage('✗ 请完善表单信息')
+      setErrorMessage('✗ Please fill in all fields')
       return
     }
     if (password !== password1) {
-      setErrorMessage('✗ 两次密码不一致')
+      setErrorMessage('✗ Passwords do not match')
       return
     }
     if (password.length < 8) {
-      setErrorMessage('✗ 密码至少需要8位')
+      setErrorMessage('✗ Password must be at least 8 characters')
       return
     }
 
@@ -72,10 +72,10 @@ export default function Register() {
         const me = await authApi.getMe().then(r => r.data)
         localStorage.setItem('user', JSON.stringify(me))
         window.dispatchEvent(new Event('auth:updated'))
-        setSuccessMessage('✓ 注册成功，正在跳转...')
+        setSuccessMessage('✓ Registration successful, redirecting...')
         setTimeout(() => nav('/home'), 1000)
       } else {
-        setSuccessMessage('✓ 注册成功，请登录')
+        setSuccessMessage('✓ Registration successful, please sign in')
         setTimeout(() => nav('/auth/login'), 1500)
       }
     } catch (err: any) {
@@ -118,38 +118,39 @@ export default function Register() {
             />
           </div>
 
-          <div className="form-group email-group">
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-group code-group">
             <div style={{ flex: 1 }}>
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="code">Verification Code</label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="code"
+                name="code"
+                type="text"
+                placeholder="Enter verification code"
                 disabled={loading}
+                maxLength={6}
               />
             </div>
             <button
               type="button"
               onClick={onSendCode}
               disabled={!canSend || loading}
+              className="code-btn"
             >
               {countdown > 0 ? `${countdown}s` : (sending ? 'Sending...' : 'Get Code')}
             </button>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="code">Verification Code</label>
-            <input
-              id="code"
-              name="code"
-              type="text"
-              placeholder="Enter verification code"
-              disabled={loading}
-              maxLength={6}
-            />
           </div>
 
           <div className="form-group">

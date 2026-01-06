@@ -1,12 +1,16 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import SignInWidget from '@/components/sign-in-widget'
 import NotificationBell from '@/components/NotificationBell'
-import './index.scss'  // 可选
+import './index.scss'
 
 export default function TopNavbar() {
+  const navigate = useNavigate()
+
   return (
     <header className="site-header">
-      <div className="brand">Stray Pet</div>
+      <div className="brand" onClick={() => navigate('/')} title="Go to home">
+        🐾 Stray Pet
+      </div>
 
       <nav className="site-nav">
         <NavLink

@@ -38,6 +38,9 @@ export default function SignInWidget() {
     (user as any).name?.trim() ||
     ((user as any).email ? String((user as any).email).split('@')[0] : '') ||
     'Me'
+  
+  const avatarUrl = (user as any).avatar
+  const firstLetter = displayName.charAt(0).toUpperCase()
 
   return (
     <div className="siw" ref={ref}>
@@ -49,16 +52,24 @@ export default function SignInWidget() {
         aria-expanded={open}
         title={displayName}
       >
-        <span className="siw-avatar">👤</span>
+        <span className="siw-avatar">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={displayName} className="avatar-img" />
+          ) : (
+            <div className="avatar-initial">{firstLetter}</div>
+          )}
+        </span>
         <span className="siw-username">{displayName}</span>
       </button>
 
       {open && (
         <div className="siw-menu" role="menu">
           <button type="button" className="siw-item" onClick={() => { setOpen(false); nav('/user/profile') }}>
+            <span className="menu-icon">👤</span>
             Profile
           </button>
           <button type="button" className="siw-item danger" onClick={() => { logout(); setOpen(false) }}>
+            <span className="menu-icon">🚪</span>
             Logout
           </button>
         </div>
