@@ -1,38 +1,33 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { authApi, setAccessHeader } from '@/services/modules/auth'
+import './index.scss'
 
 function Login() {
   const [loading, setLoading] = useState(false)
-  const [img, setImg] = useState<string>('')   // 验证码图片 dataURL
-  const [uid, setUid] = useState<string>('')   // 本轮验证码 uid
-  const [captcha, setCaptcha] = useState<string>('') // 用户输入的4位码
+  const [img, setImg] = useState<string>('')
+  const [uid, setUid] = useState<string>('')
+  const [captcha, setCaptcha] = useState<string>('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [loadingCaptcha, setLoadingCaptcha] = useState(false)
 
   const nav = useNavigate()
   const [sp] = useSearchParams()
 
   async function loadCaptcha() {
     try {
-      console.warn('Loading captcha from:', authApi.getCaptcha.toString())
+      setLoadingCaptcha(true)
+      setErrorMessage('')
       const response = await authApi.getCaptcha()
-      console.warn('Captcha response:', response)
       const { data } = response
       setImg(data.image)
       setUid(data.uid)
       setCaptcha('')
     } catch (err: any) {
-      console.error('获取验证码失败:', err.message)
-      console.error('Full error:', {
-        message: err.message,
-        code: err.code,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        headers: err.response?.headers,
-        url: err.config?.url,
-        baseURL: err.config?.baseURL,
-      })
-      alert('获取验证码失败，请稍后重试')
+      setErrorMessage('✗ Failed to load verification code, please try again later')
+      console.error('Failed to load captcha:', err)
+    } finally {
+      setLoadingCaptcha(false)
     }
   }
 
@@ -46,30 +41,37 @@ function Login() {
     const username = String(f.get('username') || '')
     const password = String(f.get('password') || '')
 
-    if (!username || !password) return alert('请输入用户名和密码')
-    if (!captcha || captcha.length !== 4) return alert('请输入4位验证码')
+    setErrorMessage('')
+
+    if (!username || !password) {
+      setErrorMessage('✗ Please enter username/email and password')
+      return
+    }
+    if (!captcha || captcha.length !== 4) {
+      setErrorMessage('✗ Please enter a valid 4-digit verification code')
+      return
+    }
 
     setLoading(true)
     try {
       const { data } = await authApi.login({ username, password, captcha, uid })
       localStorage.setItem('accessToken', data.access)
       if (data.refresh) localStorage.setItem('refreshToken', data.refresh)
-      setAccessHeader(data.access) 
-      const me = await authApi.getMe().then(r => r.data) 
+      setAccessHeader(data.access)
+      const me = await authApi.getMe().then(r => r.data)
       localStorage.setItem('user', JSON.stringify(me))
       window.dispatchEvent(new Event('auth:updated'))
       nav(sp.get('next') || '/')
     } catch (err: any) {
-      // 尝试从后端错误中给出更友好的提示
       const msg = err?.response?.data
+      let errorMsg = '✗ Login failed'
       if (typeof msg === 'object') {
-        // 可能是 {non_field_errors: [...]} 或 {"Verification code expired!": ...}
         const first = Object.values(msg)[0]
-        alert(Array.isArray(first) ? first[0] : String(first))
+        errorMsg = '✗ ' + (Array.isArray(first) ? first[0] : String(first))
       } else {
-        alert('登录失败，请检查用户名、密码或验证码')
+        errorMsg = '✗ Username, password or verification code is incorrect, please try again'
       }
-      // 失败后通常需要刷新验证码，避免复用已删除的缓存
+      setErrorMessage(errorMsg)
       loadCaptcha()
     } finally {
       setLoading(false)
@@ -77,40 +79,77 @@ function Login() {
   }
 
   return (
-    <div className="auth-panel" style={{ maxWidth: 420, margin: '40px auto', padding: 16 }}>
-      <h2>登录</h2>
-      <form onSubmit={onSubmit}>
-        <input name="username" placeholder="用户名或邮箱" autoFocus
-               style={{ display: 'block', width: '100%', margin: '8px 0' }} />
-        <input name="password" type="password" placeholder="密码"
-               style={{ display: 'block', width: '100%', margin: '8px 0' }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <input
-            value={captcha}
-            onChange={e => setCaptcha(e.target.value)}
-            placeholder="验证码（4位）"
-            maxLength={4}
-            style={{ flex: 1 }}
-          />
-          <img
-            src={img}
-            alt="captcha"
-            style={{ height: 40, cursor: 'pointer', border: '1px solid #ddd' }}
-            onClick={loadCaptcha}
-            title="点击刷新验证码"
-          />
-          <button type="button" onClick={loadCaptcha}>刷新</button>
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-header">
+          <div className="logo">🐾</div>
+          <h1>Sign In</h1>
+          <p>Welcome back, start your companion journey</p>
         </div>
 
-        <button type="submit" disabled={loading} style={{ marginTop: 12 }}>
-          {loading ? '登录中…' : '登录'}
-        </button>
-      </form>
+        {errorMessage && <div className={`error-message ${errorMessage ? 'show' : ''}`}>{errorMessage}</div>}
 
-      <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
-        <Link to="/auth/register">去注册</Link>
-        <Link to="/auth/forget">忘记密码</Link>
+        <form onSubmit={onSubmit}>
+          <div className="form-group">
+            <label htmlFor="username">Username or Email</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              placeholder="Enter your username or email"
+              autoFocus
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="captcha-group">
+            <div className="captcha-input">
+              <label htmlFor="captcha">Verification Code</label>
+              <input
+                id="captcha"
+                value={captcha}
+                onChange={e => setCaptcha(e.target.value.slice(0, 4))}
+                placeholder=""
+                maxLength={4}
+                disabled={loading || loadingCaptcha}
+              />
+            </div>
+            <div className="captcha-image" onClick={loadCaptcha} title="Click to refresh verification code">
+              {img ? (
+                <img src={img} alt="verification code" />
+              ) : (
+                <div style={{ color: '#999', fontSize: '12px' }}>Loading...</div>
+              )}
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button
+              type="submit"
+              disabled={loading || loadingCaptcha}
+              className="primary"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </div>
+        </form>
+
+        <div className="login-footer">
+          <Link to="/auth/register">Create new account</Link>
+          <span style={{ color: '#ddd' }}>•</span>
+          <Link to="/auth/forget">Forgot password?</Link>
+        </div>
       </div>
     </div>
   )
