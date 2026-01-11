@@ -193,7 +193,7 @@ export default function AdoptDetail() {
       <div className="pet-detail-hero">
         <Container>
           <div className="pet-detail-hero-text">
-            <div className="muted">My name is</div>
+            <p className="muted">🐾 Pet Details</p>
             <h1>{pet.name}</h1>
           </div>
         </Container>
@@ -240,45 +240,45 @@ export default function AdoptDetail() {
                 <Table borderless size="sm" className="pet-detail-table">
                   <tbody>
                     <tr>
-                      <th>Name:</th>
+                      <th>Name</th>
                       <td>{pet.name}</td>
                     </tr>
                     <tr>
-                      <th>Status:</th>
+                      <th>Status</th>
                       <td><Badge bg="success" className="status-badge">{pet.status || 'Available'}</Badge></td>
                     </tr>
                     <tr>
-                      <th>Species:</th>
+                      <th>Species</th>
                       <td>{(pet.species ?? 'Pet').toString()}</td>
                     </tr>
                     <tr>
-                      <th>Breed:</th>
+                      <th>Breed</th>
                       <td>{pet.breed || 'Mixed'}</td>
                     </tr>
                     <tr>
-                      <th>Sex:</th>
+                      <th>Sex</th>
                       <td>{sexText}</td>
                     </tr>
                     <tr>
-                      <th>Age:</th>
+                      <th>Age</th>
                       <td>{ageText}</td>
                     </tr>
                     <tr>
-                      <th>City/Address:</th>
+                      <th>City/Address</th>
                       <td className="address-cell">{(pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : (pet.city || pet.shelter_city || '—')}</td>
                     </tr>
                     {pet.contact_phone && (
                       <tr>
-                        <th>Contact Phone:</th>
+                        <th>Contact Phone</th>
                         <td>{pet.contact_phone}</td>
                       </tr>
                     )}
                     <tr>
-                      <th>Added:</th>
+                      <th>Added</th>
                       <td>{pet.add_date?.slice(0, 10) || '—'}</td>
                     </tr>
                     <tr>
-                      <th>Updated:</th>
+                      <th>Updated</th>
                       <td>{pet.pub_date?.slice(0, 10) || '—'}</td>
                     </tr>
                   </tbody>

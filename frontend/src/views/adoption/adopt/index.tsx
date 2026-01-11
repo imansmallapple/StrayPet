@@ -50,9 +50,9 @@ export default function Adopt() {
                 setSp(sp)
               }}
             >
-              <option value="">All species</option>
-              <option value="dog">Dog</option>
-              <option value="cat">Cat</option>
+              <option value="">All Species</option>
+              <option value="dog">🐕 Dog</option>
+              <option value="cat">🐱 Cat</option>
             </select>
           </div>
         </div>
@@ -70,13 +70,14 @@ export default function Adopt() {
                   <div className="meta">
                     <h3>{pet.name}</h3>
                     <p className="muted">
-                      {pet.species || 'Pet'} • {pet.sex || 'Unknown'}{' '}
-                      {pet.age_years ? `• ${pet.age_months}y` : ''}
-                      {pet.city ? ` • ${pet.city}` : ''}
+                      {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}{' '}
+                      {pet.species || 'Pet'} • {pet.sex === 'M' ? '♂️' : pet.sex === 'F' ? '♀️' : '❓'} {pet.sex || 'Unknown'}
+                      {pet.age_years ? ` • ${pet.age_years}y` : pet.age_months ? ` • ${pet.age_months}m` : ''}
+                      {pet.city ? ` • 📍 ${pet.city}` : ''}
                     </p>
-                    <p className="desc">{pet.description || '—'}</p>
+                    <p className="desc">{pet.description || 'No description available'}</p>
                     <div className="actions">
-                      <Link to={`/adopt/${pet.id}`}>Details</Link>
+                      <Link to={`/adopt/${pet.id}`}>View Details →</Link>
                     </div>
                   </div>
                 </article>

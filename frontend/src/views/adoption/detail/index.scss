@@ -1,14 +1,15 @@
 .pet-detail-page {
-    background: #f5f8fb;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     min-height: 100vh;
 }
 
-/* 顶部绿色条 */
+/* Modern hero section with gradient */
 .pet-detail-hero {
-    background: #6ac657;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     padding: 32px 0 80px;
-    /* 下边多一点留白，卡片“嵌入”进去 */
+    /* Lower padding creates embedded card effect */
     color: #fff;
+    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15);
 }
 
 .pet-detail-hero-text .muted {
@@ -28,38 +29,39 @@
     margin-bottom: 32px;
 }
 
-/* 左侧主卡片 */
+/* Modern main card with enhanced depth */
 .pet-detail-main-card {
-    border-radius: 20px;
+    border-radius: 24px;
     overflow: hidden;
     border: none;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
     background: #ffffff;
-    transition: box-shadow 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pet-detail-main-card:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 50px rgba(99, 102, 241, 0.12);
+    transform: translateY(-4px);
 }
 
-/* ====== 图片区域：和参考站相近的比例 / 留白 ====== */
+/* ====== Modern photo area with depth ====== */
 .pet-detail-photo-wrapper {
     position: relative;
-    padding: 20px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    /* 渐变背景 */
+    padding: 24px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+    /* Modern gradient background */
 }
 
 .pet-detail-photo-wrapper img {
     display: block;
     width: 100%;
     max-height: 460px;
-    /* 控制纵向高度，接近截图 */
+    /* Height control for consistent aspect ratio */
     object-fit: cover;
-    /* 超出部分裁剪 */
-    border-radius: 12px;
+    /* Crop overflow content */
+    border-radius: 16px;
     background: #000;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
 }
 
 /* 状态小条 */
@@ -86,17 +88,17 @@
     backdrop-filter: blur(4px);
 }
 
-/* 照片导航按钮 */
+/* Photo navigation button with modern styling */
 .photo-nav-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
     width: 48px;
     height: 48px;
-    border-radius: 50%;
+    border-radius: 12px;
     background: rgba(255, 255, 255, 0.95);
-    border: 2px solid rgba(0, 0, 0, 0.1);
-    color: #333;
+    border: 2px solid rgba(99, 102, 241, 0.2);
+    color: #6366f1;
     font-size: 32px;
     font-weight: 300;
     line-height: 1;
@@ -104,17 +106,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     z-index: 10;
+    backdrop-filter: blur(8px);
 }
 
 .photo-nav-btn:hover {
     background: rgba(255, 255, 255, 1);
-    border-color: #6ac657;
-    color: #6ac657;
+    border-color: #6366f1;
+    color: #fff;
     transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 6px 16px rgba(106, 198, 87, 0.3);
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.25);
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 }
 
 .photo-nav-btn:active {
@@ -129,11 +133,7 @@
     right: 20px;
 }
 
-/* ====== 信息表：左灰右白，颜色贴近截图 ====== */
-.pet-detail-table-wrapper {
-    padding: 0;
-}
-
+/* Modern info table with enhanced styling */
 .pet-detail-table {
     width: 100%;
     border-collapse: collapse;
@@ -143,37 +143,40 @@
 
 .pet-detail-table th,
 .pet-detail-table td {
-    padding: 14px 20px;
-    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-/* 左侧 label 列：浅灰背景 + 深灰文字 */
+/* Left label column: light background with improved spacing */
 .pet-detail-table th {
     width: 38%;
-    background: #f8f9fa;
+    background: #f8fafc;
     font-weight: 600;
-    color: #495057;
-    border-right: 1px solid #e9ecef;
+    color: #4f46e5;
+    border-right: 1px solid #e5e7eb;
 }
 
-/* 右侧 value 列：白底正文色 */
+/* Right value column: white with better typography */
 .pet-detail-table td {
     background: #ffffff;
-    color: #212529;
+    color: #1f2937;
     font-weight: 500;
 }
 
-/* Status badge styling */
+/* Modern status badge with gradient styling */
 .status-badge {
     font-size: 13px;
-    padding: 4px 12px;
-    border-radius: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
     font-weight: 600;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
-/* Address cell with icon */
+/* Address cell with modern styling */
 .address-cell {
-    color: #6ac657;
+    color: #6366f1;
     font-weight: 600;
 }
 
@@ -183,68 +186,76 @@
     border-bottom: none;
 }
 
-/* 描述区域 */
+/* Modern description area with enhanced styling */
 .pet-detail-description {
-    padding: 20px 28px;
-    border-top: 2px solid #f0f0f0;
-    border-bottom: 2px solid #f0f0f0;
-    background: #fafbfc;
+    padding: 24px 28px;
+    border-top: 2px solid #e5e7eb;
+    border-bottom: 2px solid #e5e7eb;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .pet-detail-description p {
     margin: 0;
     font-size: 15px;
-    line-height: 1.7;
-    color: #374151;
+    line-height: 1.8;
+    color: #4b5563;
 }
 
-/* traits 列表，两列小勾勾 */
+/* Modern traits list with improved styling */
 .pet-detail-traits {
-    padding: 16px 24px 20px;
+    padding: 20px 24px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px 24px;
+    gap: 12px 24px;
 }
 
 .trait-item {
     font-size: 14px;
-    color: #111827;
+    color: #1f2937;
     display: flex;
     align-items: center;
 }
 
 .trait-item .bullet {
     display: inline-flex;
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: #22c55e;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     color: #fff;
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    margin-right: 8px;
+    font-weight: 600;
+    margin-right: 10px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
-/* 右侧 shelter 卡片保持之前样式 */
+/* Modern shelter card with enhanced depth */
 .pet-detail-shelter-card {
-    border-radius: 18px;
+    border-radius: 24px;
     border: none;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
     background: #ffffff;
     overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pet-detail-shelter-card:hover {
+    box-shadow: 0 20px 50px rgba(99, 102, 241, 0.12);
+    transform: translateY(-4px);
 }
 
 .pet-detail-shelter-card .card-body {
-    padding: 24px;
+    padding: 28px;
 }
 
-/* 收容所头部 */
+/* Modern shelter header */
 .shelter-header {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     padding-bottom: 24px;
-    border-bottom: 2px solid #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .shelter-logo {
@@ -254,20 +265,21 @@
 .logo-placeholder {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 40px;
     margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
 }
 
 .shelter-name {
     font-weight: 700;
     font-size: 20px;
     color: #1f2937;
-    margin: 12px 0 4px;
+    margin: 14px 0 4px;
 }
 
 .shelter-tagline {
@@ -299,28 +311,39 @@
     margin: 0;
 }
 
-/* 地图部分 */
+/* Modern map card styling */
 .external-map-card {
     margin: 20px 0;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
     background: #ffffff;
-    padding: 10px 12px 12px;
+    padding: 16px;
     font-size: 13px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.external-map-card:hover {
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
+}
+
 .ext-map-header {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     margin-bottom: 8px;
 }
+
 .ext-map-link {
     font-size: 12px;
-    color: #2563eb;
+    color: #6366f1;
     text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .ext-map-link:hover {
+    color: #8b5cf6;
     text-decoration: underline;
 }
 .ext-map-interactive {
@@ -370,12 +393,12 @@
     margin-top: 16px;
 }
 
-/* 联系信息部分 */
+/* Modern shelter contact section */
 .shelter-contact-section {
     margin-bottom: 20px;
-    padding: 16px 0;
-    border-top: 1px solid #f3f4f6;
-    border-bottom: 1px solid #f3f4f6;
+    padding: 18px 0;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .shelter-contact-section .section-title {
@@ -384,75 +407,81 @@
 
 .contact-btn {
     font-weight: 600;
-    border-radius: 8px;
-    padding: 10px 12px;
+    border-radius: 10px;
+    padding: 12px 14px;
     font-size: 14px;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid;
 
     &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
     }
 }
 
 .contact-btn.btn-outline-success {
-    border-color: #6ac657;
-    color: #6ac657;
+    border-color: #6366f1;
+    color: #6366f1;
+    background: transparent;
 
     &:hover {
-        background: #6ac657;
-        border-color: #6ac657;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-color: transparent;
         color: #fff;
     }
 }
 
 .contact-btn.btn-outline-warning {
-    border-color: #f59e0b;
-    color: #d97706;
+    border-color: #8b5cf6;
+    color: #7c3aed;
+    background: transparent;
 
     &:hover {
-        background: #f59e0b;
-        border-color: #f59e0b;
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        border-color: transparent;
         color: #fff;
     }
 }
 
-/* 网站链接 */
-.shelter-footer {
-    text-align: center;
-    margin: 16px 0;
-    padding: 12px 0;
-}
-
+/* Modern shelter website link */
 .shelter-website-link {
     font-size: 14px;
-    color: #2563eb;
+    color: #6366f1;
     text-decoration: none;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        color: #1d4ed8;
+        color: #8b5cf6;
         text-decoration: underline;
     }
 }
 
-/* 元数据 */
+/* Metadata styling */
 .shelter-metadata {
     text-align: center;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #f3f4f6;
+    border-top: 1px solid #e5e7eb;
     color: #9ca3af;
     font-size: 12px;
 }
+
 .shelter-footer {
-    margin-top: 12px;
+    margin-top: 16px;
     font-size: 13px;
+    text-align: center;
 }
 
 .shelter-footer a {
-    color: #2563eb;
+    color: #6366f1;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+        color: #8b5cf6;
+        text-decoration: underline;
+    }
 }
 
 .pet-detail-loading,
@@ -463,7 +492,7 @@
     justify-content: center;
 }
 
-/* 响应式微调：窄屏下卡片堆叠 */
+/* Responsive adjustments for smaller screens */
 @media (max-width: 992px) {
     .pet-detail-content {
         margin-top: -24px;
@@ -474,8 +503,8 @@
     }
 
     .photo-nav-btn {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         font-size: 28px;
     }
 
@@ -491,6 +520,15 @@
         left: 16px;
         top: 48px;
         font-size: 12px;
-        padding: 3px 10px;
+        padding: 4px 10px;
+    }
+
+    .pet-detail-shelter-card {
+        margin-top: 24px;
+    }
+
+    .shelter-logo {
+        width: 70px;
+        height: 70px;
     }
 }
