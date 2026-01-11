@@ -76,6 +76,10 @@ const router: RouteObject[] = [
           element: LazyLoad(lazyWithFallback(() => import('@/views/lost'))),
       },
       {
+        path: '/lost/post',
+          element: LazyLoad(lazyWithFallback(() => import('@/views/lost/post'))),
+      },
+      {
         path: '/lost/:id',
           element: LazyLoad(lazyWithFallback(() => import('@/views/lost/detail'))),
       },

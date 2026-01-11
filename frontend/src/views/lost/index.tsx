@@ -1,11 +1,14 @@
 // src/views/lost/index.tsx
 import { Container } from 'react-bootstrap'
+import { useNavigate } from 'react-router-dom'
 import LostPetsList from './components/LostPetsList'
 import './index.scss'
 
 export default function LostPetsPage() {
+  const navigate = useNavigate()
+  
   const handleReportClick = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    navigate('/lost/post')
   }
 
   return (
