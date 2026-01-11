@@ -195,7 +195,7 @@ export default function MessageCenter() {
       }
       reader.readAsDataURL(file)
     } else {
-      alert('请选择有效的图片文件')
+      alert('Please select a valid image file')
     }
   }
 
@@ -209,7 +209,13 @@ export default function MessageCenter() {
   }
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesEndRef.current) {
+      // 只在容器内滚动，不滚动整个页面
+      const container = messagesEndRef.current.closest('[style*="overflow"]')
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
   }
 
   // 常用emoji表情
@@ -243,11 +249,11 @@ export default function MessageCenter() {
         message: err?.message,
       })
       if (err?.response?.status === 404) {
-        setError('消息接口不存在')
+        setError('Message interface not found')
       } else if (err?.response?.status === 401) {
-        setError('请重新登录')
+        setError('Please log in again')
       } else {
-        setError('加载消息失败')
+        setError('Failed to load messages')
       }
       setMessages([])
     } finally {
@@ -302,14 +308,22 @@ export default function MessageCenter() {
     }
   }, [searchParams, conversations, loadConversation])
 
+  // 翻译消息内容（从中文翻译成英文）
+  const translateMessageContent = (content: string): string => {
+    const translations: { [key: string]: string } = {
+      '我们已成为好友，可以开始聊天了！': 'We are now friends, you can start chatting!',
+    }
+    return translations[content] || content
+  }
+
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return '时间未知'
+    if (!dateStr) return 'Time unknown'
     
     const date = new Date(dateStr)
     
     // 检查日期是否有效
     if (isNaN(date.getTime())) {
-      return '时间未知'
+      return 'Time unknown'
     }
     
     const now = new Date()
@@ -318,17 +332,17 @@ export default function MessageCenter() {
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 1) return '刚刚'
-    if (diffMins < 60) return `${diffMins}分钟前`
-    if (diffHours < 24) return `${diffHours}小时前`
-    if (diffDays < 7) return `${diffDays}天前`
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
 
-    return date.toLocaleDateString('zh-CN')
+    return date.toLocaleDateString('en-US')
   }
 
   const handleAcceptFriendRequest = async (notificationId: number, friendshipId: number | undefined) => {
     if (!friendshipId) {
-      alert('无效的好友请求')
+      alert('Invalid friend request')
       return
     }
     try {
@@ -338,13 +352,13 @@ export default function MessageCenter() {
       loadNotifications()
     } catch (error: any) {
       console.error('Failed to accept friend request:', error)
-      alert('接受好友申请失败')
+      alert('Failed to accept friend request')
     }
   }
 
   const handleRejectFriendRequest = async (notificationId: number, friendshipId: number | undefined) => {
     if (!friendshipId) {
-      alert('无效的好友请求')
+      alert('Invalid friend request')
       return
     }
     try {
@@ -354,7 +368,7 @@ export default function MessageCenter() {
       loadNotifications()
     } catch (error: any) {
       console.error('Failed to reject friend request:', error)
-      alert('拒绝好友申请失败')
+      alert('Failed to reject friend request')
     }
   }
 
@@ -385,7 +399,7 @@ export default function MessageCenter() {
                         </div>
                       ) : conversations.length === 0 ? (
                         <div className="text-center text-muted py-4">
-                          <p>暂无消息</p>
+                          <p>No messages</p>
                         </div>
                       ) : (
                         <div>
@@ -421,7 +435,7 @@ export default function MessageCenter() {
                                         setSelectedUser(null)
                                       }
                                     }}
-                                    title="关闭聊天"
+                                    title="Close chat"
                                     style={{
                                       width: '20px',
                                       height: '20px',
@@ -456,12 +470,19 @@ export default function MessageCenter() {
                                   }}
                                 />
                                 <div className="flex-grow-1 min-w-0">
-                                  <div className="d-flex justify-content-between align-items-center mb-1">
-                                    <strong className="text-dark">{conv.otherUser.username}</strong>
-                                    <small className="text-muted">{formatDate(conv.lastMessageTime || '')}</small>
+                                  <div className="d-flex justify-content-between align-items-start mb-1" style={{ gap: '8px' }}>
+                                    <strong className="text-dark" style={{ whiteSpace: 'nowrap' }}>{conv.otherUser.username}</strong>
+                                    <small className="text-muted" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{formatDate(conv.lastMessageTime || '')}</small>
                                   </div>
-                                  <small className="text-muted text-truncate d-block">
-                                    {conv.lastMessage}
+                                  <small className="text-muted d-block" style={{ 
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    lineHeight: '1.4'
+                                  }}>
+                                    {translateMessageContent(conv.lastMessage || '')}
                                   </small>
                                 </div>
                               </div>
@@ -484,15 +505,11 @@ export default function MessageCenter() {
                         <div className="d-flex flex-column gap-3">
                           {privateMessages
                             .reduce((acc, msg) => {
-                              // 对于系统消息，如果内容相同且时间接近（在1秒内），则跳过
+                              // 对于系统消息，如果内容相同则跳过（去除所有重复的系统消息）
                               if (msg.is_system) {
-                                const lastMsg = acc[acc.length - 1]
-                                if (lastMsg && lastMsg.is_system && lastMsg.content === msg.content) {
-                                  const lastTime = new Date(lastMsg.created_at).getTime()
-                                  const curTime = new Date(msg.created_at).getTime()
-                                  if (Math.abs(curTime - lastTime) < 1000) {
-                                    return acc // 跳过重复的系统消息
-                                  }
+                                const isDuplicate = acc.some(m => m.is_system && m.content === msg.content)
+                                if (isDuplicate) {
+                                  return acc // 跳过重复的系统消息
                                 }
                               }
                               return [...acc, msg]
@@ -522,7 +539,7 @@ export default function MessageCenter() {
                                       wordBreak: 'break-word'
                                     }}
                                   >
-                                    <p className="mb-1">{msg.content}</p>
+                                    <p className="mb-1">{translateMessageContent(msg.content)}</p>
                                     <small style={{ fontSize: '0.7rem', color: '#bbb' }}>
                                       {formatDate(msg.created_at)}
                                     </small>
@@ -687,20 +704,20 @@ export default function MessageCenter() {
                             variant="outline-secondary"
                             size="sm"
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            title="表情"
+                            title="Emoji"
                           >
                             <i className="bi bi-emoji-smile me-1"></i>
-                            表情
+                            emoji
                           </Button>
                           
                           <Button
                             variant="outline-secondary"
                             size="sm"
                             onClick={() => fileInputRef.current?.click()}
-                            title="图片"
+                            title="Image"
                           >
                             <i className="bi bi-image me-1"></i>
-                            图片
+                            image
                           </Button>
                           
                           <input
@@ -719,7 +736,7 @@ export default function MessageCenter() {
                             className="ms-auto"
                           >
                             <i className="bi bi-send me-1"></i>
-                            发送
+                            Send
                           </Button>
                         </div>
                       </Card.Footer>
@@ -728,7 +745,7 @@ export default function MessageCenter() {
                     <Card className="shadow-sm border-0">
                       <Card.Body className="text-center py-5 text-muted">
                         <i className="bi bi-chat" style={{ fontSize: '3rem' }}></i>
-                        <div className="mt-3">选择一个对话开始聊天</div>
+                        <div className="mt-3">Select a conversation to start chatting</div>
                       </Card.Body>
                     </Card>
                   )}
@@ -743,14 +760,14 @@ export default function MessageCenter() {
             {loading ? (
               <div className="text-center py-5">
                 <Spinner animation="border" variant="primary" />
-                <div className="mt-3">加载中...</div>
+                <div className="mt-3">Loading...</div>
               </div>
             ) : error ? (
               <Alert variant="warning">{error}</Alert>
             ) : messages.length === 0 ? (
               <div className="text-center py-5 text-muted">
-                <i className="bi bi-chat-left" style={{ fontSize: '3rem' }}></i>
-                <div className="mt-3">暂无回复</div>
+                <i className="bi bi-chat-dots" style={{ fontSize: '3rem' }}></i>
+                <div className="mt-3">No replies yet</div>
               </div>
             ) : (
               <div className="reply-cards">
@@ -802,7 +819,7 @@ export default function MessageCenter() {
             {loading ? (
               <div className="text-center py-5">
                 <Spinner animation="border" variant="primary" />
-                <div className="mt-3">加载中...</div>
+                <div className="mt-3">Loading...</div>
               </div>
             ) : error ? (
               <Alert variant="warning">{error}</Alert>
@@ -819,9 +836,9 @@ export default function MessageCenter() {
                       <div className="d-flex align-items-start gap-3">
                         <div className="flex-grow-1">
                           <div className="d-flex align-items-center gap-2 mb-2">
-                            <strong>{notif.from_user?.username || '系统'}</strong>
+                            <strong>{notif.from_user?.username || 'System'}</strong>
                             <Badge bg={notif.notification_type === 'friend_request' ? 'info' : 'warning'}>
-                              {notif.notification_type === 'friend_request' ? '好友申请' : 
+                              {notif.notification_type === 'friend_request' ? 'Friend Request' : 
                                notif.notification_type === 'reply' ? 'Reply' : 'Notification'}
                             </Badge>
                             <small className="text-muted ms-auto">{formatDate(notif.created_at)}</small>
@@ -839,7 +856,7 @@ export default function MessageCenter() {
                             onClick={() => handleAcceptFriendRequest(notif.id, notif.friendship_id)}
                           >
                             <i className="bi bi-check-circle me-1"></i>
-                            同意
+                            Accept
                           </button>
                           <button
                             type="button"
@@ -847,7 +864,7 @@ export default function MessageCenter() {
                             onClick={() => handleRejectFriendRequest(notif.id, notif.friendship_id)}
                           >
                             <i className="bi bi-x-circle me-1"></i>
-                            拒绝
+                            Reject
                           </button>
                         </div>
                       )}

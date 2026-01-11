@@ -574,7 +574,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         friendship.save()
         
         # 创建系统消息：为两边创建相同内容的系统消息
-        message_content = '我们已成为好友，可以开始聊天了！'
+        message_content = 'We are now friends, you can start chatting!'
         
         # 为发送者创建一条
         PrivateMessage.objects.create(
