@@ -26,9 +26,9 @@ export default function ViewUserProfile() {
         if (!alive) return
         setCurrentUser(current)
 
-        // 验证userId
+        // Validate userId
         if (!userId) {
-          setError('用户ID不存在')
+          setError('User ID does not exist')
           setLoading(false)
           return
         }
@@ -58,7 +58,7 @@ export default function ViewUserProfile() {
         setUserData(userData)
       } catch (e: any) {
         if (alive) {
-          setError(e?.response?.data?.detail || '加载用户信息失败')
+          setError(e?.response?.data?.detail || 'Failed to load user information')
         }
       } finally {
         if (alive) setLoading(false)
@@ -72,7 +72,7 @@ export default function ViewUserProfile() {
     return (
       <Container className="py-5 text-center">
         <Spinner animation="border" variant="primary" />
-        <div className="mt-3">加载中…</div>
+        <div className="mt-3">Loading...</div>
       </Container>
     )
   }
@@ -88,7 +88,7 @@ export default function ViewUserProfile() {
   if (!userData) {
     return (
       <Container className="py-5">
-        <Alert variant="warning">用户信息未找到</Alert>
+        <Alert variant="warning">User information not found</Alert>
       </Container>
     )
   }

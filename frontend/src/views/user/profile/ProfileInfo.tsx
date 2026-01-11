@@ -52,7 +52,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError('文件大小超过 5MB')
+      setUploadError('File size exceeds 5MB')
       return
     }
 
@@ -113,7 +113,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
       console.warn('Starting image preload with URL:', newAvatarUrl)
       preloadImg.src = newAvatarUrl || ''
     } catch (error: any) {
-      setUploadError(error?.response?.data?.error || '头像上传失败，请重试')
+      setUploadError(error?.response?.data?.error || 'Avatar upload failed, please try again')
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -165,7 +165,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
       }
       preloadImg.src = newAvatarUrl || ''
     } catch (error: any) {
-      alert(error?.response?.data?.error || '重置头像失败')
+      alert(error?.response?.data?.error || 'Failed to reset avatar')
     } finally {
       setResettingAvatar(false)
     }
@@ -177,7 +177,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
       const { data } = await authApi.addFriend(me.id)
       setFriendshipStatus(data)
     } catch (error: any) {
-      alert(error?.response?.data?.error || '添加好友失败')
+      alert(error?.response?.data?.error || 'Failed to add friend')
     } finally {
       setLoadingFriendship(false)
     }
@@ -206,7 +206,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
       const { data } = await authApi.rejectFriendRequest(friendshipStatus.id)
       setFriendshipStatus(data)
     } catch (error: any) {
-      alert(error?.response?.data?.error || '拒绝好友请求失败')
+      alert(error?.response?.data?.error || 'Failed to reject friend request')
     } finally {
       setLoadingFriendship(false)
     }
@@ -225,7 +225,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
       setEditData(data)
       setIsEditing(false)
     } catch (error: any) {
-      alert(error?.response?.data?.error || '保存个人信息失败')
+      alert(error?.response?.data?.error || 'Failed to save profile information')
     } finally {
       setSaving(false)
     }
@@ -240,9 +240,9 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
       await authApi.sendMessage(me.id, messageContent)
       setMessageContent('')
       setShowMessageModal(false)
-      alert('消息已发送')
+      alert('Message sent successfully')
     } catch (error: any) {
-      setMessageError(error?.response?.data?.error || '消息发送失败')
+      setMessageError(error?.response?.data?.error || 'Failed to send message')
     } finally {
       setSendingMessage(false)
     }
@@ -258,7 +258,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
         closed.delete(me.id)
         localStorage.setItem('closedConversations', JSON.stringify(Array.from(closed)))
       } catch (e) {
-        console.error('清除已关闭对话失败:', e)
+        console.error('Failed to clear closed conversations:', e)
       }
     }
     // 导航到消息中心
@@ -280,7 +280,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
         <div className="profile-card-header">
           <div className="header-title">
             <i className="bi bi-person-circle"></i>
-            <h5 className="mb-0">基本信息</h5>
+            <h5 className="mb-0">Basic Information</h5>
           </div>
           {!isOtherUserProfile && (
             <div className="header-actions">
@@ -293,7 +293,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     disabled={saving}
                   >
                     <i className="bi bi-check-lg me-1"></i>
-                    {saving ? '保存中...' : '保存'}
+                    {saving ? 'Saving...' : 'Save'}
                   </Button>
                   <Button
                     size="sm"
@@ -305,7 +305,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     disabled={saving}
                   >
                     <i className="bi bi-x-lg me-1"></i>
-                    取消
+                    Cancel
                   </Button>
                 </>
               ) : (
@@ -315,7 +315,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                   onClick={() => setIsEditing(true)}
                 >
                   <i className="bi bi-pencil me-1"></i>
-                  编辑信息
+                  Edit Profile
                 </Button>
               )}
             </div>
@@ -363,7 +363,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                       className="d-flex align-items-center gap-1"
                     >
                       <i className="bi bi-cloud-upload"></i>
-                      {uploading ? '上传中...' : '上传头像'}
+                      {uploading ? 'Uploading...' : 'Upload Avatar'}
                     </Button>
                     <Button
                       size="sm"
@@ -373,12 +373,12 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                       className="d-flex align-items-center gap-1"
                     >
                       <i className="bi bi-arrow-counterclockwise"></i>
-                      重置
+                      Reset
                     </Button>
                   </div>
                   <small className="text-muted d-block">
                     <i className="bi bi-info-circle me-1"></i>
-                    支持 JPG、PNG、GIF、WebP，最大 5MB
+                    Supports JPG, PNG, GIF, WebP. Max 5MB
                   </small>
                 </>
               )}
@@ -388,24 +388,24 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
           {/* User Info Grid */}
           <div className="info-grid">
             <div className="info-item">
-              <label className="info-label">用户名</label>
+              <label className="info-label">Username</label>
               <div className="info-value">{userData?.username || '—'}</div>
             </div>
             
             <div className="info-item">
-              <label className="info-label">邮箱</label>
+              <label className="info-label">Email</label>
               <div className="info-value">{userData?.email || '—'}</div>
             </div>
 
             <div className="info-item">
-              <label className="info-label">姓氏</label>
+              <label className="info-label">Last Name</label>
               <div className="info-value">
                 {isEditing && !isOtherUserProfile ? (
                   <input
                     type="text"
                     value={(editData as any).last_name || ''}
                     onChange={(e: any) => setEditData({...editData, last_name: e.target.value})}
-                    placeholder="输入姓氏"
+                    placeholder="Enter last name"
                     className="form-control form-control-sm"
                   />
                 ) : (
@@ -415,14 +415,14 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             </div>
 
             <div className="info-item">
-              <label className="info-label">名字</label>
+              <label className="info-label">First Name</label>
               <div className="info-value">
                 {isEditing && !isOtherUserProfile ? (
                   <input
                     type="text"
                     value={(editData as any).first_name || ''}
                     onChange={(e: any) => setEditData({...editData, first_name: e.target.value})}
-                    placeholder="输入名字"
+                    placeholder="Enter first name"
                     className="form-control form-control-sm"
                   />
                 ) : (
@@ -432,14 +432,14 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             </div>
 
             <div className="info-item">
-              <label className="info-label">电话</label>
+              <label className="info-label">Phone</label>
               <div className="info-value">
                 {isEditing && !isOtherUserProfile ? (
                   <input
                     type="tel"
                     value={(editData as any).phone || ''}
                     onChange={(e: any) => setEditData({...editData, phone: e.target.value})}
-                    placeholder="输入电话号码"
+                    placeholder="Enter phone number"
                     className="form-control form-control-sm"
                   />
                 ) : (
@@ -449,7 +449,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             </div>
 
             <div className="info-item">
-              <label className="info-label">养宠经验</label>
+              <label className="info-label">Pet Experience</label>
               <div className="info-value">
                 {isEditing && !isOtherUserProfile ? (
                   <div className="form-check">
@@ -461,13 +461,13 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                       onChange={(e: any) => setEditData({...editData, has_experience: e.target.checked})}
                     />
                     <label className="form-check-label" htmlFor="petExp">
-                      有养宠物经验
+                      Have pet experience
                     </label>
                   </div>
                 ) : (
                   <span className={`badge ${(userData as any)?.has_experience ? 'bg-success' : 'bg-secondary'}`}>
                     <i className={`bi ${(userData as any)?.has_experience ? 'bi-check' : 'bi-dash'} me-1`}></i>
-                    {(userData as any)?.has_experience ? '有经验' : '无经验'}
+                    {(userData as any)?.has_experience ? 'Experienced' : 'No experience'}
                   </span>
                 )}
               </div>
@@ -479,11 +479,11 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             <div className="pet-care-section">
               <div className="section-title">
                 <i className="bi bi-heart-fill"></i>
-                宠物信息
+                Pet Information
               </div>
               <div className="pet-info-items">
                 <div className="pet-info-item">
-                  <label className="pet-label">🏠 居住环境</label>
+                  <label className="pet-label">🏠 Living Situation</label>
                   <div className="pet-value">
                     {isEditing ? (
                       <select
@@ -491,11 +491,11 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                         onChange={(e: any) => setEditData({...editData, living_situation: e.target.value})}
                         className="form-select form-select-sm"
                       >
-                        <option value="">选择居住环境</option>
-                        <option value="apartment">🏢 公寓</option>
-                        <option value="house">🏠 独栋房屋</option>
-                        <option value="townhouse">🏘️ 联排别墅</option>
-                        <option value="farm">🌾 农场</option>
+                        <option value="">Select living situation</option>
+                        <option value="apartment">🏢 Apartment</option>
+                        <option value="house">🏠 House</option>
+                        <option value="townhouse">🏘️ Townhouse</option>
+                        <option value="farm">🌾 Farm</option>
                       </select>
                     ) : (
                       getLivingSituationLabel((userData as any)?.living_situation)
@@ -504,7 +504,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                 </div>
 
                 <div className="pet-info-item">
-                  <label className="pet-label">🏡 有无院子</label>
+                  <label className="pet-label">🏡 Has Yard</label>
                   <div className="pet-value">
                     {isEditing ? (
                       <div className="form-check form-switch">
@@ -516,13 +516,13 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                           onChange={(e: any) => setEditData({...editData, has_yard: e.target.checked})}
                         />
                         <label className="form-check-label" htmlFor="yardSwitch">
-                          有院子
+                          Has yard
                         </label>
                       </div>
                     ) : (
                       <span className={`badge ${(userData as any)?.has_yard ? 'bg-success' : 'bg-secondary'}`}>
                         <i className={`bi ${(userData as any)?.has_yard ? 'bi-check' : 'bi-dash'} me-1`}></i>
-                        {(userData as any)?.has_yard ? '有' : '无'}
+                        {(userData as any)?.has_yard ? 'Yes' : 'No'}
                       </span>
                     )}
                   </div>
@@ -536,7 +536,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             <div className="friend-actions">
               <h6 className="mb-3">
                 <i className="bi bi-person-plus me-2"></i>
-                操作
+                Actions
               </h6>
               <div className="action-buttons">
                 {friendshipStatus?.status === 'accepted' ? (
@@ -547,7 +547,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     className="d-flex align-items-center gap-1"
                   >
                     <i className="bi bi-chat-dots"></i>
-                    发送私信
+                    Send Message
                   </Button>
                 ) : !friendshipStatus?.status ? (
                   <>
@@ -559,7 +559,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                       className="d-flex align-items-center gap-1"
                     >
                       <i className="bi bi-person-plus"></i>
-                      {loadingFriendship ? '加载中...' : '添加好友'}
+                      {loadingFriendship ? 'Loading...' : 'Add Friend'}
                     </Button>
                     <Button
                       variant="outline-secondary"
@@ -577,7 +577,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                       <>
                         <Button variant="secondary" size="sm" disabled className="d-flex align-items-center gap-1">
                           <i className="bi bi-check-circle"></i>
-                          已发送申请
+                          Request Sent
                         </Button>
                         <Button
                           variant="outline-secondary"
@@ -599,7 +599,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                           className="d-flex align-items-center gap-1"
                         >
                           <i className="bi bi-check-lg"></i>
-                          接受请求
+                          Accept Request
                         </Button>
                         <Button
                           variant="outline-danger"
@@ -609,7 +609,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                           className="d-flex align-items-center gap-1"
                         >
                           <i className="bi bi-x-lg"></i>
-                          拒绝
+                          Reject
                         </Button>
                         <Button
                           variant="outline-secondary"
@@ -635,24 +635,24 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
         <Modal.Header closeButton className="border-bottom-0">
           <Modal.Title className="fw-600">
             <i className="bi bi-exclamation-triangle me-2 text-warning"></i>
-            确认重置头像
+            Confirm Reset Avatar
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <p className="mb-0">
-            确定要将头像重置为默认头像吗？此操作无法撤销。
+            Are you sure you want to reset your avatar to the default? This action cannot be undone.
           </p>
         </Modal.Body>
         <Modal.Footer className="border-top-0">
           <Button variant="secondary" onClick={() => setShowResetModal(false)}>
-            取消
+            Cancel
           </Button>
           <Button 
             variant="danger" 
             onClick={handleResetAvatar}
             disabled={resettingAvatar}
           >
-            {resettingAvatar ? '重置中...' : '确认重置'}
+            {resettingAvatar ? 'Resetting...' : 'Confirm Reset'}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -662,7 +662,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
         <Modal.Header closeButton className="border-bottom-0">
           <Modal.Title className="fw-600">
             <i className="bi bi-chat-dots me-2"></i>
-            给 {userData?.username} 发送消息
+            Send Message to {userData?.username}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -673,13 +673,13 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             </Alert>
           )}
           <Form.Group>
-            <Form.Label className="fw-600 mb-2">消息内容</Form.Label>
+            <Form.Label className="fw-600 mb-2">Message</Form.Label>
             <Form.Control
               as="textarea"
               rows={4}
               value={messageContent}
               onChange={(e) => setMessageContent(e.target.value)}
-              placeholder="输入你想说的话…"
+              placeholder="Type your message..."
               disabled={sendingMessage}
               maxLength={500}
               className="form-control-lg"
@@ -690,14 +690,14 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             {friendshipStatus?.status !== 'accepted' && (
               <Alert variant="warning" className="mt-2 mb-0 py-2">
                 <i className="bi bi-info-circle me-2"></i>
-                非好友每天最多发送3条消息
+                Non-friends can send up to 3 messages per day
               </Alert>
             )}
           </Form.Group>
         </Modal.Body>
         <Modal.Footer className="border-top-0">
           <Button variant="secondary" onClick={() => setShowMessageModal(false)}>
-            取消
+            Cancel
           </Button>
           <Button
             variant="primary"
@@ -707,12 +707,12 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
             {sendingMessage ? (
               <>
                 <Spinner animation="border" size="sm" className="me-2" />
-                发送中...
+                Sending...
               </>
             ) : (
               <>
                 <i className="bi bi-send me-1"></i>
-                发送
+                Send
               </>
             )}
           </Button>
@@ -725,10 +725,10 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
 function getLivingSituationLabel(situation?: string): string {
   if (!situation) return '—'
   const situationMap: Record<string, string> = {
-    apartment: '🏢 公寓',
-    house: '🏠 独栋房屋',
-    townhouse: '🏘️ 联排别墅',
-    farm: '🌾 农场'
+    apartment: '🏢 Apartment',
+    house: '🏠 House',
+    townhouse: '🏘️ Townhouse',
+    farm: '🌾 Farm'
   }
   return situationMap[situation] || situation
 }

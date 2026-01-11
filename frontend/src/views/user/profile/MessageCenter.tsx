@@ -263,7 +263,7 @@ export default function MessageCenter() {
       setNotifications(data || [])
     } catch (err: any) {
       console.error('Failed to load notifications:', err)
-      setError('加载通知失败')
+      setError('Failed to load notifications')
       setNotifications([])
     } finally {
       setLoading(false)
@@ -365,7 +365,7 @@ export default function MessageCenter() {
         onSelect={(k) => setMessageType((k as MessageType) || 'private')}
         className="mb-3"
       >
-        <Tab eventKey="private" title="我的消息">
+        <Tab eventKey="private" title="My Messages">
           <div className="message-content private-messages-container">
             <Container fluid className="py-3">
               <Row className="g-3" style={{ minHeight: '400px' }}>
@@ -375,7 +375,7 @@ export default function MessageCenter() {
                     <Card.Header className="bg-white border-bottom">
                       <h5 className="mb-0">
                         <i className="bi bi-chat-dots-fill me-2"></i>
-                        消息列表
+                        Message List
                       </h5>
                     </Card.Header>
                     <Card.Body className="p-0 overflow-auto" style={{ maxHeight: '500px' }}>
@@ -661,7 +661,7 @@ export default function MessageCenter() {
 
                         <InputGroup>
                           <Form.Control
-                            placeholder="输入消息..."
+                            placeholder="Type message..."
                             value={messageInput}
                             onChange={(e) => setMessageInput(e.target.value)}
                             onKeyPress={(e) => {
@@ -738,7 +738,7 @@ export default function MessageCenter() {
           </div>
         </Tab>
 
-        <Tab eventKey="replies" title="回复我的">
+        <Tab eventKey="replies" title="Replies to Me">
           <div className="message-content reply-cards-container">
             {loading ? (
               <div className="text-center py-5">
@@ -797,7 +797,7 @@ export default function MessageCenter() {
           </div>
         </Tab>
 
-        <Tab eventKey="notifications" title="通知">
+        <Tab eventKey="notifications" title="Notifications">
           <div className="message-content notifications-container">
             {loading ? (
               <div className="text-center py-5">
@@ -809,7 +809,7 @@ export default function MessageCenter() {
             ) : notifications.length === 0 ? (
               <div className="text-center py-5 text-muted">
                 <i className="bi bi-bell" style={{ fontSize: '3rem' }}></i>
-                <div className="mt-3">暂无通知</div>
+                <div className="mt-3">No notifications</div>
               </div>
             ) : (
               <div className="notifications-list">
@@ -822,7 +822,7 @@ export default function MessageCenter() {
                             <strong>{notif.from_user?.username || '系统'}</strong>
                             <Badge bg={notif.notification_type === 'friend_request' ? 'info' : 'warning'}>
                               {notif.notification_type === 'friend_request' ? '好友申请' : 
-                               notif.notification_type === 'reply' ? '回复' : '通知'}
+                               notif.notification_type === 'reply' ? 'Reply' : 'Notification'}
                             </Badge>
                             <small className="text-muted ms-auto">{formatDate(notif.created_at)}</small>
                           </div>

@@ -36,7 +36,7 @@ export default function Profile() {
         
         setMe(current)
       } catch (e: any) {
-        setError(e?.response?.data?.detail || '加载用户信息失败')
+        setError(e?.response?.data?.detail || 'Failed to load user information')
       } finally {
         if (alive) setLoading(false)
       }
@@ -71,7 +71,7 @@ export default function Profile() {
       {/* 顶部菜单栏 */}
       <div className="profile-header mb-4 pb-3" style={{ borderBottom: '1px solid #e0e0e0' }}>
         <div className="d-flex align-items-center gap-4 flex-wrap">
-          <h4 className="mb-0">我的账户</h4>
+          <h4 className="mb-0">My Account</h4>
           <Nav className="gap-3">
             <Nav.Link
               href="#info"
@@ -80,7 +80,7 @@ export default function Profile() {
               style={{ padding: 0 }}
             >
               <i className="bi bi-person-circle me-2"></i>
-              个人信息
+              Personal Info
             </Nav.Link>
             <Nav.Link
               href="#favorite-pets"
@@ -89,7 +89,7 @@ export default function Profile() {
               style={{ padding: 0 }}
             >
               <i className="bi bi-star-fill me-2"></i>
-              收藏的宠物
+              Favorite Pets
             </Nav.Link>
             <Nav.Link
               href="#favorite-articles"
@@ -98,7 +98,7 @@ export default function Profile() {
               style={{ padding: 0 }}
             >
               <i className="bi bi-bookmark-star-fill me-2"></i>
-              收藏的文章
+              Favorite Articles
             </Nav.Link>
             <Nav.Link
               href="#my-articles"
@@ -107,7 +107,7 @@ export default function Profile() {
               style={{ padding: 0 }}
             >
               <i className="bi bi-file-earmark-text me-2"></i>
-              我的文章
+              My Articles
             </Nav.Link>
             <Nav.Link
               href="#my-pets"
@@ -116,7 +116,7 @@ export default function Profile() {
               style={{ padding: 0 }}
             >
               <i className="bi bi-heart-fill me-2"></i>
-              我的宠物
+              My Pets
             </Nav.Link>
             <Nav.Link
               href="#friends"
@@ -125,7 +125,7 @@ export default function Profile() {
               style={{ padding: 0 }}
             >
               <i className="bi bi-people-fill me-2"></i>
-              我的好友
+              My Friends
             </Nav.Link>
             <Nav.Link
               href="#message-center"
@@ -134,7 +134,7 @@ export default function Profile() {
               style={{ padding: 0 }}
             >
               <i className="bi bi-chat-dots-fill me-2"></i>
-              消息中心
+              Message Center
             </Nav.Link>
           </Nav>
         </div>
@@ -168,7 +168,7 @@ function FavoritesList() {
         setFavorites(data.results || [])
       } catch (e: any) {
         if (!alive) return
-        setError(e?.response?.data?.detail || '加载收藏失败')
+        setError(e?.response?.data?.detail || 'Failed to load favorites')
       } finally {
         if (alive) setLoading(false)
       }
@@ -180,7 +180,7 @@ function FavoritesList() {
     return (
       <div className="text-center py-5">
         <Spinner animation="border" variant="primary" />
-        <div className="mt-3">加载中…</div>
+        <div className="mt-3">Loading...</div>
       </div>
     )
   }
@@ -194,8 +194,8 @@ function FavoritesList() {
       <Card className="shadow-sm text-center py-5">
         <Card.Body>
           <i className="bi bi-star text-muted" style={{ fontSize: '4rem' }}></i>
-          <h5 className="mt-3 text-muted">还没有收藏任何宠物</h5>
-          <p className="text-muted">去 <Link to="/adopt">领养页面</Link> 看看吧</p>
+          <h5 className="mt-3 text-muted">No favorite pets yet</h5>
+          <p className="text-muted">Visit the <Link to="/adopt">Adoption page</Link> to see more pets</p>
         </Card.Body>
       </Card>
     )
@@ -205,7 +205,7 @@ function FavoritesList() {
     <div>
       <Card className="shadow-sm mb-3">
         <Card.Header className="bg-white border-bottom">
-          <h4 className="mb-0">我的收藏 ({favorites.length})</h4>
+          <h4 className="mb-0">My Favorites ({favorites.length})</h4>
         </Card.Header>
       </Card>
       <Row className="g-4">
@@ -227,7 +227,7 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
     e.stopPropagation()
     if (removing) return
 
-    if (!window.confirm('取消收藏这只宠物吗？')) return
+    if (!window.confirm('Remove this pet from favorites?')) return
 
     setRemoving(true)
     try {
@@ -235,18 +235,18 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
       onRemove(pet.id)
     } catch (err) {
       console.error('Remove favorite failed:', err)
-      alert('取消收藏失败')
+      alert('Failed to remove from favorites')
       setRemoving(false)
     }
   }
 
   const ageText = () => {
     if (pet.age_years || pet.age_months) {
-      const yy = pet.age_years ? `${pet.age_years}岁` : ''
-      const mm = pet.age_months ? `${pet.age_months}月` : ''
+      const yy = pet.age_years ? `${pet.age_years} years` : ''
+      const mm = pet.age_months ? `${pet.age_months} months` : ''
       return [yy, mm].filter(Boolean).join(' ')
     }
-    return '年龄未知'
+    return 'Age unknown'
   }
 
   return (
@@ -256,8 +256,8 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
         className="pet-card-fav-btn"
         onClick={handleRemove}
         disabled={removing}
-        aria-label="取消收藏"
-        title="点击取消收藏"
+        aria-label="Remove from favorites"
+        title="Click to remove from favorites"
       >
         {removing ? (
           <span className="spinner-border spinner-border-sm"></span>
@@ -280,10 +280,10 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
           <Card.Title className="fs-5 fw-bold mb-2">{pet.name}</Card.Title>
           <Card.Text className="text-muted small mb-2">
             <i className="bi bi-geo-alt me-1"></i>
-            {pet.address_display || pet.city || '位置未知'}
+            {pet.address_display || pet.city || 'Location unknown'}
           </Card.Text>
           <Card.Text className="small">
-            <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
+            <span className="badge bg-light text-dark me-2">{pet.species || 'Pet'}</span>
             <span className="text-muted">{ageText()}</span>
           </Card.Text>
         </Link>
@@ -306,7 +306,7 @@ function MyPetsList() {
         setPets(data.results || [])
       } catch (e: any) {
         if (!alive) return
-        setError(e?.response?.data?.detail || '加载我的宠物失败')
+        setError(e?.response?.data?.detail || 'Failed to load my pets')
       } finally {
         if (alive) setLoading(false)
       }
@@ -318,7 +318,7 @@ function MyPetsList() {
     return (
       <div className="text-center py-5">
         <Spinner animation="border" variant="primary" />
-        <div className="mt-3">加载中…</div>
+        <div className="mt-3">Loading...</div>
       </div>
     )
   }
@@ -332,8 +332,8 @@ function MyPetsList() {
       <Card className="shadow-sm text-center py-5">
         <Card.Body>
           <i className="bi bi-heart text-muted" style={{ fontSize: '4rem' }}></i>
-          <h5 className="mt-3 text-muted">还没有发布宠物</h5>
-          <p className="text-muted">去 <Link to="/adopt">领养页面</Link> 发布您的宠物吧</p>
+          <h5 className="mt-3 text-muted">No pets published yet</h5>
+          <p className="text-muted">Visit the <Link to="/adopt">Adoption page</Link> to publish your pet</p>
         </Card.Body>
       </Card>
     )
@@ -343,7 +343,7 @@ function MyPetsList() {
     <div>
       <Card className="shadow-sm mb-3">
         <Card.Header className="bg-white border-bottom">
-          <h4 className="mb-0">我的宠物 ({pets.length})</h4>
+          <h4 className="mb-0">My Pets ({pets.length})</h4>
         </Card.Header>
       </Card>
       <Row className="g-4">
@@ -365,7 +365,7 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
     e.stopPropagation()
     if (removing) return
     
-    if (!window.confirm('确定要删除这只宠物吗？这将移除您发布的宠物信息。')) return
+    if (!window.confirm('Are you sure you want to delete this pet? This will remove your published pet information.')) return
 
     setRemoving(true)
     try {
@@ -373,28 +373,28 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
       onRemove(pet.id)
     } catch (err) {
       console.error('Remove pet failed:', err)
-      alert('删除宠物失败')
+      alert('Failed to delete pet')
       setRemoving(false)
     }
   }
 
   const ageText = () => {
     if (pet.age_years || pet.age_months) {
-      const yy = pet.age_years ? `${pet.age_years}岁` : ''
-      const mm = pet.age_months ? `${pet.age_months}月` : ''
+      const yy = pet.age_years ? `${pet.age_years} years` : ''
+      const mm = pet.age_months ? `${pet.age_months} months` : ''
       return [yy, mm].filter(Boolean).join(' ')
     }
-    return '年龄未知'
+    return 'Age unknown'
   }
 
   const statusBadge = () => {
     const statusMap: Record<string, { text: string; variant: string }> = {
-      AVAILABLE: { text: '可领养', variant: 'success' },
-      PENDING: { text: '待审核', variant: 'warning' },
-      ADOPTED: { text: '已领养', variant: 'secondary' },
-      LOST: { text: '走失', variant: 'danger' },
-      DRAFT: { text: '草稿', variant: 'light' },
-      ARCHIVED: { text: '已下架', variant: 'dark' }
+      AVAILABLE: { text: 'Available', variant: 'success' },
+      PENDING: { text: 'Pending', variant: 'warning' },
+      ADOPTED: { text: 'Adopted', variant: 'secondary' },
+      LOST: { text: 'Lost', variant: 'danger' },
+      DRAFT: { text: 'Draft', variant: 'light' },
+      ARCHIVED: { text: 'Archived', variant: 'dark' }
     }
     const status = statusMap[pet.status || 'AVAILABLE'] || statusMap.AVAILABLE
     return <span className={`badge bg-${status.variant} me-2`}>{status.text}</span>
@@ -407,8 +407,8 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
         className="pet-card-delete-btn"
         onClick={handleRemove}
         disabled={removing}
-        aria-label="删除宠物"
-        title="删除宠物"
+        aria-label="Delete pet"
+        title="Delete pet"
       >
         {removing ? (
           <span className="spinner-border spinner-border-sm"></span>
@@ -431,11 +431,11 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
           <Card.Title className="fs-5 fw-bold mb-2">{pet.name}</Card.Title>
           <Card.Text className="text-muted small mb-2">
             <i className="bi bi-geo-alt me-1"></i>
-            {pet.address_display || pet.city || '位置未知'}
+            {pet.address_display || pet.city || 'Location unknown'}
           </Card.Text>
           <Card.Text className="small">
             {statusBadge()}
-            <span className="badge bg-light text-dark me-2">{pet.species || '宠物'}</span>
+            <span className="badge bg-light text-dark me-2">{pet.species || 'Pet'}</span>
             <span className="text-muted">{ageText()}</span>
           </Card.Text>
         </Link>

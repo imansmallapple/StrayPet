@@ -32,13 +32,13 @@ export default function FavoriteArticlesList() {
     e.preventDefault()
     e.stopPropagation()
     
-    if (!confirm('确定要取消收藏这篇文章吗？')) return
+    if (!confirm('Are you sure you want to unfavorite this article?')) return
 
     try {
       await blogApi.unfavoriteArticle(articleId)
       refresh()
     } catch (_err) {
-      alert('取消收藏失败，请稍后重试')
+      alert('Failed to unfavorite, please try again')
     }
   }
 
@@ -47,7 +47,7 @@ export default function FavoriteArticlesList() {
       <Card className="shadow-sm">
         <Card.Body className="text-center py-5">
           <Spinner animation="border" variant="primary" />
-          <div className="mt-3">加载中...</div>
+          <div className="mt-3">Loading...</div>
         </Card.Body>
       </Card>
     )
@@ -57,7 +57,7 @@ export default function FavoriteArticlesList() {
     return (
       <Card className="shadow-sm">
         <Card.Body>
-          <Alert variant="danger">加载失败，请稍后重试</Alert>
+          <Alert variant="danger">Failed to load, please try again</Alert>
         </Card.Body>
       </Card>
     )
@@ -68,16 +68,16 @@ export default function FavoriteArticlesList() {
       <Card.Header className="bg-white border-bottom">
         <h5 className="mb-0">
           <i className="bi bi-bookmark-star-fill me-2"></i>
-          收藏的文章
+          Favorite Articles
         </h5>
       </Card.Header>
       <Card.Body>
         {articles.length === 0 ? (
           <div className="text-center py-5 text-muted">
             <i className="bi bi-bookmark fs-1 d-block mb-3"></i>
-            <p>你还没有收藏任何文章</p>
+            <p>You have not favorited any articles yet</p>
             <Link to="/blog" className="btn btn-outline-primary">
-              去发现好文章
+              Discover great articles
             </Link>
           </div>
         ) : (
@@ -90,8 +90,8 @@ export default function FavoriteArticlesList() {
                       type="button"
                       className="article-unfav-btn"
                       onClick={(e) => handleUnfavorite(article.id, e)}
-                      title="取消收藏"
-                      aria-label="取消收藏文章"
+                      title="Unfavorite"
+                      aria-label="Unfavorite article"
                     >
                       <i className="bi bi-bookmark-x-fill"></i>
                     </button>

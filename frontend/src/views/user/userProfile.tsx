@@ -26,7 +26,7 @@ export default function UserProfile() {
 
         // 获取要显示的用户信息
         if (!userId) {
-          setError('用户ID不存在')
+          setError('User ID does not exist')
           return
         }
 
@@ -43,7 +43,7 @@ export default function UserProfile() {
         if (!alive) return
         setUserData(data)
       } catch (e: any) {
-        setError(e?.response?.data?.detail || '加载用户信息失败')
+        setError(e?.response?.data?.detail || 'Failed to load user information')
       } finally {
         if (alive) setLoading(false)
       }
@@ -55,7 +55,7 @@ export default function UserProfile() {
     return (
       <Container className="py-5 text-center">
         <Spinner animation="border" variant="primary" />
-        <div className="mt-3">加载中…</div>
+        <div className="mt-3">Loading...</div>
       </Container>
     )
   }

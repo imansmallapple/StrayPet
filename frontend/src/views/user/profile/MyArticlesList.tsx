@@ -34,7 +34,7 @@ export default function MyArticlesList() {
       <Card className="shadow-sm">
         <Card.Body className="text-center py-5">
           <Spinner animation="border" variant="primary" />
-          <div className="mt-3">加载中...</div>
+          <div className="mt-3">Loading...</div>
         </Card.Body>
       </Card>
     )
@@ -44,7 +44,7 @@ export default function MyArticlesList() {
     return (
       <Card className="shadow-sm">
         <Card.Body>
-          <Alert variant="danger">加载失败，请稍后重试</Alert>
+          <Alert variant="danger">Failed to load, please try again</Alert>
         </Card.Body>
       </Card>
     )
@@ -55,7 +55,7 @@ export default function MyArticlesList() {
       <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
         <h5 className="mb-0">
           <i className="bi bi-file-earmark-text me-2"></i>
-          我的文章
+          My Articles
         </h5>
         <Button
           variant="primary"
@@ -63,16 +63,16 @@ export default function MyArticlesList() {
           onClick={() => navigate('/blog/create')}
         >
           <i className="bi bi-plus-circle me-1"></i>
-          写文章
+          Write Article
         </Button>
       </Card.Header>
       <Card.Body>
         {articles.length === 0 ? (
           <div className="text-center py-5 text-muted">
             <i className="bi bi-inbox fs-1 d-block mb-3"></i>
-            <p>你还没有发布任何文章</p>
+            <p>You have not published any articles yet</p>
             <Button variant="outline-primary" onClick={() => navigate('/blog/create')}>
-              开始写作
+              Start writing
             </Button>
           </div>
         ) : (
@@ -85,12 +85,12 @@ export default function MyArticlesList() {
                       type="button"
                       className="article-delete-btn"
                       onClick={() => {
-                        if (window.confirm('确定要删除这篇文章吗？')) {
+                        if (window.confirm('Are you sure you want to delete this article?')) {
                           navigate(`/blog/edit/${article.id}?delete=true`)
                         }
                       }}
-                      title="删除文章"
-                      aria-label="删除文章"
+                      title="Delete article"
+                      aria-label="Delete article"
                     >
                       <i className="bi bi-trash3"></i>
                     </button>
