@@ -701,6 +701,18 @@ export default function BlogDetail() {
                 </h4>
               </Card.Header>
               <Card.Body>
+                {/* No Comments Message - Show above form */}
+                {commentsLoading ? (
+                  <div className="text-center py-4">
+                    <Spinner animation="border" size="sm" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <div className="text-center py-4 text-muted mb-4">
+                    <i className="bi bi-chat" style={{ fontSize: '2rem' }}></i>
+                    <p className="mt-2">No comments yet. Be the first to comment!</p>
+                  </div>
+                ) : null}
+
                 {/* Comment Form - 只在非回复模式显示 */}
                 {isAuthenticated ? (
                   <div className="mb-4">
@@ -715,16 +727,7 @@ export default function BlogDetail() {
                 )}
 
                 {/* Comments List */}
-                {commentsLoading ? (
-                  <div className="text-center py-4">
-                    <Spinner animation="border" size="sm" />
-                  </div>
-                ) : comments.length === 0 ? (
-                  <div className="text-center py-4 text-muted">
-                    <i className="bi bi-chat" style={{ fontSize: '2rem' }}></i>
-                    <p className="mt-2">No comments yet. Be the first to comment!</p>
-                  </div>
-                ) : (
+                {!commentsLoading && comments.length > 0 && (
                   <div className="comments-list">
                     {comments.map((comment) => renderCommentThread(comment))}
                   </div>
