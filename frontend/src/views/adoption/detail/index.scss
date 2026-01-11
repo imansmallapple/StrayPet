@@ -47,90 +47,69 @@
 /* ====== Modern photo area with depth ====== */
 .pet-detail-photo-wrapper {
     position: relative;
-    padding: 24px;
+    padding: 0;
     background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
     /* Modern gradient background */
 }
 
-.pet-detail-photo-wrapper img {
+/* Photo grid layout */
+.pet-detail-photos-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin-bottom: 0;
+}
+
+.pet-photo-item {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 450px;
+    height: 450px;
+}
+
+.pet-photo-item:hover {
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+    transform: translateY(-4px);
+}
+
+.pet-photo-item img {
     display: block;
-    width: 100%;
-    max-height: 460px;
-    /* Height control for consistent aspect ratio */
-    object-fit: cover;
-    /* Crop overflow content */
-    border-radius: 16px;
-    background: #000;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+    width: 95%;
+    height: 95%;
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    background: #e5e7eb;
+}
+
+.pet-photo-badge {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
 }
 
 /* 状态小条 */
 .pet-detail-status-pill {
     position: absolute;
-    left: 28px;
-    top: 24px;
+    right: 12px;
+    top: 12px;
     border-radius: 999px;
     padding: 4px 12px;
     font-size: 12px;
-}
-
-/* 照片数量角标 */
-.pet-detail-photo-count {
-    position: absolute;
-    left: 28px;
-    top: 56px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 999px;
-    backdrop-filter: blur(4px);
-}
-
-/* Photo navigation button with modern styling */
-.photo-nav-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid rgba(99, 102, 241, 0.2);
-    color: #6366f1;
-    font-size: 32px;
-    font-weight: 300;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    z-index: 10;
-    backdrop-filter: blur(8px);
-}
-
-.photo-nav-btn:hover {
-    background: rgba(255, 255, 255, 1);
-    border-color: #6366f1;
-    color: #fff;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.25);
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-}
-
-.photo-nav-btn:active {
-    transform: translateY(-50%) scale(0.95);
-}
-
-.photo-nav-prev {
-    left: 20px;
-}
-
-.photo-nav-next {
-    right: 20px;
 }
 
 /* Modern info table with enhanced styling */
@@ -502,25 +481,14 @@
         margin-bottom: 24px;
     }
 
-    .photo-nav-btn {
-        width: 44px;
-        height: 44px;
-        font-size: 28px;
+    .pet-detail-photos-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
-    .photo-nav-prev {
-        left: 12px;
-    }
-
-    .photo-nav-next {
-        right: 12px;
-    }
-
-    .pet-detail-photo-count {
-        left: 16px;
-        top: 48px;
-        font-size: 12px;
-        padding: 4px 10px;
+    .pet-photo-item {
+        max-height: 250px;
+        height: 250px;
     }
 
     .pet-detail-shelter-card {

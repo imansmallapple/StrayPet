@@ -16,7 +16,7 @@ import { adoptApi, type Pet } from '@/services/modules/adopt'
 import './index.scss'
 // Use local MapboxMap implementation for interactive map
 import SafeHtml from '@/components/SafeHtml'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 // Local Leaflet dependency for IE/WebGL fallback
@@ -66,7 +66,6 @@ type PetDetail = Pet & {
 export default function AdoptDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
 
   const { data, loading } = useRequest(
     () =>
@@ -85,28 +84,6 @@ export default function AdoptDetail() {
     : data?.photo 
       ? [data.photo] 
       : ['/images/pet-placeholder.jpg']
-  
-  const hasMultiplePhotos = allPhotos.length > 1
-
-  // Keyboard navigation for photos
-  useEffect(() => {
-    if (!hasMultiplePhotos) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        setCurrentPhotoIndex(prev => 
-          prev === 0 ? allPhotos.length - 1 : prev - 1
-        )
-      } else if (e.key === 'ArrowRight') {
-        setCurrentPhotoIndex(prev => 
-          prev === allPhotos.length - 1 ? 0 : prev + 1
-        )
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [hasMultiplePhotos, allPhotos.length])
 
   if (!id) {
     return <div className="pet-detail-empty">Invalid pet id</div>
@@ -121,19 +98,6 @@ export default function AdoptDetail() {
   }
 
   const pet = data
-  const currentPhoto = allPhotos[currentPhotoIndex] || allPhotos[0]
-
-  const handlePrevPhoto = () => {
-    setCurrentPhotoIndex(prev => 
-      prev === 0 ? allPhotos.length - 1 : prev - 1
-    )
-  }
-
-  const handleNextPhoto = () => {
-    setCurrentPhotoIndex(prev => 
-      prev === allPhotos.length - 1 ? 0 : prev + 1
-    )
-  }
 
   const ageText = (() => {
     const y = pet.age_years || 0
@@ -205,34 +169,24 @@ export default function AdoptDetail() {
           <Col lg={8}>
             <Card className="pet-detail-main-card">
               <div className="pet-detail-photo-wrapper">
-                <img src={currentPhoto} alt={pet.name} />
+                {allPhotos.length > 0 && (
+                  <div className="pet-detail-photos-grid">
+                    {allPhotos.map((photo) => (
+                      <div key={photo} className="pet-photo-item">
+                        <img src={photo} alt={`${pet.name}`} />
+                        {allPhotos.indexOf(photo) === 0 && (
+                          <div className="pet-photo-badge">
+                            {allPhotos.length} photo{allPhotos.length !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {pet.status && (
                   <Badge bg="success" className="pet-detail-status-pill">
                     {pet.status}
                   </Badge>
-                )}
-                {hasMultiplePhotos && (
-                  <>
-                    <div className="pet-detail-photo-count">
-                      {currentPhotoIndex + 1} / {allPhotos.length}
-                    </div>
-                    <button 
-                      className="photo-nav-btn photo-nav-prev"
-                      onClick={handlePrevPhoto}
-                      type="button"
-                      aria-label="Previous photo"
-                    >
-                      ‹
-                    </button>
-                    <button 
-                      className="photo-nav-btn photo-nav-next"
-                      onClick={handleNextPhoto}
-                      type="button"
-                      aria-label="Next photo"
-                    >
-                      ›
-                    </button>
-                  </>
                 )}
               </div>
 
