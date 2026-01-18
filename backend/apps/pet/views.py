@@ -7,12 +7,12 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, AllowAny, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from .models import Pet, Adoption, Lost, Donation, PetFavorite, Shelter
+from .models import Pet, Adoption, Lost, Donation, PetFavorite, Shelter, Ticket
 from django.core.exceptions import FieldDoesNotExist
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
     AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer,\
     DonationDetailSerializer, DonationCreateSerializer, DonationDetailSerializer, \
-    ShelterListSerializer, ShelterDetailSerializer, ShelterCreateUpdateSerializer
+    ShelterListSerializer, ShelterDetailSerializer, ShelterCreateUpdateSerializer, TicketSerializer
 from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class PetViewSet(viewsets.ModelViewSet):
     # Build a safe select_related list based on actual model relations so we don't crash
-    _pet_related = ["created_by", "address", "address__city", "address__region", "address__country", "location"]
+    _pet_related = ["created_by", "address", "address__city", "address__region", "address__country", "shelter", "shelter__address", "location"]
     _valid_related = []
     for _f in _pet_related:
         root = _f.split("__")[0]
@@ -427,4 +427,42 @@ class ShelterViewSet(viewsets.ModelViewSet):
         except Exception as exc:
             logger.exception('ShelterViewSet.retrieve encountered error')
             return Response({'detail': 'Internal Server Error', 'error': str(exc)}, status=500)
- 
+
+
+class TicketViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing support tickets."""
+    queryset = Ticket.objects.select_related('created_by', 'assigned_to').order_by('-created_at')
+    serializer_class = TicketSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['status', 'priority', 'category']
+    ordering_fields = ['created_at', 'priority', 'status']
+    ordering = ['-created_at']
+    
+    def get_queryset(self):
+        """Filter tickets: admins see all, regular users see their own."""
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset
+        return self.queryset.filter(created_by=user)
+    
+    def get_permissions(self):
+        """Admin can do anything, users can only create and view their own."""
+        if self.action == 'create':
+            return [permissions.IsAuthenticated()]
+        elif self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        elif self.action in ('update', 'partial_update', 'destroy'):
+            return [permissions.IsAuthenticated(), IsAdminUser()]
+        return super().get_permissions()
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def my_tickets(self, request):
+        """Get current user's tickets."""
+        tickets = self.queryset.filter(created_by=request.user)
+        page = self.paginate_queryset(tickets)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(tickets, many=True, context={'request': request})
+        return Response(serializer.data)

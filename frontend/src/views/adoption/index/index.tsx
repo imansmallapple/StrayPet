@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
 import PageHeroTitle from '@/components/page-hero-title'
@@ -19,6 +19,7 @@ type PageToken =
 
 export default function Adopt() {
   const [sp, setSp] = useSearchParams()
+  const nav = useNavigate()
   const page = Number(sp.get('page') || 1)
   const pageSize = Number(sp.get('page_size') || 24)
   const species = sp.get('species') || ''
@@ -27,6 +28,14 @@ export default function Adopt() {
   const [favStates, setFavStates] = useState<Record<number, boolean>>({})
   const [favLoading, setFavLoading] = useState<Record<number, boolean>>({})
   const [showFilterModal, setShowFilterModal] = useState(false)
+
+  // 获取当前用户信息，检查是否为管理员
+  const user = useMemo(() => {
+    const userStr = localStorage.getItem('user')
+    return userStr ? JSON.parse(userStr) : null
+  }, [])
+  
+  const isAdmin = user?.is_staff === true
   
   // 获取所有宠物特性过滤参数
   const petTraits = useMemo(() => ['vaccinated', 'sterilized', 'dewormed', 'child_friendly', 'trained', 
@@ -283,6 +292,18 @@ export default function Adopt() {
                 <span className="me-2" aria-hidden>🐾</span>
                 Find Your Perfect Match
               </Button>
+
+              {isAdmin && (
+                <Button
+                  type="button"
+                  variant="info"
+                  className="fw-bold"
+                  onClick={() => nav('/adopt/add')}
+                >
+                  <span className="me-2" aria-hidden>➕</span>
+                  New Ticket
+                </Button>
+              )}
 
               <Form.Select
                 aria-label="Sort"

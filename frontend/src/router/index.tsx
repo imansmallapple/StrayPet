@@ -62,6 +62,10 @@ const router: RouteObject[] = [
         path: '/adopt',
         element: LazyLoad(lazyWithFallback(() => import('@/views/adoption/index'))),
       },
+      {
+        path: '/adopt/add',
+        element: LazyLoad(lazyWithFallback(() => import('@/views/adoption/add'))),
+      },
       // 详情页
       {
         path: '/adopt/:id',

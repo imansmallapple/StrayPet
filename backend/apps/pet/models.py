@@ -58,6 +58,9 @@ class Pet(models.Model):
     address = models.ForeignKey(
         "pet.Address", on_delete=models.SET_NULL, null=True, blank=True, related_name="pets", verbose_name="Address"
     )
+    shelter = models.ForeignKey(
+        "pet.Shelter", on_delete=models.SET_NULL, null=True, blank=True, related_name="pets", verbose_name="Shelter"
+    )
     cover = models.ImageField("Cover", upload_to="pets/", blank=True, null=True)
 
     status = models.CharField(
@@ -533,3 +536,90 @@ class PetFavorite(models.Model):
 
     def __str__(self):
         return f"{self.user} ❤ {self.pet}"
+
+class Ticket(models.Model):
+    """Support ticket for admin use."""
+    
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        IN_PROGRESS = "in_progress", "In Progress"
+        CLOSED = "closed", "Closed"
+        RESOLVED = "resolved", "Resolved"
+    
+    class Priority(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+        URGENT = "urgent", "Urgent"
+    
+    class Category(models.TextChoices):
+        GENERAL = "general", "General Inquiry"
+        PET_HEALTH = "pet_health", "Pet Health"
+        ADOPTION = "adoption", "Adoption Issue"
+        LOST_FOUND = "lost_found", "Lost/Found Pet"
+        SHELTER = "shelter", "Shelter Issue"
+        TECHNICAL = "technical", "Technical Issue"
+        FEEDBACK = "feedback", "Feedback"
+        OTHER = "other", "Other"
+    
+    title = models.CharField("Title", max_length=255, db_index=True)
+    description = models.TextField("Description", blank=True, default="")
+    category = models.CharField(
+        "Category",
+        max_length=50,
+        choices=Category.choices,
+        default=Category.GENERAL
+    )
+    status = models.CharField(
+        "Status",
+        max_length=20,
+        choices=Status.choices,
+        default=Status.OPEN,
+        db_index=True
+    )
+    priority = models.CharField(
+        "Priority",
+        max_length=20,
+        choices=Priority.choices,
+        default=Priority.MEDIUM
+    )
+    
+    # Contact information
+    email = models.EmailField("Email", blank=True, default="")
+    phone = models.CharField("Phone", max_length=30, blank=True, default="")
+    
+    # Audit fields
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets_created"
+    )
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets_assigned",
+        help_text="Admin assigned to this ticket"
+    )
+    
+    created_at = models.DateTimeField("Created At", auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField("Updated At", auto_now=True)
+    resolved_at = models.DateTimeField("Resolved At", null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Ticket"
+        verbose_name_plural = "Tickets"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["priority", "-created_at"]),
+            models.Index(fields=["category"]),
+            models.Index(fields=["created_by"]),
+            models.Index(fields=["assigned_to"]),
+        ]
+    
+    def __str__(self):
+        return f"[{self.get_priority_display()}] {self.title} ({self.get_status_display()})"

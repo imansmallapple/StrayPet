@@ -94,12 +94,16 @@ function Login() {
         errorMsg = '✗ ' + msg
       }
       
-      // 根据状态码调整错误消息
-      if (errorMsg === '✗ Login failed') {
+      // 错误消息优化：统一处理常见错误
+      if (errorMsg.includes('No active account found')) {
+        errorMsg = '✗ Username or password is incorrect'
+      } else if (errorMsg.includes('Verification code') || errorMsg.includes('captcha')) {
+        // 保持原样，已经是合适的错误消息
+      } else if (errorMsg === '✗ Login failed') {
         if (status === 400) {
-          errorMsg = '✗ Invalid username, password or verification code'
+          errorMsg = '✗ Username or password is incorrect'
         } else if (status === 401) {
-          errorMsg = '✗ Username, password or verification code is incorrect'
+          errorMsg = '✗ Username or password is incorrect'
         }
       }
       

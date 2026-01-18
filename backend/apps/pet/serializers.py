@@ -2,7 +2,7 @@ from __future__ import annotations
 # apps/pet/serializers.py
 from rest_framework import serializers
 import json
-from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite, Shelter
+from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite, Shelter, Ticket
 from typing import TYPE_CHECKING
 from common.utils import geocode_address
 if TYPE_CHECKING:
@@ -350,17 +350,23 @@ class PetListSerializer(serializers.ModelSerializer):
         return None
 
     def get_shelter_name(self, obj: Pet) -> str:
-        """从关联的Donation获取收容所名称"""
+        """获取关联的收容所名称"""
+        # 优先从 Pet 的 shelter 字段获取
+        if obj.shelter:
+            return obj.shelter.name
+        # 备选：从关联的 Donation 获取
         donation = getattr(obj, 'from_donor', None)
         if donation and donation.shelter:
             return donation.shelter.name
         return ""
 
     def get_shelter_address(self, obj: Pet) -> str:
-        """从关联的Donation获取收容所地址"""
-        donation = getattr(obj, 'from_donor', None)
-        if donation and donation.shelter and donation.shelter.address:
-            addr = donation.shelter.address
+        """获取关联的收容所地址"""
+        shelter = obj.shelter if obj.shelter else (
+            getattr(obj, 'from_donor', None) and getattr(obj, 'from_donor', None).shelter
+        )
+        if shelter and shelter.address:
+            addr = shelter.address
             parts = [
                 addr.street,
                 addr.building_number,
@@ -373,28 +379,56 @@ class PetListSerializer(serializers.ModelSerializer):
         return ""
 
     def get_shelter_phone(self, obj: Pet) -> str:
-        """从关联的Donation获取收容所电话"""
-        donation = getattr(obj, 'from_donor', None)
-        if donation and donation.shelter:
-            return donation.shelter.phone or ""
+        """获取关联的收容所电话"""
+        shelter = obj.shelter if obj.shelter else (
+            getattr(obj, 'from_donor', None) and getattr(obj, 'from_donor', None).shelter
+        )
+        if shelter:
+            return shelter.phone or ""
         return ""
 
     def get_shelter_website(self, obj: Pet) -> str:
-        """从关联的Donation获取收容所网站"""
-        donation = getattr(obj, 'from_donor', None)
-        if donation and donation.shelter:
-            return donation.shelter.website or ""
+        """获取关联的收容所网站"""
+        shelter = obj.shelter if obj.shelter else (
+            getattr(obj, 'from_donor', None) and getattr(obj, 'from_donor', None).shelter
+        )
+        if shelter:
+            return shelter.website or ""
         return ""
 
 
 class PetCreateUpdateSerializer(serializers.ModelSerializer):
+    address_data = serializers.JSONField(write_only=True, required=False)
+    
     class Meta:
         model = Pet
         fields = (
-            "id", "name", "species", "breed", "sex", "age_months",
-            "description", "address", "cover", "status"
+            "id", "name", "species", "breed", "sex", "age_years", "age_months",
+            "description", "address", "address_data", "shelter", "cover", "status",
+            "dewormed", "vaccinated", "microchipped", "child_friendly", "trained",
+            "loves_play", "loves_walks", "good_with_dogs", "good_with_cats",
+            "affectionate", "needs_attention", "sterilized", "contact_phone"
         )
         read_only_fields = ("status",)  # 创建默认 AVAILABLE；如需修改在视图层控制
+
+    def _convert_bool_fields(self, data: dict) -> dict:
+        """Convert string boolean values to actual booleans for FormData submissions"""
+        bool_fields = [
+            'dewormed', 'vaccinated', 'microchipped', 'child_friendly', 'trained',
+            'loves_play', 'loves_walks', 'good_with_dogs', 'good_with_cats',
+            'affectionate', 'needs_attention', 'sterilized'
+        ]
+        for field in bool_fields:
+            if field in data:
+                val = data[field]
+                if isinstance(val, str):
+                    data[field] = val.lower() in ('true', '1', 'yes', 'on')
+        return data
+
+    def to_internal_value(self, data):
+        # Convert boolean string values from FormData
+        data = self._convert_bool_fields(dict(data))
+        return super().to_internal_value(data)
 
     def _ensure_address_coords(self, address: Address):
         """自动为地址地理编码（如果坐标缺失）"""
@@ -453,11 +487,46 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
             logger.warning(f"Failed to geocode address {getattr(address, 'id', '?')}: {e}")
 
     def create(self, validated_data):
+        # Handle address_data if provided
+        address_data = validated_data.pop('address_data', None)
+        
+        if address_data and not validated_data.get('address'):
+            # Create address from address_data JSON
+            if isinstance(address_data, str):
+                try:
+                    address_data = json.loads(address_data)
+                except Exception:
+                    address_data = None
+            
+            if address_data:
+                try:
+                    address = _create_or_resolve_address(address_data)
+                    validated_data['address'] = address
+                except Exception as e:
+                    logger.exception('Failed to create Address from address_data')
+        
         address = validated_data.get('address')
         self._ensure_address_coords(address)
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        # Handle address_data if provided
+        address_data = validated_data.pop('address_data', None)
+        
+        if address_data and not validated_data.get('address'):
+            if isinstance(address_data, str):
+                try:
+                    address_data = json.loads(address_data)
+                except Exception:
+                    address_data = None
+            
+            if address_data:
+                try:
+                    address = _create_or_resolve_address(address_data)
+                    validated_data['address'] = address
+                except Exception as e:
+                    logger.exception('Failed to create Address from address_data')
+        
         address = validated_data.get('address') or instance.address
         self._ensure_address_coords(address)
         return super().update(instance, validated_data)
@@ -903,3 +972,36 @@ class ShelterCreateUpdateSerializer(serializers.ModelSerializer):
                 validated_data['address'] = address
         
         return super().update(instance, validated_data)
+
+class TicketSerializer(serializers.ModelSerializer):
+    """Serializer for Ticket model."""
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    assigned_to_username = serializers.CharField(source='assigned_to.username', read_only=True, required=False)
+    
+    class Meta:
+        model = Ticket
+        fields = [
+            'id',
+            'title',
+            'description',
+            'category',
+            'status',
+            'priority',
+            'email',
+            'phone',
+            'created_by',
+            'created_by_username',
+            'assigned_to',
+            'assigned_to_username',
+            'created_at',
+            'updated_at',
+            'resolved_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'resolved_at', 'created_by', 'created_by_username', 'assigned_to_username']
+    
+    def create(self, validated_data):
+        """Set created_by from request user."""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)

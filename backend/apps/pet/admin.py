@@ -1,7 +1,7 @@
 # apps/pet/admin.py
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto, Shelter
+from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto, Shelter, Ticket
 from django import forms
 
 class AddressAdminForm(forms.ModelForm):
@@ -283,3 +283,55 @@ class ShelterAdmin(admin.ModelAdmin):
         return '—'
     occupancy_display.short_description = "Occupancy"
 
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "get_priority_display", "get_status_display", "get_category_display", "created_by", "assigned_to", "created_at")
+    list_filter = ("status", "priority", "category", "created_at")
+    search_fields = ("title", "description", "email", "phone")
+    readonly_fields = ("created_at", "updated_at", "resolved_at", "created_by")
+    autocomplete_fields = ("assigned_to",)
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'description', 'category')
+        }),
+        ('Contact Information', {
+            'fields': ('email', 'phone', 'created_by')
+        }),
+        ('Status & Priority', {
+            'fields': ('status', 'priority', 'assigned_to')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at', 'resolved_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_priority_display(self, obj):
+        colors = {
+            'low': '#28a745',
+            'medium': '#ffc107',
+            'high': '#fd7e14',
+            'urgent': '#dc3545',
+        }
+        color = colors.get(obj.priority, '#6c757d')
+        return format_html(
+            '<span style="color:{}; font-weight:bold;">{}</span>',
+            color, obj.get_priority_display()
+        )
+    get_priority_display.short_description = "Priority"
+    
+    def get_status_display_colored(self, obj):
+        colors = {
+            'open': '#007bff',
+            'in_progress': '#ffc107',
+            'closed': '#6c757d',
+            'resolved': '#28a745',
+        }
+        color = colors.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="color:white; background-color:{}; padding:3px 8px; border-radius:3px;">{}</span>',
+            color, obj.get_status_display()
+        )
+    get_status_display_colored.short_description = "Status"
