@@ -33,8 +33,19 @@ export default function NotificationBell() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('accessToken'))
 
-  // 获取未读通知数
+  // 监听登录状态变化
+  useEffect(() => {
+    const handleAuthUpdated = () => {
+      setIsLoggedIn(!!localStorage.getItem('accessToken'))
+    }
+
+    window.addEventListener('auth:updated', handleAuthUpdated)
+    return () => window.removeEventListener('auth:updated', handleAuthUpdated)
+  }, [])
+
+  // 获取未读通知数 - 只在登录时轮询
   const { refresh: refreshUnreadCount } = useRequest(
     async () => {
       const response = await notificationApi.getUnreadCount()
@@ -44,7 +55,8 @@ export default function NotificationBell() {
       onSuccess: (res: any) => {
         setUnreadCount(res.unread_count || 0)
       },
-      pollingInterval: 30000, // 每30秒轮询一次
+      ...(isLoggedIn && { pollingInterval: 30000 }), // 仅在登录时轮询
+      ready: isLoggedIn, // 仅在登录时执行请求
     }
   )
 
@@ -55,7 +67,7 @@ export default function NotificationBell() {
       return response.data
     },
     {
-      ready: showNotifications,
+      ready: showNotifications && isLoggedIn,
     }
   )
 

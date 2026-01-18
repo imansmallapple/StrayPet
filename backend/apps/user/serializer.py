@@ -291,13 +291,32 @@ class CaptchaSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         from django.core.cache import cache
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        uid = attrs.get('uid')
+        captcha_input = attrs.get('captcha')
+        
+        # 检查缓存中是否存在验证码
+        cached_captcha = cache.get(uid)
+        
+        logger.info(f"[CaptchaValidator] uid={uid}, input={captcha_input}, cached={bool(cached_captcha)}")
 
-        if not cache.get(attrs['uid']):
-            raise serializers.ValidationError("Verification code expired!")
+        if not cached_captcha:
+            logger.warning(f"[CaptchaValidator] Verification code expired for uid={uid}")
+            raise serializers.ValidationError({
+                "captcha": ["Verification code expired or invalid!"]
+            })
 
-        if cache.get(attrs['uid']).lower() != attrs['captcha'].lower():
-            raise serializers.ValidationError("Verification code wrong!")
-        cache.delete(attrs['uid'])
+        # 大小写不敏感的比对
+        if cached_captcha.lower() != captcha_input.lower():
+            logger.warning(f"[CaptchaValidator] Captcha mismatch: expected={cached_captcha}, got={captcha_input}")
+            raise serializers.ValidationError({
+                "captcha": ["Verification code is incorrect!"]
+            })
+        
+        logger.info(f"[CaptchaValidator] Verification code validated successfully for uid={uid}")
+        cache.delete(uid)
         return super().validate(attrs)
 
 

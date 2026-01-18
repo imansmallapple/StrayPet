@@ -8,7 +8,7 @@ function Login() {
   const [img, setImg] = useState<string>('')
   const [uid, setUid] = useState<string>('')
   const [captcha, setCaptcha] = useState<string>('')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState<string>('')
   const [loadingCaptcha, setLoadingCaptcha] = useState(false)
 
   const nav = useNavigate()
@@ -17,7 +17,6 @@ function Login() {
   async function loadCaptcha() {
     try {
       setLoadingCaptcha(true)
-      setErrorMessage('')
       const response = await authApi.getCaptcha()
       const { data } = response
       setImg(data.image)
@@ -35,14 +34,23 @@ function Login() {
     loadCaptcha()
   }, [])
 
+  // 监控错误消息变化（调试用）
+  useEffect(() => {
+    if (errorMessage) {
+      console.warn('[ErrorMessage Changed]', errorMessage)
+    }
+  }, [errorMessage])
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
     const username = String(f.get('username') || '')
     const password = String(f.get('password') || '')
 
+    // 清除之前的错误信息
     setErrorMessage('')
 
+    // 验证必填字段
     if (!username || !password) {
       setErrorMessage('✗ Please enter username/email and password')
       return
@@ -63,16 +71,47 @@ function Login() {
       window.dispatchEvent(new Event('auth:updated'))
       nav(sp.get('next') || '/')
     } catch (err: any) {
+      // 提取错误消息
       const msg = err?.response?.data
+      const status = err?.response?.status
+      
+      console.warn('[Login Error]', { status, data: msg })
+      
       let errorMsg = '✗ Login failed'
-      if (typeof msg === 'object') {
-        const first = Object.values(msg)[0]
-        errorMsg = '✗ ' + (Array.isArray(first) ? first[0] : String(first))
-      } else {
-        errorMsg = '✗ Username, password or verification code is incorrect, please try again'
+      
+      // 处理不同的错误格式
+      if (msg && typeof msg === 'object') {
+        const firstKey = Object.keys(msg)[0]
+        if (firstKey) {
+          const error = msg[firstKey]
+          if (Array.isArray(error) && error.length > 0) {
+            errorMsg = '✗ ' + error[0]
+          } else if (typeof error === 'string') {
+            errorMsg = '✗ ' + error
+          }
+        }
+      } else if (msg && typeof msg === 'string') {
+        errorMsg = '✗ ' + msg
       }
+      
+      // 根据状态码调整错误消息
+      if (errorMsg === '✗ Login failed') {
+        if (status === 400) {
+          errorMsg = '✗ Invalid username, password or verification code'
+        } else if (status === 401) {
+          errorMsg = '✗ Username, password or verification code is incorrect'
+        }
+      }
+      
+      // 显示错误信息
       setErrorMessage(errorMsg)
-      loadCaptcha()
+      
+      // 刷新验证码
+      setCaptcha('')
+      // 延迟加载验证码，给用户时间看错误消息
+      setTimeout(() => {
+        loadCaptcha()
+      }, 1500)
     } finally {
       setLoading(false)
     }
@@ -87,7 +126,7 @@ function Login() {
           <p>Welcome back, start your companion journey</p>
         </div>
 
-        {errorMessage && <div className={`error-message ${errorMessage ? 'show' : ''}`}>{errorMessage}</div>}
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
 
         <form onSubmit={onSubmit}>
           <div className="form-group">

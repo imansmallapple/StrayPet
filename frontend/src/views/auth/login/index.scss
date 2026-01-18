@@ -225,24 +225,31 @@
     }
 
     .error-message {
-      background: #fee;
-      border: 1px solid #fcc;
-      color: #c33;
-      padding: 10px 12px;
+      background: #fff5f5;
+      border: 2px solid #f56565;
+      color: #c53030;
+      padding: 12px 14px;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 600;
       margin-bottom: 16px;
-      display: none;
+      display: block;
+      min-height: 20px;
+      line-height: 1.5;
+      word-break: break-word;
+      animation: slideDown 0.3s ease;
 
-      &.show {
-        display: block;
-        animation: shake 0.3s ease;
-      }
-
-      @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          max-height: 0;
+          margin-bottom: 0;
+        }
+        to {
+          opacity: 1;
+          max-height: 200px;
+          margin-bottom: 16px;
+        }
       }
     }
 
