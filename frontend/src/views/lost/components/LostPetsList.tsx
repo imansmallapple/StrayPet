@@ -1,6 +1,6 @@
 // src/views/lost/components/LostPetsList.tsx
 import { useEffect, useState } from 'react'
-import { Row, Col, Card, Badge, Button, Spinner, Alert, Form } from 'react-bootstrap'
+import { Row, Col, Card, Badge, Button, Spinner, Alert } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { lostApi, type LostPet, type PageResp } from '@/services/modules/lost'
 import './LostPetsList.scss'
@@ -14,7 +14,6 @@ export default function LostPetsList({ onReportClick }: LostPetsListProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
   const pageSize = 12
 
   const fetchLostPets = async (currentPage: number) => {
@@ -38,12 +37,6 @@ export default function LostPetsList({ onReportClick }: LostPetsListProps) {
   useEffect(() => {
     fetchLostPets(page)
   }, [page])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    // In a real implementation, you would pass search params to the API
-    fetchLostPets(1)
-  }
 
   const totalPages = data ? Math.max(1, Math.ceil(data.count / pageSize)) : 1
 
@@ -85,16 +78,13 @@ export default function LostPetsList({ onReportClick }: LostPetsListProps) {
       {/* Header with Report Button */}
       <div className="list-header">
         <div className="header-content">
-          <div className="header-text">
-            <h2>🔍 Lost Pets Database</h2>
-            <p>Help reunite lost pets with their families</p>
-          </div>
           {onReportClick && (
             <Button 
-              variant="danger" 
+              variant="warning" 
               size="lg"
               className="report-button"
               onClick={onReportClick}
+              style={{ color: 'white', fontWeight: 600 }}
             >
               <span style={{ fontSize: '1.2rem', marginRight: '0.5rem' }}>📢</span>
               Report Lost Pet
@@ -102,32 +92,6 @@ export default function LostPetsList({ onReportClick }: LostPetsListProps) {
           )}
         </div>
       </div>
-
-      {/* Search Bar */}
-      <div className="search-section">
-        <Form onSubmit={handleSearch} className="search-form">
-          <Form.Control
-            type="text"
-            placeholder="🔍 Search by pet name, breed, or location..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
-          <Button type="submit" variant="primary" className="search-btn">
-            Search
-          </Button>
-        </Form>
-      </div>
-
-      {/* Stats */}
-      {data && (
-        <div className="stats-bar">
-          <span className="stats-text">
-            📊 Showing <strong>{data.results.length}</strong> of{' '}
-            <strong>{data.count}</strong> lost pets
-          </span>
-        </div>
-      )}
 
       {/* Pet Cards Grid */}
       {data && data.results.length > 0 ? (
@@ -217,6 +181,16 @@ export default function LostPetsList({ onReportClick }: LostPetsListProps) {
           <div className="no-results-icon">🔍</div>
           <h3>No Lost Pets Found</h3>
           <p>There are currently no lost pets reported in this area.</p>
+        </div>
+      )}
+
+      {/* Stats */}
+      {data && (
+        <div className="stats-bar">
+          <span className="stats-text">
+            📊 Showing <strong>{data.results.length}</strong> of{' '}
+            <strong>{data.count}</strong> lost pets
+          </span>
         </div>
       )}
 

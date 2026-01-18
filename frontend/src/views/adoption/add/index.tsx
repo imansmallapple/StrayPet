@@ -152,7 +152,7 @@ export default function AdoptAdd() {
           <Card.Body className="p-4">
             <Form onSubmit={onSubmit}>
               {/* Main Information */}
-              <h5 className="mb-4 fw-bold">- Main information</h5>
+              <h5 className="mb-4 fw-bold">Main information</h5>
 
               <Row className="mb-4">
                 <Col md={6}>
@@ -230,6 +230,7 @@ export default function AdoptAdd() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the pet's personality, behavior, and special needs..."
                   rows={4}
+                  style={{ resize: 'none' }}
                 />
               </Form.Group>
 
@@ -342,7 +343,7 @@ export default function AdoptAdd() {
               </Form.Group>
 
               {/* Health & Characteristics */}
-              <h5 className="mb-3 fw-bold">- Health & Characteristics</h5>
+              <h5 className="mb-3 fw-bold">Health & Characteristics</h5>
 
               <Row className="mb-4">
                 <Col md={6}>
