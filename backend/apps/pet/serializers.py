@@ -426,9 +426,17 @@ class PetCreateUpdateSerializer(serializers.ModelSerializer):
         return data
 
     def to_internal_value(self, data):
+        # Handle FormData: QueryDict may have values as lists, extract first element
+        normalized_data = {}
+        for key, value in data.items():
+            if isinstance(value, list):
+                normalized_data[key] = value[0] if value else None
+            else:
+                normalized_data[key] = value
+        
         # Convert boolean string values from FormData
-        data = self._convert_bool_fields(dict(data))
-        return super().to_internal_value(data)
+        normalized_data = self._convert_bool_fields(normalized_data)
+        return super().to_internal_value(normalized_data)
 
     def _ensure_address_coords(self, address: Address):
         """自动为地址地理编码（如果坐标缺失）"""
