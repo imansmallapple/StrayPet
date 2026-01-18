@@ -6,12 +6,28 @@ import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
 import PageHeroTitle from '@/components/page-hero-title'
 import './index.scss'
 
+interface FilterState {
+  city: string
+  species: string
+  sex: string
+  petName: string
+  size: string
+}
+
 export default function Adopt() {
   const [sp, setSp] = useSearchParams()
   const page = Number(sp.get('page') || 1)
   const pageSize = Number(sp.get('page_size') || 12)
-  const species = sp.get('species') || ''
   const [showAddForm, setShowAddForm] = useState(false)
+
+  // Initialize filters from URL parameters
+  const [filters, setFilters] = useState<FilterState>({
+    city: sp.get('city') || '',
+    species: sp.get('species') || '',
+    sex: sp.get('sex') || '',
+    petName: sp.get('pet_name') || '',
+    size: sp.get('size') || '',
+  })
 
   // 获取当前用户信息
   const user = useMemo(() => {
@@ -21,12 +37,18 @@ export default function Adopt() {
 
   const isAdmin = user?.is_staff === true
 
-  const params = useMemo(
-    () => ({ page, page_size: pageSize, ...(species ? { species } : {}) }),
-    [page, pageSize, species],
-  )
+  // Build params from filters
+  const params = useMemo(() => {
+    const p: Record<string, any> = { page, page_size: pageSize }
+    if (filters.city) p.city = filters.city
+    if (filters.species) p.species = filters.species
+    if (filters.sex) p.sex = filters.sex
+    if (filters.petName) p.name__icontains = filters.petName
+    if (filters.size) p.size = filters.size
+    return p
+  }, [page, pageSize, filters])
 
-  const { data, loading, refresh } = useRequest(
+  const { data, loading } = useRequest(
     () => adoptApi.list(params).then(res => res.data as Paginated<Pet>),
     { refreshDeps: [params] }
   )
@@ -34,6 +56,34 @@ export default function Adopt() {
   function goPage(n: number) {
     sp.set('page', String(n))
     setSp(sp, { replace: true })
+  }
+
+  // Handle filter changes
+  const handleFilterChange = (key: keyof FilterState, value: string) => {
+    const newFilters = { ...filters, [key]: value }
+    setFilters(newFilters)
+    
+    // Update URL params
+    const newSp = new URLSearchParams()
+    if (newFilters.city) newSp.set('city', newFilters.city)
+    if (newFilters.species) newSp.set('species', newFilters.species)
+    if (newFilters.sex) newSp.set('sex', newFilters.sex)
+    if (newFilters.petName) newSp.set('pet_name', newFilters.petName)
+    if (newFilters.size) newSp.set('size', newFilters.size)
+    newSp.set('page', '1')
+    setSp(newSp)
+  }
+
+  // Reset filters
+  const handleResetFilters = () => {
+    setFilters({
+      city: '',
+      species: '',
+      sex: '',
+      petName: '',
+      size: '',
+    })
+    setSp(new URLSearchParams())
   }
 
   const list = data?.results ?? []
@@ -46,87 +96,215 @@ export default function Adopt() {
       />
 
       <div className="adopt-page">
-        {/* 下面就是你原来的内容，可以把 h2 去掉避免重复 */}
-        <div className="adopt-header">
-          <div className="header-top">
-            <h2>Find your new friend</h2>
+        <div className="adopt-container">
+          {/* Left Sidebar - Filters */}
+          <aside className="filters-sidebar">
+            <div className="filters-header">
+              <h3>Filter Pets</h3>
+              <button 
+                className="reset-btn"
+                onClick={handleResetFilters}
+                type="button"
+                title="Clear all filters"
+              >
+                ✕ Reset
+              </button>
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">City</label>
+              <input 
+                type="text"
+                className="filter-input"
+                placeholder="All of Poland"
+                value={filters.city}
+                onChange={(e) => handleFilterChange('city', e.target.value)}
+              />
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">Pet Name</label>
+              <input 
+                type="text"
+                className="filter-input"
+                placeholder="How is a pet lured?"
+                value={filters.petName}
+                onChange={(e) => handleFilterChange('petName', e.target.value)}
+              />
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">Pet Type</label>
+              <select 
+                className="filter-select"
+                value={filters.species}
+                onChange={(e) => handleFilterChange('species', e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="dog">🐕 Dogs</option>
+                <option value="cat">🐱 Cats</option>
+                <option value="other">🐾 Other</option>
+              </select>
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">Gender</label>
+              <select 
+                className="filter-select"
+                value={filters.sex}
+                onChange={(e) => handleFilterChange('sex', e.target.value)}
+              >
+                <option value="">No matter</option>
+                <option value="M">♂️ Male</option>
+                <option value="F">♀️ Female</option>
+              </select>
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">Size</label>
+              <select 
+                className="filter-select"
+                value={filters.size}
+                onChange={(e) => handleFilterChange('size', e.target.value)}
+              >
+                <option value="">No matter</option>
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+                <option value="xlarge">Extra Large</option>
+              </select>
+            </div>
+
+            <div className="filter-section checkboxes">
+              <label className="filter-label">Special Traits</label>
+              <div className="checkbox-group">
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Sterilization/Castration</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Vaccinations</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Child-friendly</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Trained</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Loves to play</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Loves walks</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Accepts dogs</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Accepts cats</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Loves caresses</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" />
+                  <span>Tolerates shelter stays very badly</span>
+                </label>
+              </div>
+            </div>
+
             {isAdmin && (
               <button 
                 type="button"
-                className="add-pet-btn"
+                className="add-pet-btn-sidebar"
                 onClick={() => setShowAddForm(!showAddForm)}
               >
-                + Add Pet
+                + Add New Pet
               </button>
             )}
-          </div>
-          <div className="filters">
-            <select
-              value={species}
-              onChange={(e) => {
-                const v = e.target.value
-                v ? sp.set('species', v) : sp.delete('species')
-                sp.set('page', '1')
-                setSp(sp)
-              }}
-            >
-              <option value="">All Species</option>
-              <option value="dog">🐕 Dog</option>
-              <option value="cat">🐱 Cat</option>
-            </select>
-          </div>
-        </div>
+          </aside>
 
-        {/* Add Pet Form */}
-        {showAddForm && isAdmin && (
-          <AddPetForm onSuccess={() => {
-            setShowAddForm(false)
-            refresh()
-          }} />
-        )}
-
-        {loading && <div className="hint">Loading…</div>}
-
-        {!loading && (
-          <>
-            <div className="grid">
-              {list.map(pet => (
-                <article key={pet.id} className="card">
-                  <div className="thumb">
-                    <img src={pet.photo || '/images/pet-placeholder.jpg'} alt={pet.name} />
-                  </div>
-                  <div className="meta">
-                    <h3>{pet.name}</h3>
-                    <p className="muted">
-                      {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}{' '}
-                      {pet.species || 'Pet'} • {pet.sex === 'M' ? '♂️' : pet.sex === 'F' ? '♀️' : '❓'} {pet.sex || 'Unknown'}
-                      {pet.age_years ? ` • ${pet.age_years}y` : pet.age_months ? ` • ${pet.age_months}m` : ''}
-                      {pet.city ? ` • 📍 ${pet.city}` : ''}
-                    </p>
-                    <p className="desc">{pet.description || 'No description available'}</p>
-                    <div className="actions">
-                      <Link to={`/adopt/${pet.id}`}>View Details →</Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {data && data.count > pageSize && (
-              <div className="pager">
-                <button type="button" disabled={page <= 1} onClick={() => goPage(page - 1)}>Prev</button>
-                <span>{page}</span>
-                <button
-                  type="button"
-                  disabled={list.length < pageSize}
-                  onClick={() => goPage(page + 1)}
-                >
-                  Next
-                </button>
-              </div>
+          {/* Right Content - Pet List */}
+          <main className="pets-main">
+            {/* Add Pet Form */}
+            {showAddForm && isAdmin && (
+              <AddPetForm onSuccess={() => {
+                setShowAddForm(false)
+              }} />
             )}
-          </>
-        )}
+
+            {loading && <div className="hint">Loading…</div>}
+
+            {!loading && (
+              <>
+                <div className="results-header">
+                  <h2>Find your new friend</h2>
+                  <p className="result-count">{data?.count || 0} pets available</p>
+                </div>
+
+                <div className="grid">
+                  {list.map(pet => (
+                    <article key={pet.id} className="card">
+                      <div className="thumb">
+                        <img src={pet.photo || '/images/pet-placeholder.jpg'} alt={pet.name} />
+                        {pet.city && (
+                          <div className="city-badge">📍 {pet.city}</div>
+                        )}
+                      </div>
+                      <div className="meta">
+                        <h3>{pet.name}</h3>
+                        <p className="muted">
+                          {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}{' '}
+                          {pet.species || 'Pet'} • {pet.sex === 'M' ? '♂️' : pet.sex === 'F' ? '♀️' : '❓'} {pet.sex || 'Unknown'}
+                          {pet.age_years ? ` • ${pet.age_years}y` : pet.age_months ? ` • ${pet.age_months}m` : ''}
+                        </p>
+                        <p className="desc">{pet.description || 'No description available'}</p>
+                        <div className="actions">
+                          <Link to={`/adopt/${pet.id}`}>View Details →</Link>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                {list.length === 0 && (
+                  <div className="no-results">
+                    <p>No pets found matching your filters</p>
+                    <button 
+                      className="reset-btn-secondary"
+                      onClick={handleResetFilters}
+                      type="button"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                )}
+
+                {data && data.count > pageSize && (
+                  <div className="pager">
+                    <button type="button" disabled={page <= 1} onClick={() => goPage(page - 1)}>← Prev</button>
+                    <span>{page}</span>
+                    <button
+                      type="button"
+                      disabled={list.length < pageSize}
+                      onClick={() => goPage(page + 1)}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   )

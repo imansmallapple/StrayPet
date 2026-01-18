@@ -97,9 +97,13 @@
     color: #fff;
     font-size: 12px;
     font-weight: 600;
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 6px;
     backdrop-filter: blur(4px);
+    height: 24px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
 }
 
 /* 状态小条 */
@@ -108,8 +112,12 @@
     right: 12px;
     top: 12px;
     border-radius: 999px;
-    padding: 4px 12px;
+    padding: 6px 12px;
     font-size: 12px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
 }
 
 /* Modern info table with enhanced styling */
