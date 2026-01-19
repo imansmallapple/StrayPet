@@ -1,10 +1,10 @@
 // src/views/blog/index.tsx
 import { useState } from 'react'
 import { useRequest } from 'ahooks'
-import { Container, Row, Col, Card, Badge, Form, Spinner, Pagination, InputGroup, Button } from 'react-bootstrap'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
 import { useAuth } from '@/hooks/useAuth'
+import PageHeroTitle from '@/components/page-hero-title'
 import './index.scss'
 
 export default function BlogList() {
@@ -124,302 +124,279 @@ export default function BlogList() {
 
   return (
     <div className="blog-list-page">
-      <div className="blog-header">
-        <Container>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1>Pet Care Blog</h1>
-              <p>Tips, stories, and advice for pet lovers</p>
+      <PageHeroTitle title="Pet Care Blog" subtitle="Tips, stories, and advice for pet lovers" />
+      
+      <div className="blog-container">
+        <div className="blog-main-content">
+          {/* Search and Sort Section */}
+          <div className="search-sort-section">
+            <form onSubmit={handleSearch} className="search-form">
+              <div className="search-wrapper">
+                <i className="bi bi-search"></i>
+                <input
+                  type="text"
+                  placeholder="Search articles..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="search-input"
+                />
+                <button type="submit" className="search-btn">Search</button>
+              </div>
+            </form>
+            
+            <select
+              value={ordering}
+              onChange={(e) => handleOrderingChange(e.target.value)}
+              className="sort-select"
+            >
+              <option value="-add_date">Latest</option>
+              <option value="add_date">Oldest</option>
+              <option value="-count">Most Viewed</option>
+            </select>
+          </div>
+
+          {(category || tag || search) && (
+            <div className="clear-filters">
+              <button type="button" onClick={clearFilters} className="clear-btn">
+                <i className="bi bi-x-circle"></i>
+                Clear Filters
+              </button>
             </div>
-            {user && (
-              <Button
-                variant="light"
-                size="lg"
+          )}
+
+          {/* Articles List */}
+          {articlesLoading ? (
+            <div className="loading-container">
+              <div className="spinner"></div>
+              <p>Loading articles...</p>
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="empty-alert">
+              <i className="bi bi-inbox"></i>
+              <p>No articles found</p>
+            </div>
+          ) : (
+            <>
+              <div className="articles-list">
+                {articles.map((article) => (
+                  <article key={article.id} className="article-card">
+                    <div className="article-header">
+                      <Link to={`/blog/${article.id}`} className="article-title-link">
+                        <h3 className="article-title">{article.title}</h3>
+                      </Link>
+                    </div>
+                    
+                    <div className="article-meta">
+                      {article.author && (
+                        <div className="author-info" onClick={() => navigate(`/user/profile/${article.author?.id}`)}>
+                          <div 
+                            className="author-avatar"
+                            style={{
+                              backgroundImage: article.author.avatar ? `url(${article.author.avatar})` : 'none'
+                            }}
+                          >
+                            {!article.author.avatar && article.author.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="author-name">{article.author.username}</span>
+                        </div>
+                      )}
+                      <span className="meta-item">
+                        <i className="bi bi-calendar3"></i>
+                        {formatDate(article.add_date)}
+                      </span>
+                      <span className="meta-item">
+                        <i className="bi bi-eye"></i>
+                        {article.count || 0} views
+                      </span>
+                    </div>
+                    
+                    <p className="article-description">{article.description}</p>
+                    
+                    <div className="article-footer">
+                      <div className="article-tags">
+                        {article.tags.map((tag) => (
+                          <span key={tag} className="tag-badge">{tag}</span>
+                        ))}
+                      </div>
+                      <Link to={`/blog/${article.id}`} className="read-more">
+                        Read More
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="pagination-section">
+                  <button
+                    type="button"
+                    className="pagination-btn"
+                    disabled={page === 1}
+                    onClick={() => handlePageChange(1)}
+                  >
+                    First
+                  </button>
+                  <button
+                    type="button"
+                    className="pagination-btn"
+                    disabled={page === 1}
+                    onClick={() => handlePageChange(page - 1)}
+                  >
+                    Prev
+                  </button>
+                  
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (page <= 3) {
+                      pageNum = i + 1
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = page - 2 + i
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        className={`pagination-btn ${pageNum === page ? 'active' : ''}`}
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+
+                  <button
+                    type="button"
+                    className="pagination-btn"
+                    disabled={page === totalPages}
+                    onClick={() => handlePageChange(page + 1)}
+                  >
+                    Next
+                  </button>
+                  <button
+                    type="button"
+                    className="pagination-btn"
+                    disabled={page === totalPages}
+                    onClick={() => handlePageChange(totalPages)}
+                  >
+                    Last
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <aside className="blog-sidebar">
+          {/* Categories */}
+          <section className="sidebar-widget">
+            <h3 className="widget-title">
+              <i className="bi bi-folder"></i>
+              Categories
+            </h3>
+            <select
+              value={category}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="category-select"
+            >
+              <option value="">All Categories</option>
+              {Array.isArray(categories) && categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </section>
+
+          {/* Hashtag Tip */}
+          {user && (
+            <section className="sidebar-widget hashtag-tip">
+              <div className="tip-content">
+                <i className="bi bi-lightbulb"></i>
+                <div>
+                  <h4>💡 Hashtag Tips</h4>
+                  <p>Use <code>#hashtag</code> in your articles to automatically create tags!</p>
+                  <p className="example">Example: <code>#PetCare</code> <code>#Training</code></p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Tags */}
+          <section className="sidebar-widget">
+            <h3 className="widget-title">
+              <i className="bi bi-tags"></i>
+              Popular Tags
+            </h3>
+            <div className="tag-cloud">
+              {Array.isArray(tags) && tags.length > 0 ? (
+                tags.map((tagItem) => (
+                  <span
+                    key={tagItem.id}
+                    className="tag-badge-clickable"
+                    role="button"
+                    onClick={() => handleTagClick(tagItem.id)}
+                    title={`${tagItem.article_count || 0} articles`}
+                  >
+                    #{tagItem.name}
+                    {tagItem.article_count && tagItem.article_count > 0 && (
+                      <span className="tag-count">({tagItem.article_count})</span>
+                    )}
+                  </span>
+                ))
+              ) : (
+                <p className="no-tags">
+                  <i className="bi bi-info-circle"></i>
+                  No tags yet. Create articles with #hashtags!
+                </p>
+              )}
+            </div>
+          </section>
+
+          {/* Archives */}
+          <section className="sidebar-widget">
+            <h3 className="widget-title">
+              <i className="bi bi-archive"></i>
+              Archives
+            </h3>
+            {archives.length === 0 ? (
+              <p className="no-archives">No archives yet</p>
+            ) : (
+              <div className="archive-list">
+                {archives.map((archive) => (
+                  <Link
+                    key={`${archive.year}-${archive.month}`}
+                    to={`/blog/archive/${archive.year}/${archive.month}`}
+                    className="archive-item"
+                  >
+                    <span>{getMonthName(archive.month)} {archive.year}</span>
+                    <span className="archive-count">{archive.count}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Write Article Button */}
+          {user && (
+            <section className="sidebar-widget write-article-section">
+              <button
+                type="button"
+                className="write-article-btn"
                 onClick={() => navigate('/blog/create')}
               >
-                <i className="bi bi-plus-circle me-2"></i>
+                <i className="bi bi-plus-circle"></i>
                 Write Article
-              </Button>
-            )}
-          </div>
-        </Container>
+              </button>
+            </section>
+          )}
+        </aside>
       </div>
-
-      <Container className="mt-4">
-        <Row>
-          {/* Main Content */}
-          <Col lg={8}>
-            {/* Search and Sort */}
-            <Card className="mb-4">
-              <Card.Body>
-                <Row className="g-3">
-                  <Col md={8}>
-                    <Form onSubmit={handleSearch}>
-                      <InputGroup>
-                        <Form.Control
-                          type="text"
-                          placeholder="Search articles..."
-                          value={searchInput}
-                          onChange={(e) => setSearchInput(e.target.value)}
-                        />
-                        <Button type="submit" variant="primary">
-                          <i className="bi bi-search"></i>
-                        </Button>
-                      </InputGroup>
-                    </Form>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Select
-                      value={ordering}
-                      onChange={(e) => handleOrderingChange(e.target.value)}
-                    >
-                      <option value="-add_date">Latest First</option>
-                      <option value="add_date">Oldest First</option>
-                      <option value="-count">Most Viewed</option>
-                    </Form.Select>
-                  </Col>
-                </Row>
-                {(category || tag || search) && (
-                  <div className="mt-3">
-                    <Button variant="outline-secondary" size="sm" onClick={clearFilters}>
-                      <i className="bi bi-x-circle me-1"></i>
-                      Clear Filters
-                    </Button>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-
-            {/* Articles List */}
-            {articlesLoading ? (
-              <div className="text-center py-5">
-                <Spinner animation="border" role="status" />
-              </div>
-            ) : articles.length === 0 ? (
-              <Card>
-                <Card.Body className="text-center py-5">
-                  <i className="bi bi-inbox" style={{ fontSize: '3rem', color: '#ccc' }}></i>
-                  <p className="mt-3 text-muted">No articles found</p>
-                </Card.Body>
-              </Card>
-            ) : (
-              <>
-                {articles.map((article) => (
-                  <Card key={article.id} className="mb-4 article-card">
-                    <Card.Body>
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <Link to={`/blog/${article.id}`} className="article-title-link">
-                          <h4>{article.title}</h4>
-                        </Link>
-                      </div>
-                      <div className="article-meta mb-3 d-flex align-items-center">
-                        {article.author && (
-                          <div className="author-info me-3 d-flex align-items-center gap-2" style={{ fontSize: '0.9rem', cursor: 'pointer' }} onClick={() => navigate(`/user/profile/${article.author?.id}`)}>
-                            <div 
-                              className="author-avatar"
-                              style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                backgroundColor: '#667eea',
-                                color: 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 'bold',
-                                overflow: 'hidden',
-                                flexShrink: 0
-                              }}
-                            >
-                              {article.author.avatar ? (
-                                <img 
-                                  src={article.author.avatar} 
-                                  alt={article.author.username}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                              ) : (
-                                article.author.username.charAt(0).toUpperCase()
-                              )}
-                            </div>
-                            <span style={{ color: '#667eea' }}>{article.author.username}</span>
-                          </div>
-                        )}
-                        <span className="me-3">
-                          <i className="bi bi-calendar3 me-1"></i>
-                          {formatDate(article.add_date)}
-                        </span>
-                        <span className="me-3">
-                          <i className="bi bi-eye me-1"></i>
-                          {article.count || 0} views
-                        </span>
-                      </div>
-                      <p className="article-description">{article.description}</p>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div className="article-tags">
-                          {article.tags.map((tag) => (
-                            <Badge key={tag} bg="secondary" className="me-1">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                        <Link to={`/blog/${article.id}`} className="read-more">
-                          Read More <i className="bi bi-arrow-right"></i>
-                        </Link>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                ))}
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="d-flex justify-content-center mb-4">
-                    <Pagination>
-                      <Pagination.First onClick={() => handlePageChange(1)} disabled={page === 1} />
-                      <Pagination.Prev onClick={() => handlePageChange(page - 1)} disabled={page === 1} />
-                      
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum
-                        if (totalPages <= 5) {
-                          pageNum = i + 1
-                        } else if (page <= 3) {
-                          pageNum = i + 1
-                        } else if (page >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i
-                        } else {
-                          pageNum = page - 2 + i
-                        }
-                        return (
-                          <Pagination.Item
-                            key={pageNum}
-                            active={pageNum === page}
-                            onClick={() => handlePageChange(pageNum)}
-                          >
-                            {pageNum}
-                          </Pagination.Item>
-                        )
-                      })}
-
-                      <Pagination.Next onClick={() => handlePageChange(page + 1)} disabled={page === totalPages} />
-                      <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={page === totalPages} />
-                    </Pagination>
-                  </div>
-                )}
-              </>
-            )}
-          </Col>
-
-          {/* Sidebar */}
-          <Col lg={4}>
-            {/* Categories */}
-            <Card className="mb-4">
-              <Card.Header>
-                <h5 className="mb-0">
-                  <i className="bi bi-folder me-2"></i>
-                  Categories
-                </h5>
-              </Card.Header>
-              <Card.Body>
-                <Form.Select
-                  value={category}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                >
-                  <option value="">All Categories</option>
-                  {Array.isArray(categories) && categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Card.Body>
-            </Card>
-
-            {/* Hashtag Usage Tip */}
-            {user && (
-              <Card className="mb-4 border-info">
-                <Card.Body className="bg-light">
-                  <div className="d-flex align-items-start">
-                    <i className="bi bi-lightbulb text-info me-2 fs-5"></i>
-                    <div>
-                      <h6 className="mb-2 text-info">💡 Hashtag Tips</h6>
-                      <p className="mb-2 small">
-                        Use <code>#hashtag</code> in your articles to automatically create tags!
-                      </p>
-                      <p className="mb-0 small text-muted">
-                        Example: <code>#猫咪护理</code> <code>#宠物训练</code>
-                      </p>
-                    </div>
-                  </div>
-                </Card.Body>
-              </Card>
-            )}
-
-            {/* Tags */}
-            <Card className="mb-4">
-              <Card.Header>
-                <h5 className="mb-0">
-                  <i className="bi bi-tags me-2"></i>
-                  Popular Tags
-                </h5>
-              </Card.Header>
-              <Card.Body>
-                <div className="tag-cloud">
-                  {Array.isArray(tags) && tags.length > 0 ? (
-                    tags.map((tagItem) => (
-                      <Badge
-                        key={tagItem.id}
-                        bg="light"
-                        text="dark"
-                        className="me-2 mb-2 tag-badge"
-                        role="button"
-                        onClick={() => handleTagClick(tagItem.id)}
-                        title={`${tagItem.article_count || 0} articles`}
-                      >
-                        #{tagItem.name}
-                        {tagItem.article_count && tagItem.article_count > 0 && (
-                          <span className="ms-1 text-muted small">({tagItem.article_count})</span>
-                        )}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted small mb-0">
-                      <i className="bi bi-info-circle me-1"></i>
-                      No tags yet. Create articles with #hashtags to see popular tags here!
-                    </p>
-                  )}
-                </div>
-              </Card.Body>
-            </Card>
-
-            {/* Archives */}
-            <Card className="mb-4">
-              <Card.Header>
-                <h5 className="mb-0">
-                  <i className="bi bi-archive me-2"></i>
-                  Archives
-                </h5>
-              </Card.Header>
-              <Card.Body>
-                {archives.length === 0 ? (
-                  <p className="text-muted mb-0">No archives yet</p>
-                ) : (
-                  <div className="archive-list">
-                    {archives.map((archive) => (
-                      <Link
-                        key={`${archive.year}-${archive.month}`}
-                        to={`/blog/archive/${archive.year}/${archive.month}`}
-                        className="archive-item"
-                      >
-                        <span>{getMonthName(archive.month)} {archive.year}</span>
-                        <Badge bg="secondary">{archive.count}</Badge>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
     </div>
   )
 }

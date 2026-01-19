@@ -57,7 +57,6 @@ const router: RouteObject[] = [
         path: '/auth/reset',
           element: LazyLoad(lazyWithFallback(() => import('@/views/auth/reset'))),
       },
-      // src/router/index.tsx
       {
         path: '/adopt',
         element: LazyLoad(lazyWithFallback(() => import('@/views/adoption/index'))),
@@ -89,10 +88,6 @@ const router: RouteObject[] = [
       },
       {
         path: '/found',
-          element: LazyLoad(lazyWithFallback(() => import('@/views/found'))),
-      },
-      {
-        path: '/donation',
           element: LazyLoad(lazyWithFallback(() => import('@/views/donation'))),
       },
       {

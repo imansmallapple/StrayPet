@@ -1,10 +1,10 @@
 // src/views/shelters/index.tsx
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Container, Row, Col, Card, Button, Spinner, Alert, Badge, Form } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { shelterApi, type Shelter } from '@/services/modules/shelter'
 import { useAuth } from '@/hooks/useAuth'
 import CreateShelter from './components/CreateShelter'
+import PageHeroTitle from '@/components/page-hero-title'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './index.scss'
@@ -215,12 +215,6 @@ export default function SheltersPage() {
     shelter.region?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const getOccupancyColor = (rate: number) => {
-    if (rate < 70) return 'success'
-    if (rate < 90) return 'warning'
-    return 'danger'
-  }
-
   const handleCreateSuccess = () => {
     setCurrentPage(1) // Reset to first page
     loadShelters() // Refresh the list after creating a new shelter
@@ -239,202 +233,187 @@ export default function SheltersPage() {
 
   if (loading) {
     return (
-      <Container className="shelters-page py-5">
-        <div className="text-center">
-          <Spinner animation="border" variant="primary" />
-          <p className="mt-3">Loading shelters...</p>
+      <div className="shelters-page">
+        <PageHeroTitle title="Animal Shelters" subtitle="Find local animal shelters and rescue organizations" />
+        <div className="shelters-container">
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading shelters...</p>
+          </div>
         </div>
-      </Container>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Container className="shelters-page py-5">
-        <Alert variant="danger">
-          <Alert.Heading>Error</Alert.Heading>
-          <p>{error}</p>
-          <Button variant="outline-danger" onClick={loadShelters}>
-            Try Again
-          </Button>
-        </Alert>
-      </Container>
+      <div className="shelters-page">
+        <PageHeroTitle title="Animal Shelters" subtitle="Find local animal shelters and rescue organizations" />
+        <div className="shelters-container">
+          <div className="error-alert">
+            <h3>Error</h3>
+            <p>{error}</p>
+            <button type="button" onClick={loadShelters} className="retry-btn">Try Again</button>
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Container className="shelters-page py-4">
-      {/* Header */}
-      <div className="page-header mb-4">
-        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-          <div>
-            <h1>🏠 Animal Shelters</h1>
-            <p className="text-muted mb-0">Find local animal shelters and rescue organizations</p>
+    <div className="shelters-page">
+      <PageHeroTitle title="Animal Shelters" subtitle="Find local animal shelters and rescue organizations" />
+      
+      <div className="shelters-container">
+        {/* Search Bar */}
+        <div className="search-bar-section">
+          <div className="search-wrapper">
+            <i className="bi bi-search"></i>
+            <input
+              type="text"
+              placeholder="Search by name or location..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
           </div>
-          <div className="d-flex align-items-center gap-3">
-            <div className="stats-badge">
-              <Badge bg="primary" pill className="fs-6 px-3 py-2">
-                {totalCount} {totalCount === 1 ? 'Shelter' : 'Shelters'}
-              </Badge>
-            </div>
+          <div className="stats-info">
+            <span className="stats-count">{totalCount} {totalCount === 1 ? 'Shelter' : 'Shelters'}</span>
             {isAdmin && (
-              <Button 
-                variant="primary" 
+              <button 
+                type="button"
                 className="add-shelter-btn"
                 onClick={handleAddClick}
               >
-                <i className="bi bi-plus-circle me-2"></i>
+                <i className="bi bi-plus-circle"></i>
                 Add Shelter
-              </Button>
+              </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Search Bar */}
-      <Row className="mb-4">
-        <Col md={6} lg={4}>
-          <Form.Control
-            type="text"
-            placeholder="🔍 Search by name or location..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-        </Col>
-      </Row>
-
-      {/* Shelters Grid */}
-      {filteredShelters.length === 0 ? (
-        <Alert variant="info">
-          <p className="mb-0">No shelters found. Try adjusting your search.</p>
-        </Alert>
-      ) : (
-        <Row className="g-4">
-          {filteredShelters.map((shelter) => (
-            <Col key={shelter.id} xs={12} sm={6} lg={4} xl={3}>
-              <Card className="shelter-card h-100">
-                {/* Map Preview */}
+        {/* Shelters Grid */}
+        {filteredShelters.length === 0 ? (
+          <div className="empty-alert">
+            <p>No shelters found. Try adjusting your search.</p>
+          </div>
+        ) : (
+          <div className="shelters-grid">
+            {filteredShelters.map((shelter) => (
+              <article key={shelter.id} className="shelter-card">
+                {/* Map Preview or Cover Image */}
                 {shelter.latitude && shelter.longitude ? (
-                  <ShelterMapPreview
-                    lon={shelter.longitude}
-                    lat={shelter.latitude}
-                    className="shelter-map"
-                    height={180}
-                  />
+                  <div className="shelter-map">
+                    <ShelterMapPreview
+                      lon={shelter.longitude}
+                      lat={shelter.latitude}
+                      className="map-container"
+                      height={180}
+                    />
+                  </div>
                 ) : shelter.cover_url ? (
-                  <Card.Img 
-                    variant="top" 
+                  <img 
                     src={shelter.cover_url} 
                     alt={shelter.name}
                     className="cover-image"
                   />
                 ) : (
                   <div className="cover-placeholder">
-                    <i className="bi bi-house-heart fs-1"></i>
+                    <i className="bi bi-house-heart"></i>
                   </div>
                 )}
+                
                 {shelter.is_verified && (
-                  <Badge bg="success" className="verified-badge">
-                    ✓ Verified
-                  </Badge>
+                  <div className="verified-badge">✓ Verified</div>
                 )}
 
-                <Card.Body className="d-flex flex-column">
+                <div className="shelter-content">
                   {/* Logo and Name */}
-                  <div className="d-flex align-items-start mb-2">
+                  <div className="shelter-header">
                     {shelter.logo_url ? (
                       <img 
                         src={shelter.logo_url} 
                         alt={`${shelter.name} logo`}
-                        className="shelter-logo me-3"
+                        className="shelter-logo"
                       />
                     ) : (
-                      <div className="shelter-logo-placeholder me-3">
+                      <div className="shelter-logo-placeholder">
                         <i className="bi bi-building"></i>
                       </div>
                     )}
-                    <div className="flex-grow-1">
-                      <Card.Title className="mb-2 fs-5">{shelter.name}</Card.Title>
-                      <div className="address-section mb-2">
-                        <small className="text-muted d-block">
-                          <i className="bi bi-geo-alt-fill me-1"></i>
-                          {(() => {
-                            const addressParts = []
-                            if (shelter.street) addressParts.push(shelter.street)
-                            if (shelter.city) addressParts.push(shelter.city)
-                            if (addressParts.length > 0) {
-                              return addressParts.join(', ')
-                            }
-                            if (shelter.region) return shelter.region
-                            if (shelter.country) return shelter.country
-                            return 'No address provided'
-                          })()}
-                        </small>
-                      </div>
+                    <div className="header-info">
+                      <h3 className="shelter-name">{shelter.name}</h3>
+                      {(() => {
+                        const addressParts = []
+                        if (shelter.street) addressParts.push(shelter.street)
+                        if (shelter.city) addressParts.push(shelter.city)
+                        const address = addressParts.length > 0 
+                          ? addressParts.join(', ')
+                          : (shelter.region || shelter.country || 'No address')
+                        return (
+                          <p className="address">
+                            <i className="bi bi-geo-alt-fill"></i>
+                            {address}
+                          </p>
+                        )
+                      })()}
                     </div>
                   </div>
 
                   {/* Description */}
                   {shelter.description && (
-                    <Card.Text className="description-text mb-3">
-                      {shelter.description.length > 80
-                        ? `${shelter.description.substring(0, 80)}...`
+                    <p className="description">
+                      {shelter.description.length > 100
+                        ? `${shelter.description.substring(0, 100)}...`
                         : shelter.description}
-                    </Card.Text>
+                    </p>
                   )}
 
                   {/* Capacity Info */}
-                  <div className="capacity-info mb-3 mt-auto">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <small className="text-muted">Capacity</small>
-                      <Badge 
-                        bg={getOccupancyColor(shelter.occupancy_rate || 0)}
-                        className="occupancy-badge"
-                      >
-                        {shelter.occupancy_rate?.toFixed(0)}%
-                      </Badge>
+                  <div className="capacity-section">
+                    <div className="capacity-header">
+                      <span>Capacity</span>
+                      <span className="occupancy-badge">
+                        {shelter.occupancy_rate?.toFixed(0) || 0}%
+                      </span>
                     </div>
                     <div className="capacity-bar">
                       <div 
-                        className={`capacity-fill bg-${getOccupancyColor(shelter.occupancy_rate || 0)}`}
+                        className="capacity-fill"
                         style={{ width: `${Math.min(shelter.occupancy_rate || 0, 100)}%` }}
                       ></div>
                     </div>
-                    <small className="text-muted">
+                    <p className="capacity-text">
                       {shelter.current_animals} / {shelter.capacity} animals
-                    </small>
+                    </p>
                   </div>
 
                   {/* Contact Info */}
-                  <div className="contact-quick mb-3">
+                  <div className="contact-section">
                     {shelter.phone && (
                       <div className="contact-item">
-                        <i className="bi bi-telephone me-2"></i>
+                        <i className="bi bi-telephone"></i>
                         <small>{shelter.phone}</small>
                       </div>
                     )}
                     {shelter.email && (
                       <div className="contact-item">
-                        <i className="bi bi-envelope me-2"></i>
+                        <i className="bi bi-envelope"></i>
                         <small>{shelter.email}</small>
                       </div>
                     )}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="d-grid gap-2">
-                    <Link to={`/shelters/${shelter.id}`} className="w-100">
-                      <Button variant="primary" className="w-100">
-                        View Details
-                      </Button>
+                  <div className="action-buttons">
+                    <Link to={`/shelters/${shelter.id}`} className="btn btn-primary">
+                      View Details
                     </Link>
                     {!isAdmin && (shelter.phone || shelter.email) && (
-                      <Button 
-                        variant="outline-secondary" 
-                        className="w-100"
+                      <button 
+                        type="button"
+                        className="btn btn-secondary"
                         onClick={() => {
-                          // 创建联系选项
                           const contactOptions = []
                           if (shelter.phone) {
                             contactOptions.push({
@@ -449,11 +428,9 @@ export default function SheltersPage() {
                             })
                           }
                           
-                          // 如果只有一种联系方式，直接执行
                           if (contactOptions.length === 1) {
                             contactOptions[0].action()
                           } else if (contactOptions.length > 1) {
-                            // 多种方式，显示选择菜单
                             const choice = window.confirm(
                               `Contact options:\n\n` +
                               contactOptions.map((opt, idx) => `${idx + 1}. ${opt.label}`).join('\n') +
@@ -463,46 +440,48 @@ export default function SheltersPage() {
                           }
                         }}
                       >
-                        <i className="bi bi-telephone me-2"></i>
+                        <i className="bi bi-telephone"></i>
                         Contact Us
-                      </Button>
+                      </button>
                     )}
                   </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
 
-      {/* Pagination (if needed) */}
-      {totalCount > 12 && (
-        <div className="d-flex justify-content-center mt-4">
-          <Button
-            variant="outline-primary"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(currentPage - 1)}
-            className="me-2"
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline-primary"
-            disabled={currentPage * 12 >= totalCount}
-            onClick={() => setCurrentPage(currentPage + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      )}
+        {/* Pagination */}
+        {totalCount > 12 && (
+          <div className="pagination-section">
+            <button
+              type="button"
+              className="pagination-btn"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(currentPage - 1)}
+            >
+              Prev
+            </button>
+            <span className="page-info">Page {currentPage}</span>
+            <button
+              type="button"
+              className="pagination-btn"
+              disabled={currentPage * 12 >= totalCount}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
-      {/* Create Shelter Modal */}
-      <CreateShelter
-        show={showCreateModal}
-        onHide={() => setShowCreateModal(false)}
-        onSuccess={handleCreateSuccess}
-      />
-    </Container>
+        {/* Create Shelter Modal */}
+        <CreateShelter
+          show={showCreateModal}
+          onHide={() => setShowCreateModal(false)}
+          onSuccess={handleCreateSuccess}
+        />
+      </div>
+    </div>
   )
 }
 

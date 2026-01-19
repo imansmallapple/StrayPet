@@ -289,14 +289,14 @@ export default function Adopt() {
 
                 {data && data.count > pageSize && (
                   <div className="pager">
-                    <button type="button" disabled={page <= 1} onClick={() => goPage(page - 1)}>← Prev</button>
+                    <button type="button" disabled={page <= 1} onClick={() => goPage(page - 1)}>Prev</button>
                     <span>{page}</span>
                     <button
                       type="button"
                       disabled={list.length < pageSize}
                       onClick={() => goPage(page + 1)}
                     >
-                      Next →
+                      Next
                     </button>
                   </div>
                 )}

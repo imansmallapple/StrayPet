@@ -21,7 +21,7 @@ export default function TopNavbar() {
         </NavLink>
         <NavLink to="/adopt" className="nav-link">Adopt</NavLink>
         <NavLink to="/lost" className="nav-link">Lost Pet</NavLink>
-        <NavLink to="/donation" className="nav-link">Found/Stray</NavLink>
+        <NavLink to="/found" className="nav-link">Found/Stray</NavLink>
         <NavLink to="/shelters" className="nav-link">Shelters</NavLink>
         <NavLink to="/blog" className="nav-link">Blog</NavLink>
       </nav>

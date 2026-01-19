@@ -3,11 +3,11 @@
 import { useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
-import { Container, Row, Col, Card, Badge, Button, Form, Spinner, Alert, Modal } from 'react-bootstrap'
 import { blogApi, type Comment } from '@/services/modules/blog'
 import { useAuth } from '@/hooks/useAuth'
 import SafeHtml from '@/components/SafeHtml'
 import EmojiPicker from '@/components/EmojiPicker'
+import PageHeroTitle from '@/components/page-hero-title'
 import './index.scss'
 
 type DialogModalProps = {
@@ -18,12 +18,18 @@ type DialogModalProps = {
   findParentUsername: (parentId: number) => string
   formatCommentDate: (dateStr: string) => string
 }
-const DialogModal = ({ show, onHide, dialogComments, dialogActiveId, findParentUsername, formatCommentDate }: DialogModalProps) => (
-  <Modal show={show} onHide={onHide} centered size="lg">
-    <Modal.Header closeButton>
-      <Modal.Title>对话列表</Modal.Title>
-    </Modal.Header>
-    <Modal.Body style={{ background: '#18191c', color: '#fff', minHeight: 200, maxHeight: 500, overflowY: 'auto' }}>
+const DialogModal = ({ show, onHide, dialogComments, dialogActiveId, findParentUsername, formatCommentDate }: DialogModalProps) => {
+  if (!show) return null
+  return (
+    <div className="dialog-modal-overlay" onClick={onHide}>
+      <div className="dialog-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="dialog-modal-header">
+          <h3>对话列表</h3>
+          <button className="dialog-modal-close" onClick={onHide} type="button">
+            <i className="bi bi-x"></i>
+          </button>
+        </div>
+        <div className="dialog-modal-body">
       {dialogComments.length === 0 ? (
         <div className="text-center text-muted">暂无对话</div>
       ) : (
@@ -32,65 +38,41 @@ const DialogModal = ({ show, onHide, dialogComments, dialogActiveId, findParentU
             <div
               key={c.id}
               id={`dialog-comment-${c.id}`}
-              style={{
-                background: c.id === dialogActiveId ? '#232324' : 'transparent',
-                borderRadius: 8,
-                padding: '1rem',
-                marginBottom: 12,
-                color: '#fff',
-                border: c.id === dialogActiveId ? '1px solid #667eea' : 'none',
-                boxShadow: c.id === dialogActiveId ? '0 0 0 2px #667eea22' : 'none',
-              }}
+              className={`dialog-comment ${c.id === dialogActiveId ? 'active' : ''}`}
             >
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                <div
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    backgroundColor: '#667eea',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '12px',
-                    marginRight: '8px',
-                    overflow: 'hidden',
-                    flexShrink: 0
-                  }}
-                >
+              <div className="dialog-comment-header">
+                <div className="dialog-comment-avatar">
                   {c.user.avatar ? (
                     <img 
                       src={c.user.avatar} 
                       alt={c.user.username}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
                     c.user.username.charAt(0).toUpperCase()
                   )}
                 </div>
-                <div style={{ fontWeight: 600 }}>
-                  {c.user.username}
-                  {c.parent && index > 0 && (
-                    <span style={{ color: '#aaa', fontWeight: 400, marginLeft: 8, fontSize: 13 }}>
-                      回复
-                      <span style={{ color: '#67e', marginLeft: 2 }}>@{findParentUsername(c.parent)}</span>
-                    </span>
-                  )}
+                <div className="dialog-comment-info">
+                  <div className="dialog-comment-username">
+                    {c.user.username}
+                    {c.parent && index > 0 && (
+                      <span className="dialog-comment-reply">
+                        回复 <span className="dialog-reply-target">@{findParentUsername(c.parent)}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="dialog-comment-date">{formatCommentDate(c.add_date)}</div>
                 </div>
               </div>
-              <div style={{ fontSize: 15, marginBottom: 6 }}>{c.content}</div>
-              <div style={{ fontSize: 12, color: '#aaa' }}>
-                {formatCommentDate(c.add_date)}
-              </div>
+              <div className="dialog-comment-body">{c.content}</div>
             </div>
           ))}
         </div>
       )}
-    </Modal.Body>
-  </Modal>
-)
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function BlogDetail() {
   const { id } = useParams<{ id: string }>()
@@ -196,7 +178,7 @@ export default function BlogDetail() {
   }
 
   // 加载文章详情
-  const { data: articleData, loading: articleLoading, refresh: refreshArticle } = useRequest(
+  const { data: articleData, loading: articleLoading } = useRequest(
     () => blogApi.getArticle(Number(id)),
     {
       ready: !!id,
@@ -253,15 +235,21 @@ export default function BlogDetail() {
           </h5>
         )}
         {submitError && (
-          <Alert variant="danger" dismissible onClose={() => setSubmitError(null)}>
+          <div className="alert alert-danger" role="alert">
             {submitError}
-          </Alert>
+            <button 
+              type="button" 
+              className="alert-close"
+              onClick={() => setSubmitError(null)}
+            >
+              <i className="bi bi-x"></i>
+            </button>
+          </div>
         )}
-        <Form onSubmit={handleSubmitComment}>
-          <Form.Group className="mb-3">
-            <Form.Control
+        <form onSubmit={handleSubmitComment}>
+          <div className="form-group">
+            <textarea
               ref={textareaRef}
-              as="textarea"
               rows={isReply ? 3 : 4}
               placeholder="Write your comment... You can use emojis! 😊"
               value={commentContent}
@@ -269,38 +257,36 @@ export default function BlogDetail() {
               required
               className="comment-textarea"
               autoFocus={isReply}
-            />
-          </Form.Group>
-          <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex gap-2">
+            ></textarea>
+          </div>
+          <div className="form-footer">
+            <div className="emoji-section">
               <EmojiPicker onEmojiSelect={handleEmojiSelect} />
-              <span className="text-muted small align-self-center">
+              <span className="emoji-hint">
                 Click to add emoji
               </span>
             </div>
-            <div className="d-flex gap-2">
+            <div className="button-group">
               {isReply && (
-                <Button
+                <button
                   type="button"
-                  variant="outline-secondary"
-                  size="sm"
+                  className="btn btn-secondary"
                   onClick={handleCancelReply}
                 >
                   <i className="bi bi-x-circle me-1"></i>
                   Cancel
-                </Button>
+                </button>
               )}
-              <Button 
+              <button 
                 type="submit" 
-                variant="primary" 
-                {...(isReply && { size: 'sm' as const })}
+                className="btn btn-primary"
               >
                 <i className="bi bi-send me-2"></i>
                 {isReply ? 'Post Reply' : 'Post Comment'}
-              </Button>
+              </button>
             </div>
           </div>
-        </Form>
+        </form>
       </div>
     )
   }
@@ -371,7 +357,10 @@ export default function BlogDetail() {
       } else {
         await blogApi.favoriteArticle(Number(id))
       }
-      refreshArticle()
+      // 只更新is_favorited状态，不刷新整个文章
+      if (articleData) {
+        articleData.data.is_favorited = !articleData.data.is_favorited
+      }
     } catch (_error) {
       alert('操作失败，请稍后重试')
     } finally {
@@ -427,17 +416,17 @@ export default function BlogDetail() {
 
   if (!id) {
     return (
-      <Container className="py-5 text-center">
+      <div className="error-container">
         <p>Invalid article ID</p>
-      </Container>
+      </div>
     )
   }
 
   if (articleLoading || !article) {
     return (
-      <Container className="py-5 text-center">
-        <Spinner animation="border" role="status" />
-      </Container>
+      <div className="loading-page">
+        <div className="spinner"></div>
+      </div>
     )
   }
 
@@ -605,155 +594,130 @@ export default function BlogDetail() {
         findParentUsername={findParentUsername}
         formatCommentDate={formatCommentDate}
       />
-      <div className="article-header">
-        <Container>
-          <Button
-            variant="link"
-            className="back-button"
-            onClick={() => navigate('/blog')}
-          >
-            <i className="bi bi-arrow-left me-2"></i>
-            Back to Blog
-          </Button>
-          <h1>{article.title}</h1>
-          <div className="article-meta">
+      <div className="blog-detail-header">
+        <button 
+          className="back-button"
+          onClick={() => navigate('/blog')}
+          type="button"
+        >
+          Back
+        </button>
+        <PageHeroTitle title={article.title} />
+      </div>
+
+      <div className="blog-detail-container">
+        <div className="blog-detail-main">
+          <article className="article-content-card">
+            <button 
+              className={`favorite-btn ${article.is_favorited ? 'favorited' : ''}`}
+              onClick={handleToggleFavorite}
+              disabled={favoriting}
+              type="button"
+            >
+              <i className={`bi bi-${article.is_favorited ? 'bookmark-fill' : 'bookmark'}`}></i>
+              {article.is_favorited ? 'Saved' : 'Save'}
+            </button>
+            <SafeHtml html={article.content} />
+          </article>
+
+          {/* Article Meta and Tags */}
+          <div className="article-meta-section">
             {article.author && (
-              <div className="author-section d-flex align-items-center me-4 mb-3" onClick={() => navigate(`/user/profile/${article.author?.id}`)} style={{ cursor: 'pointer' }}>
-                <div 
-                  className="author-avatar"
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    backgroundColor: '#667eea',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '20px',
-                    marginRight: '12px',
-                    overflow: 'hidden',
-                    flexShrink: 0
-                  }}
-                >
+              <div className="author-info-card">
+                <div className="author-avatar">
                   {article.author.avatar ? (
                     <img 
                       src={article.author.avatar} 
                       alt={article.author.username}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
-                    article.author.username.charAt(0).toUpperCase()
+                    <span>{article.author.username.charAt(0).toUpperCase()}</span>
                   )}
                 </div>
-                <div className="author-info">
-                  <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'white' }}>
+                <div className="author-details">
+                  <button 
+                    className="author-link"
+                    onClick={() => navigate(`/user/profile/${article.author?.id}`)}
+                    type="button"
+                  >
                     {article.author.username}
-                  </div>
+                  </button>
                 </div>
               </div>
             )}
-            <span className="me-3">
-              <i className="bi bi-calendar3 me-1"></i>
-              {formatDate(article.add_date)}
-            </span>
-            <span className="me-3">
-              <i className="bi bi-eye me-1"></i>
-              {article.count || 0} views
-            </span>
-            <Button
-              variant={article.is_favorited ? "danger" : "outline-danger"}
-              size="sm"
-              onClick={handleToggleFavorite}
-              disabled={favoriting}
-              className="ms-2"
-            >
-              <i className={`bi bi-${article.is_favorited ? 'bookmark-fill' : 'bookmark'} me-1`}></i>
-              {article.is_favorited ? '已收藏' : '收藏'}
-            </Button>
+            
+            <div className="article-stats">
+              <span className="stat-item">
+                <i className="bi bi-calendar3"></i>
+                {formatDate(article.add_date)}
+              </span>
+              <span className="stat-item">
+                <i className="bi bi-eye"></i>
+                {article.count || 0} views
+              </span>
+            </div>
+
+            <div className="article-tags">
+              {article.tags.map((tag) => (
+                <span key={tag} className="tag-badge">{tag}</span>
+              ))}
+            </div>
           </div>
-          <div className="article-tags mt-3">
-            {article.tags.map((tag) => (
-              <Badge key={tag} bg="light" text="dark" className="me-2">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </Container>
-      </div>
 
-      <Container className="mt-4">
-        <Row>
-          <Col lg={9}>
-            <Card className="article-content-card mb-4">
-              <Card.Body>
-                <SafeHtml html={article.content} />
-              </Card.Body>
-            </Card>
+          {/* Comments Section */}
+          <section className="comments-section">
+            <h3 className="comments-title">
+              <i className="bi bi-chat-dots"></i>
+              Comments ({comments.length})
+            </h3>
 
-            {/* Comments Section */}
-            <Card className="comments-section">
-              <Card.Header>
-                <h4 className="mb-0">
-                  <i className="bi bi-chat-dots me-2"></i>
-                  Comments ({comments.length})
-                </h4>
-              </Card.Header>
-              <Card.Body>
-                {/* No Comments Message - Show above form */}
-                {commentsLoading ? (
-                  <div className="text-center py-4">
-                    <Spinner animation="border" size="sm" />
-                  </div>
-                ) : comments.length === 0 ? (
-                  <div className="text-center py-4 text-muted mb-4">
-                    <i className="bi bi-chat" style={{ fontSize: '2rem' }}></i>
-                    <p className="mt-2">No comments yet. Be the first to comment!</p>
-                  </div>
-                ) : null}
+            {/* Loading State */}
+            {commentsLoading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="empty-state">
+                <i className="bi bi-chat"></i>
+                <p>No comments yet. Be the first to comment!</p>
+              </div>
+            ) : null}
 
-                {/* Comment Form - 只在非回复模式显示 */}
-                {isAuthenticated ? (
-                  <div className="mb-4">
-                    {renderCommentForm(false)}
-                  </div>
-                ) : (
-                  <div className="mb-4">
-                    <Alert variant="info">
-                      Please <Link to="/login">log in</Link> to leave a comment.
-                    </Alert>
-                  </div>
-                )}
-
-                {/* Comments List */}
-                {!commentsLoading && comments.length > 0 && (
-                  <div className="comments-list">
-                    {comments.map((comment) => renderCommentThread(comment))}
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-
-          {/* Sidebar */}
-          <Col lg={3}>
-            {article.toc && (
-              <Card className="toc-card sticky-top" style={{ top: '1rem' }}>
-                <Card.Header>
-                  <h6 className="mb-0">
-                    <i className="bi bi-list-ul me-2"></i>
-                    Table of Contents
-                  </h6>
-                </Card.Header>
-                <Card.Body className="toc-content">
-                  <SafeHtml html={article.toc} />
-                </Card.Body>
-              </Card>
+            {/* Comment Form - 只在非回复模式显示 */}
+            {isAuthenticated ? (
+              <div className="comment-form-wrapper">
+                {renderCommentForm(false)}
+              </div>
+            ) : (
+              <div className="login-prompt">
+                <p>Please <Link to="/login">log in</Link> to leave a comment.</p>
+              </div>
             )}
-          </Col>
-        </Row>
-      </Container>
+
+            {/* Comments List */}
+            {!commentsLoading && comments.length > 0 && (
+              <div className="comments-list">
+                {comments.map((comment) => renderCommentThread(comment))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Sidebar */}
+        {article.toc && (
+          <aside className="blog-detail-sidebar">
+            <div className="toc-card">
+              <h4 className="toc-title">
+                <i className="bi bi-list-ul"></i>
+                Table of Contents
+              </h4>
+              <div className="toc-content">
+                <SafeHtml html={article.toc} />
+              </div>
+            </div>
+          </aside>
+        )}
+      </div>
     </div>
   )
 }

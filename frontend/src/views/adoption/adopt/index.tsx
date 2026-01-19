@@ -14,11 +14,17 @@ interface FilterState {
   size: string
 }
 
+interface FavoritedPets {
+  [key: number]: boolean
+}
+
 export default function Adopt() {
   const [sp, setSp] = useSearchParams()
   const page = Number(sp.get('page') || 1)
   const pageSize = Number(sp.get('page_size') || 12)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [favoritedPets, setFavoritedPets] = useState<FavoritedPets>({})
+  const [favoritingId, setFavoritingId] = useState<number | null>(null)
 
   // Initialize filters from URL parameters
   const [filters, setFilters] = useState<FilterState>({
@@ -84,6 +90,31 @@ export default function Adopt() {
       size: '',
     })
     setSp(new URLSearchParams())
+  }
+
+  // Handle favorite pet toggle
+  const handleToggleFavoritePet = async (pet: Pet) => {
+    try {
+      setFavoritingId(pet.id)
+      const isFavorited = favoritedPets[pet.id]
+      
+      if (isFavorited) {
+        await adoptApi.unfavorite(pet.id)
+      } else {
+        await adoptApi.favorite(pet.id)
+      }
+      
+      // Update local state
+      setFavoritedPets(prev => ({
+        ...prev,
+        [pet.id]: !isFavorited
+      }))
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+      alert('Failed to save pet')
+    } finally {
+      setFavoritingId(null)
+    }
   }
 
   const list = data?.results ?? []
@@ -269,6 +300,18 @@ export default function Adopt() {
                         <p className="desc">{pet.description || 'No description available'}</p>
                         <div className="actions">
                           <Link to={`/adopt/${pet.id}`}>View Details →</Link>
+                          <button
+                            className={`save-btn ${favoritedPets[pet.id] ? 'saved' : ''}`}
+                            onClick={() => handleToggleFavoritePet(pet)}
+                            disabled={favoritingId === pet.id}
+                            type="button"
+                            title={favoritedPets[pet.id] ? 'Remove from saved' : 'Save pet'}
+                          >
+                            <i className={`icon ${favoritedPets[pet.id] ? 'filled' : ''}`}>
+                              {favoritedPets[pet.id] ? '❤️' : '🤍'}
+                            </i>
+                            {favoritedPets[pet.id] ? 'Saved' : 'Save'}
+                          </button>
                         </div>
                       </div>
                     </article>

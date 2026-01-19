@@ -50,7 +50,7 @@ export default function LostDetail() {
           <Alert.Heading>Error</Alert.Heading>
           <p>{error}</p>
           <Button variant="outline-danger" onClick={() => navigate('/lost')}>
-            ← Back to Lost Pets
+            Back to Lost Pets
           </Button>
         </Alert>
       </Container>
@@ -106,7 +106,7 @@ export default function LostDetail() {
           className="back-btn"
           onClick={() => navigate('/lost')}
         >
-          ← Back to Lost Pets
+          Back to Lost Pets
         </Button>
       </div>
 
