@@ -7,8 +7,8 @@ import './index.scss'
 export default function LostPost() {
   const nav = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [errors, setErrors] = useState<Record<string, boolean>>({})
 
   // —— 基础信息 ——
   const [petName, setPetName] = useState('')
@@ -30,8 +30,8 @@ export default function LostPost() {
   const [contactPhone, setContactPhone] = useState('')
   const [contactEmail, setContactEmail] = useState('')
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
     if (file) {
       setPhoto(file)
       const reader = new FileReader()
@@ -44,31 +44,53 @@ export default function LostPost() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setError('')
     setSuccess(false)
+    const newErrors: Record<string, boolean> = {}
 
     try {
       // 验证必填字段
       if (!petName.trim()) {
-        setError('Pet name is required')
-        return
+        newErrors.petName = true
       }
       if (!species) {
-        setError('Species is required')
-        return
+        newErrors.species = true
       }
       if (!lostAt) {
-        setError('Lost date and time is required')
-        return
+        newErrors.lostAt = true
       }
       if (!photo) {
-        setError('Pet photo is required')
+        newErrors.photo = true
+      }
+      if (!country.trim()) {
+        newErrors.country = true
+      }
+      if (!region.trim()) {
+        newErrors.region = true
+      }
+      if (!city.trim()) {
+        newErrors.city = true
+      }
+      if (!contactPhone.trim()) {
+        newErrors.contactPhone = true
+      }
+      if (!contactEmail.trim()) {
+        newErrors.contactEmail = true
+      }
+
+      // 如果有错误，显示错误状态并返回
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors)
+        
+        // 自动滚动到第一个有错误的字段
+        const firstErrorField = Object.keys(newErrors)[0]
+        const element = document.querySelector(`[data-field="${firstErrorField}"]`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
         return
       }
-      if (!country.trim() || !region.trim() || !city.trim() || !street.trim()) {
-        setError('Please fill in all location information (Country, Region, City, Street)')
-        return
-      }
+      
+      setErrors({})
 
       // ✅ 新增 address_data 结构
       const address_data = {
@@ -105,7 +127,7 @@ export default function LostPost() {
         nav('/lost')
       }, 2000)
     } catch (err: any) {
-      setError(err?.message || 'Failed to report lost pet')
+      console.error('Failed to report lost pet:', err?.message)
     } finally {
       setLoading(false)
     }
@@ -131,16 +153,6 @@ export default function LostPost() {
             <div>
               <strong>Reported Successfully!</strong>
               <p>Your lost pet report has been published. Redirecting...</p>
-            </div>
-          </Alert>
-        )}
-
-        {error && (
-          <Alert variant="danger" className="alert-error">
-            <span className="alert-icon">⚠️</span>
-            <div>
-              <strong>Error</strong>
-              <p>{error}</p>
             </div>
           </Alert>
         )}
@@ -196,30 +208,40 @@ export default function LostPost() {
           <div className="form-col" style={{ gridColumn: '2' }}>
             <Card className="form-card">
               <Card.Body>
-                <Form onSubmit={onSubmit} className="lost-form">
+                <form onSubmit={onSubmit} className="lost-form">
                   {/* Section 1: Basic Information */}
                   <div className="form-section">
                     <h5 className="section-title">🐾 Basic Information</h5>
                     
                     <Form.Group className="mb-3">
                       <Form.Label>Pet Name *</Form.Label>
-                      <Form.Control
+                      <input
                         type="text"
+                        className={`form-control ${errors.petName ? 'is-invalid' : ''}`}
                         placeholder="e.g., Max, Fluffy, Buddy"
                         value={petName}
-                        onChange={(e) => setPetName(e.target.value)}
+                        onChange={(e) => {
+                          setPetName(e.target.value)
+                          if (errors.petName) setErrors({ ...errors, petName: false })
+                        }}
+                        data-field="petName"
                         required
                       />
-                      <Form.Text className="text-danger">Required</Form.Text>
+                      {errors.petName && <small className="text-danger">* Required</small>}
                     </Form.Group>
 
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>Species *</Form.Label>
-                          <Form.Select
+                          <select
+                            className={`form-control form-select ${errors.species ? 'is-invalid' : ''}`}
                             value={species}
-                            onChange={(e) => setSpecies(e.target.value)}
+                            onChange={(e) => {
+                              setSpecies(e.target.value)
+                              if (errors.species) setErrors({ ...errors, species: false })
+                            }}
+                            data-field="species"
                             required
                           >
                             <option value="dog">🐕 Dog</option>
@@ -227,8 +249,8 @@ export default function LostPost() {
                             <option value="rabbit">🐰 Rabbit</option>
                             <option value="bird">🐦 Bird</option>
                             <option value="other">Other</option>
-                          </Form.Select>
-                          <Form.Text className="text-danger">Required</Form.Text>
+                          </select>
+                          {errors.species && <small className="text-danger">* Required</small>}
                         </Form.Group>
                       </Col>
                       <Col md={6}>
@@ -247,13 +269,18 @@ export default function LostPost() {
 
                     <Form.Group className="mb-3">
                       <Form.Label>Lost Date & Time *</Form.Label>
-                      <Form.Control
+                      <input
                         type="datetime-local"
+                        className={`form-control ${errors.lostAt ? 'is-invalid' : ''}`}
                         value={lostAt}
-                        onChange={(e) => setLostAt(e.target.value)}
+                        onChange={(e) => {
+                          setLostAt(e.target.value)
+                          if (errors.lostAt) setErrors({ ...errors, lostAt: false })
+                        }}
+                        data-field="lostAt"
                         required
                       />
-                      <Form.Text className="text-danger">Required</Form.Text>
+                      {errors.lostAt && <small className="text-danger">* Required</small>}
                     </Form.Group>
                   </div>
 
@@ -265,27 +292,37 @@ export default function LostPost() {
                       <Col md={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>Country *</Form.Label>
-                          <Form.Control
+                          <input
                             type="text"
+                            className={`form-control ${errors.country ? 'is-invalid' : ''}`}
                             placeholder="e.g., Poland"
                             value={country}
-                            onChange={(e) => setCountry(e.target.value)}
+                            onChange={(e) => {
+                              setCountry(e.target.value)
+                              if (errors.country) setErrors({ ...errors, country: false })
+                            }}
+                            data-field="country"
                             required
                           />
-                          <Form.Text className="text-danger">Required</Form.Text>
+                          {errors.country && <small className="text-danger">* Required</small>}
                         </Form.Group>
                       </Col>
                       <Col md={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>State/Region *</Form.Label>
-                          <Form.Control
+                          <input
                             type="text"
+                            className={`form-control ${errors.region ? 'is-invalid' : ''}`}
                             placeholder="e.g., Mazovia"
                             value={region}
-                            onChange={(e) => setRegion(e.target.value)}
+                            onChange={(e) => {
+                              setRegion(e.target.value)
+                              if (errors.region) setErrors({ ...errors, region: false })
+                            }}
+                            data-field="region"
                             required
                           />
-                          <Form.Text className="text-danger">Required</Form.Text>
+                          {errors.region && <small className="text-danger">* Required</small>}
                         </Form.Group>
                       </Col>
                     </Row>
@@ -294,21 +331,27 @@ export default function LostPost() {
                       <Col md={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>City *</Form.Label>
-                          <Form.Control
+                          <input
                             type="text"
+                            className={`form-control ${errors.city ? 'is-invalid' : ''}`}
                             placeholder="e.g., Warsaw"
                             value={city}
-                            onChange={(e) => setCity(e.target.value)}
+                            onChange={(e) => {
+                              setCity(e.target.value)
+                              if (errors.city) setErrors({ ...errors, city: false })
+                            }}
+                            data-field="city"
                             required
                           />
-                          <Form.Text className="text-danger">Required</Form.Text>
+                          {errors.city && <small className="text-danger">* Required</small>}
                         </Form.Group>
                       </Col>
                       <Col md={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>Postal Code</Form.Label>
-                          <Form.Control
+                          <input
                             type="text"
+                            className="form-control"
                             placeholder="e.g., 00-001"
                             value={postal}
                             onChange={(e) => setPostal(e.target.value)}
@@ -318,15 +361,13 @@ export default function LostPost() {
                     </Row>
 
                     <Form.Group className="mb-3">
-                      <Form.Label>Street Address *</Form.Label>
+                      <Form.Label>Street Address</Form.Label>
                       <Form.Control
                         type="text"
                         placeholder="e.g., ul. Nowy Świat 10"
                         value={street}
                         onChange={(e) => setStreet(e.target.value)}
-                        required
                       />
-                      <Form.Text className="text-danger">Required</Form.Text>
                     </Form.Group>
                   </div>
 
@@ -335,7 +376,7 @@ export default function LostPost() {
                     <h5 className="section-title">📝 Description & Photo</h5>
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Description (Optional)</Form.Label>
+                      <Form.Label>Description</Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={4}
@@ -345,13 +386,16 @@ export default function LostPost() {
                         style={{ resize: 'none' }}
                       />
                       <Form.Text className="text-muted">
-                        {description.length}/500 characters - Optional
+                        {description.length}/500 characters
                       </Form.Text>
                     </Form.Group>
 
                     <Form.Group className="mb-3">
                       <Form.Label>Pet Photo *</Form.Label>
-                      <div className="photo-upload-area">
+                      <div 
+                        className={`photo-upload-area ${errors.photo ? 'is-invalid' : ''}`}
+                        data-field="photo"
+                      >
                         {photoPreview ? (
                           <div className="photo-preview">
                             <img src={photoPreview} alt="Pet preview" />
@@ -376,47 +420,58 @@ export default function LostPost() {
                             <Form.Control
                               type="file"
                               accept="image/*"
-                              onChange={handlePhotoChange}
+                              onChange={(e) => {
+                                handlePhotoChange(e)
+                                if (errors.photo) setErrors({ ...errors, photo: false })
+                              }}
                               style={{ display: 'none' }}
-                              required
                             />
                           </label>
                         )}
                       </div>
-                      <Form.Text className="text-danger">Required</Form.Text>
+                      {errors.photo && <small className="text-danger">* Required</small>}
                     </Form.Group>
                   </div>
 
                   {/* Section 4: Contact Information */}
                   <div className="form-section">
                     <h5 className="section-title">📞 Your Contact Information</h5>
-                    <p className="info-text">So the owner can reach you if they have information about your pet</p>
                     
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>Phone Number *</Form.Label>
-                          <Form.Control
+                          <input
                             type="tel"
-                            placeholder="e.g., +48 12 345 67 89"
+                            className={`form-control ${errors.contactPhone ? 'is-invalid' : ''}`}
+                            placeholder="e.g., +48 123 456 789"
                             value={contactPhone}
-                            onChange={(e) => setContactPhone(e.target.value)}
+                            onChange={(e) => {
+                              setContactPhone(e.target.value)
+                              if (errors.contactPhone) setErrors({ ...errors, contactPhone: false })
+                            }}
+                            data-field="contactPhone"
                             required
                           />
-                          <Form.Text className="text-danger">Required</Form.Text>
+                          {errors.contactPhone && <small className="text-danger">* Required</small>}
                         </Form.Group>
                       </Col>
                       <Col md={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>Email Address *</Form.Label>
-                          <Form.Control
+                          <input
                             type="email"
-                            placeholder="e.g., your.email@example.com"
+                            className={`form-control ${errors.contactEmail ? 'is-invalid' : ''}`}
+                            placeholder="e.g., john@example.com"
                             value={contactEmail}
-                            onChange={(e) => setContactEmail(e.target.value)}
+                            onChange={(e) => {
+                              setContactEmail(e.target.value)
+                              if (errors.contactEmail) setErrors({ ...errors, contactEmail: false })
+                            }}
+                            data-field="contactEmail"
                             required
                           />
-                          <Form.Text className="text-danger">Required</Form.Text>
+                          {errors.contactEmail && <small className="text-danger">* Required</small>}
                         </Form.Group>
                       </Col>
                     </Row>
@@ -424,12 +479,14 @@ export default function LostPost() {
 
                   {/* Submit Button */}
                   <div className="form-actions">
-                    <Button
-                      variant="primary"
-                      size="lg"
+                    <button
                       type="submit"
                       disabled={loading}
-                      className="btn-submit"
+                      className="btn btn-primary btn-lg btn-submit"
+                      onClick={(e) => {
+                        // @ts-expect-error native button click event
+                        onSubmit(e)
+                      }}
                     >
                       {loading ? (
                         <>
@@ -439,7 +496,7 @@ export default function LostPost() {
                       ) : (
                         '📢 Report Lost Pet'
                       )}
-                    </Button>
+                    </button>
                     <Button
                       variant="outline-secondary"
                       size="lg"
@@ -450,7 +507,7 @@ export default function LostPost() {
                       Cancel
                     </Button>
                   </div>
-                </Form>
+                </form>
               </Card.Body>
             </Card>
           </div>

@@ -67,9 +67,10 @@ export default function Profile() {
   if (!me) return null
 
   return (
-    <Container className="py-4">
-      {/* 顶部菜单栏 */}
-      <div className="profile-header mb-4 pb-3" style={{ borderBottom: '1px solid #e0e0e0' }}>
+    <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', width: '100%' }}>
+      <Container className="py-4">
+        {/* 顶部菜单栏 */}
+        <div className="profile-header mb-4 pb-3" style={{ borderBottom: '1px solid #e0e0e0' }}>
         <div className="d-flex align-items-center gap-4 flex-wrap">
           <h4 className="mb-0">My Account</h4>
           <Nav className="gap-3">
@@ -150,7 +151,8 @@ export default function Profile() {
         {activeTab === 'friends' && <FriendsList />}
         {activeTab === 'message-center' && <MessageCenter />}
       </div>
-    </Container>
+      </Container>
+    </div>
   )
 }
 

@@ -120,7 +120,7 @@ export default function Adopt() {
   const list = data?.results ?? []
 
   return (
-    <div>
+    <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
       <PageHeroTitle
         title="Pet Detail"
         subtitle="Adopt right now!"

@@ -119,7 +119,7 @@ export default function LostPetsPage() {
   const list = data?.results ?? []
 
   return (
-    <div>
+    <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
       <div className="page-header">
         <h1>Lost Pets</h1>
         <p className="subtitle">Help reunite lost pets with their families</p>
