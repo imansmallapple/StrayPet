@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
 import PageHeroTitle from '@/components/page-hero-title'
@@ -15,6 +15,7 @@ interface FilterState {
 
 export default function Adopt() {
   const [sp, setSp] = useSearchParams()
+  const nav = useNavigate()
   const page = Number(sp.get('page') || 1)
   const pageSize = Number(sp.get('page_size') || 12)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -243,7 +244,7 @@ export default function Adopt() {
                     <button 
                       type="button"
                       className="add-pet-btn-top-right"
-                      onClick={() => setShowAddForm(!showAddForm)}
+                      onClick={() => nav('/adopt/add')}
                     >
                       Add New Pet
                     </button>
