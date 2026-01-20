@@ -37,16 +37,21 @@ export default function Adopt() {
 
   const isAdmin = user?.is_staff === true
 
-  // Build params from filters
+  // Build params from URL parameters, not local filters
   const params = useMemo(() => {
     const p: Record<string, any> = { page, page_size: pageSize }
-    if (filters.city) p.city = filters.city
-    if (filters.species) p.species = filters.species
-    if (filters.sex) p.sex = filters.sex
-    if (filters.petName) p.name__icontains = filters.petName
-    if (filters.size) p.size = filters.size
+    const city = sp.get('city')
+    const species = sp.get('species')
+    const sex = sp.get('sex')
+    const petName = sp.get('pet_name')
+    const size = sp.get('size')
+    if (city) p.city = city
+    if (species) p.species = species
+    if (sex) p.sex = sex
+    if (petName) p.name = petName
+    if (size) p.size = size
     return p
-  }, [page, pageSize, filters])
+  }, [page, pageSize, sp])
 
   const { data, loading } = useRequest(
     () => adoptApi.list(params).then(res => res.data as Paginated<Pet>),
@@ -58,18 +63,20 @@ export default function Adopt() {
     setSp(sp, { replace: true })
   }
 
-  // Handle filter changes
+  // Handle filter changes - only update local state, not URL
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value }
     setFilters(newFilters)
-    
-    // Update URL params
+  }
+
+  // Handle search button click - apply filters
+  const handleApplyFilters = () => {
     const newSp = new URLSearchParams()
-    if (newFilters.city) newSp.set('city', newFilters.city)
-    if (newFilters.species) newSp.set('species', newFilters.species)
-    if (newFilters.sex) newSp.set('sex', newFilters.sex)
-    if (newFilters.petName) newSp.set('pet_name', newFilters.petName)
-    if (newFilters.size) newSp.set('size', newFilters.size)
+    if (filters.city) newSp.set('city', filters.city)
+    if (filters.species) newSp.set('species', filters.species)
+    if (filters.sex) newSp.set('sex', filters.sex)
+    if (filters.petName) newSp.set('pet_name', filters.petName)
+    if (filters.size) newSp.set('size', filters.size)
     newSp.set('page', '1')
     setSp(newSp)
   }
@@ -220,6 +227,15 @@ export default function Adopt() {
                 </label>
               </div>
             </div>
+
+            <button 
+              type="button"
+              className="filter-search-btn"
+              onClick={handleApplyFilters}
+              title="Apply filters"
+            >
+              🔍 Search
+            </button>
           </aside>
 
           {/* Right Content - Pet List */}

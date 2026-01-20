@@ -7,10 +7,12 @@ from django.db.models import Q
 
 
 class PetFilter(df.FilterSet):
+    name    = df.CharFilter(field_name="name", lookup_expr="icontains")
     species = df.CharFilter(field_name="species", lookup_expr="icontains")
     breed   = df.CharFilter(field_name="breed", lookup_expr="icontains")
     status  = df.CharFilter(field_name="status", lookup_expr="iexact")
     sex     = df.CharFilter(field_name="sex",     lookup_expr="iexact")
+    size    = df.CharFilter(field_name="size",    lookup_expr="iexact")
     city    = df.CharFilter(field_name="address__city__name", lookup_expr="icontains")
     # 年龄段：用总月数范围过滤（前端映射成 age_min/age_max）
     age_min = df.NumberFilter(method="filter_age_min")
@@ -39,7 +41,7 @@ class PetFilter(df.FilterSet):
     
     class Meta:
         model = Pet
-        fields = ["species", "breed", "status", "vaccinated", "sterilized", "dewormed", 
+        fields = ["name", "species", "breed", "status", "size", "sex", "city", "vaccinated", "sterilized", "dewormed", 
                   "child_friendly", "trained", "loves_play", "loves_walks", "good_with_dogs", 
                   "good_with_cats", "affectionate", "needs_attention"]
 
