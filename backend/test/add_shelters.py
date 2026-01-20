@@ -13,92 +13,96 @@ from apps.pet.models import Shelter, Address, City, Region, Country
 def add_sample_shelters():
     """Add several sample shelters to the database"""
     
-    # Sample shelter data
+    # Clear existing shelters
+    print("Clearing existing shelters...")
+    Shelter.objects.all().delete()
+    
+    # Sample shelter data - Poland
     shelters_data = [
         {
-            "name": "北京动物救助中心",
-            "description": "致力于救助和保护流浪动物，提供医疗、饲养和领养服务",
-            "email": "info@beijing-animal-rescue.org",
-            "phone": "+86 10-1234-5678",
-            "website": "https://beijing-animal-rescue.org",
+            "name": "Warsaw Animal Care Center",
+            "description": "Dedicated to rescuing and protecting stray animals, providing medical care, housing and adoption services in Warsaw",
+            "email": "info@warsaw-animal-rescue.pl",
+            "phone": "+48 22-1234-5678",
+            "website": "https://warsaw-animal-rescue.pl",
             "capacity": 150,
             "current_animals": 85,
             "founded_year": 2010,
             "is_active": True,
             "is_verified": True,
-            "facebook_url": "https://facebook.com/beijingrescue",
-            "instagram_url": "https://instagram.com/beijingrescue",
+            "facebook_url": "https://facebook.com/warsawrescue",
+            "instagram_url": "https://instagram.com/warsawrescue",
         },
         {
-            "name": "上海宠物之家",
-            "description": "上海市最大的动物救助和领养平台，专注于流浪猫狗的救助",
-            "email": "contact@shanghai-pet-home.com",
-            "phone": "+86 21-8888-8888",
-            "website": "https://shanghai-pet-home.com",
+            "name": "Krakow Pet Haven",
+            "description": "Krakow's largest animal rescue and adoption platform, focusing on stray cats and dogs rescue operations",
+            "email": "contact@krakow-pet-haven.com",
+            "phone": "+48 12-8888-8888",
+            "website": "https://krakow-pet-haven.com",
             "capacity": 200,
             "current_animals": 120,
             "founded_year": 2012,
             "is_active": True,
             "is_verified": True,
-            "facebook_url": "https://facebook.com/shanghaiPetHome",
-            "instagram_url": "https://instagram.com/shanghaiPetHome",
+            "facebook_url": "https://facebook.com/krakowPetHaven",
+            "instagram_url": "https://instagram.com/krakowPetHaven",
         },
         {
-            "name": "广州爱心宠物救援站",
-            "description": "为广州及周边地区的流浪动物提供医疗救助和临时收容",
-            "email": "help@gz-pet-rescue.cn",
-            "phone": "+86 20-3333-3333",
-            "website": "https://gz-pet-rescue.cn",
+            "name": "Gdansk Animal Rescue Station",
+            "description": "Providing medical rescue and temporary shelter for stray animals in Gdansk and surrounding areas",
+            "email": "help@gdansk-pet-rescue.pl",
+            "phone": "+48 58-3333-3333",
+            "website": "https://gdansk-pet-rescue.pl",
             "capacity": 120,
             "current_animals": 65,
             "founded_year": 2015,
             "is_active": True,
             "is_verified": False,
             "facebook_url": "",
-            "instagram_url": "https://instagram.com/gzPetRescue",
+            "instagram_url": "https://instagram.com/gdanskPetRescue",
         },
         {
-            "name": "深圳温暖家园",
-            "description": "深圳最专业的宠物救助机构，拥有完整的医疗和康复设施",
-            "email": "admin@shenzhen-warmhome.org",
-            "phone": "+86 755-9999-8888",
-            "website": "https://shenzhen-warmhome.org",
+            "name": "Wroclaw Warm Hearts Shelter",
+            "description": "Wroclaw's most professional animal rescue facility with complete medical and rehabilitation infrastructure",
+            "email": "admin@wroclaw-warmhearts.org",
+            "phone": "+48 71-9999-8888",
+            "website": "https://wroclaw-warmhearts.org",
             "capacity": 180,
             "current_animals": 95,
             "founded_year": 2013,
             "is_active": True,
             "is_verified": True,
-            "facebook_url": "https://facebook.com/szwarmhome",
-            "instagram_url": "https://instagram.com/szwarmhome",
-            "twitter_url": "https://twitter.com/szwarmhome",
+            "facebook_url": "https://facebook.com/wroclawwarmhearts",
+            "instagram_url": "https://instagram.com/wroclawwarmhearts",
+            "twitter_url": "https://twitter.com/wroclawwarmhearts",
         },
         {
-            "name": "西安动物保护委员会",
-            "description": "西安地区专业的动物保护和救助组织",
-            "email": "contact@xian-animal-care.org",
-            "phone": "+86 29-6666-6666",
-            "website": "https://xian-animal-care.org",
+            "name": "Poznan Animal Care Association",
+            "description": "Professional animal protection and rescue organization serving Poznan region",
+            "email": "contact@poznan-animal-care.org",
+            "phone": "+48 61-6666-6666",
+            "website": "https://poznan-animal-care.org",
             "capacity": 100,
             "current_animals": 45,
             "founded_year": 2014,
             "is_active": True,
             "is_verified": True,
             "facebook_url": "",
-            "instagram_url": "https://instagram.com/xianAnimalCare",
+            "instagram_url": "https://instagram.com/poznanAnimalCare",
         },
         {
-            "name": "杭州友好宠物救助中心",
-            "description": "杭州市领先的动物救助中心，致力于为流浪动物找到新家",
-            "email": "info@hangzhou-pet-care.com",
-            "phone": "+86 571-5555-5555",
-            "website": "https://hangzhou-pet-care.com",
+            "name": "Lodz Friendly Pets Rescue Center",
+            "description": "Leading animal rescue center in Lodz, committed to finding new homes for stray animals",
+            "email": "info@lodz-pet-care.com",
+            "phone": "+48 42-5555-5555",
+            "website": "https://lodz-pet-care.com",
             "capacity": 150,
             "current_animals": 78,
             "founded_year": 2011,
             "is_active": True,
             "is_verified": True,
-            "facebook_url": "https://facebook.com/hangzhouPetCare",
-            "instagram_url": "https://instagram.com/hangzhouPetCare",
+            "facebook_url": "https://facebook.com/lodzPetCare",
+            "instagram_url": "https://instagram.com/lodzPetCare",
         },
     ]
     
@@ -110,7 +114,7 @@ def add_sample_shelters():
             # Check if shelter already exists
             shelter_name = shelter_data["name"]
             if Shelter.objects.filter(name=shelter_name).exists():
-                print(f"✓ 收容所 '{shelter_name}' 已存在，跳过")
+                print(f"✓ Shelter '{shelter_name}' already exists, skipping")
                 skipped_count += 1
                 continue
             
@@ -131,15 +135,15 @@ def add_sample_shelters():
                 twitter_url=shelter_data.get("twitter_url", ""),
             )
             
-            print(f"✓ 成功创建收容所: '{shelter.name}' (ID: {shelter.id})")
+            print(f"✓ Successfully created shelter: '{shelter.name}' (ID: {shelter.id})")
             created_count += 1
             
         except Exception as e:
-            print(f"✗ 创建收容所 '{shelter_data['name']}' 失败: {str(e)}")
+            print(f"✗ Failed to create shelter '{shelter_data['name']}': {str(e)}")
     
     print("\n" + "="*50)
-    print(f"总结: 成功添加 {created_count} 个收容所")
-    print(f"      跳过已存在的 {skipped_count} 个")
+    print(f"Summary: Successfully added {created_count} shelters")
+    print(f"        Skipped existing {skipped_count} shelters")
     print("="*50)
 
 if __name__ == "__main__":
