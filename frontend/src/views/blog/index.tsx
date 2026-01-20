@@ -140,8 +140,8 @@ export default function BlogList() {
                   onChange={(e) => setSearchInput(e.target.value)}
                   className="search-input"
                 />
-                <button type="submit" className="search-btn">Search</button>
               </div>
+              <button type="submit" className="search-btn">Search</button>
             </form>
             
             <select
@@ -293,6 +293,20 @@ export default function BlogList() {
 
         {/* Sidebar */}
         <aside className="blog-sidebar">
+          {/* Write Article Button */}
+          {user && (
+            <section className="sidebar-widget write-article-section">
+              <button
+                type="button"
+                className="write-article-btn"
+                onClick={() => navigate('/blog/create')}
+              >
+                <i className="bi bi-plus-circle"></i>
+                Write Article
+              </button>
+            </section>
+          )}
+
           {/* Categories */}
           <section className="sidebar-widget">
             <h3 className="widget-title">
@@ -381,20 +395,6 @@ export default function BlogList() {
               </div>
             )}
           </section>
-
-          {/* Write Article Button */}
-          {user && (
-            <section className="sidebar-widget write-article-section">
-              <button
-                type="button"
-                className="write-article-btn"
-                onClick={() => navigate('/blog/create')}
-              >
-                <i className="bi bi-plus-circle"></i>
-                Write Article
-              </button>
-            </section>
-          )}
         </aside>
       </div>
     </div>

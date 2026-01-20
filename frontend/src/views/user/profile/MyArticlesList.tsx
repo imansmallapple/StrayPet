@@ -1,9 +1,9 @@
 // src/views/user/profile/MyArticlesList.tsx
 import { useState } from 'react'
 import { useRequest } from 'ahooks'
-import { Card, Row, Col, Badge, Spinner, Alert, Pagination, Button } from 'react-bootstrap'
 import { Link, useNavigate } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
+import './MyArticlesList.scss'
 
 export default function MyArticlesList() {
   const navigate = useNavigate()
@@ -22,126 +22,156 @@ export default function MyArticlesList() {
   const totalPages = Math.ceil(totalCount / pageSize)
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('zh-CN', {
+    return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
     })
   }
 
   if (loading) {
     return (
-      <Card className="shadow-sm">
-        <Card.Body className="text-center py-5">
-          <Spinner animation="border" variant="primary" />
-          <div className="mt-3">Loading...</div>
-        </Card.Body>
-      </Card>
+      <div className="my-articles-container">
+        <div className="my-articles-loading">
+          <div className="spinner"></div>
+          <p>Loading articles...</p>
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Card className="shadow-sm">
-        <Card.Body>
-          <Alert variant="danger">Failed to load, please try again</Alert>
-        </Card.Body>
-      </Card>
+      <div className="my-articles-container">
+        <div className="my-articles-error">
+          <i className="bi bi-exclamation-triangle"></i>
+          <p>Failed to load articles, please try again</p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="shadow-sm">
-      <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">
-          <i className="bi bi-file-earmark-text me-2"></i>
-          My Articles
-        </h5>
-        <Button
-          variant="primary"
-          size="sm"
+    <div className="my-articles-container">
+      <div className="my-articles-header">
+        <div>
+          <h5 className="mb-0">
+            <i className="bi bi-file-earmark-text me-2"></i>
+            My Articles
+          </h5>
+          <small className="text-muted">{totalCount} articles published</small>
+        </div>
+        <button
+          type="button"
+          className="btn-write-article"
           onClick={() => navigate('/blog/create')}
         >
-          <i className="bi bi-plus-circle me-1"></i>
+          <i className="bi bi-plus-circle me-2"></i>
           Write Article
-        </Button>
-      </Card.Header>
-      <Card.Body>
-        {articles.length === 0 ? (
-          <div className="text-center py-5 text-muted">
-            <i className="bi bi-inbox fs-1 d-block mb-3"></i>
-            <p>You have not published any articles yet</p>
-            <Button variant="outline-primary" onClick={() => navigate('/blog/create')}>
-              Start writing
-            </Button>
-          </div>
-        ) : (
-          <>
-            <Row>
-              {articles.map((article) => (
-                <Col key={article.id} xs={12} className="mb-3">
-                  <Card className="h-100 article-card my-article-card position-relative">
-                    <button
-                      type="button"
-                      className="article-delete-btn"
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this article?')) {
-                          navigate(`/blog/edit/${article.id}?delete=true`)
-                        }
-                      }}
-                      title="Delete article"
-                      aria-label="Delete article"
+        </button>
+      </div>
+
+      {articles.length === 0 ? (
+        <div className="my-articles-empty">
+          <i className="bi bi-inbox"></i>
+          <h6>No articles yet</h6>
+          <p>Start sharing your thoughts with the community</p>
+        </div>
+      ) : (
+        <>
+          <div className="my-articles-list">
+            {articles.map((article) => (
+              <article key={article.id} className="article-item">
+                <div className="article-delete-btn-wrapper">
+                  <button
+                    type="button"
+                    className="article-delete-btn"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this article?')) {
+                        navigate(`/blog/edit/${article.id}?delete=true`)
+                      }
+                    }}
+                    title="Delete article"
+                    aria-label="Delete article"
+                  >
+                    <i className="bi bi-trash3"></i>
+                  </button>
+                </div>
+
+                <div className="article-main-content">
+                  <div className="article-header-section">
+                    <Link
+                      to={`/blog/${article.id}`}
+                      className="article-title-link"
                     >
-                      <i className="bi bi-trash3"></i>
-                    </button>
-                    <Card.Body>
-                      <div className="mb-2">
-                        <Link
-                          to={`/blog/${article.id}`}
-                          className="text-decoration-none"
-                        >
-                          <h6 className="mb-1 article-title">{article.title}</h6>
-                        </Link>
-                      </div>
-                      
-                      <p className="text-muted small mb-2 article-description">
-                        {article.description}
-                      </p>
+                      <h6 className="article-title">{article.title}</h6>
+                    </Link>
+                    <div className="article-meta-info">
+                      <span className="meta-item">
+                        <i className="bi bi-calendar3"></i>
+                        {formatDate(article.add_date)}
+                      </span>
+                      <span className="meta-item">
+                        <i className="bi bi-eye"></i>
+                        {article.count || 0} views
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <p className="article-description">
+                    {article.description}
+                  </p>
 
-                      <div className="d-flex justify-content-between align-items-center">
+                  <div className="article-footer-section">
+                    <div className="tags-section">
+                      {article.tags && article.tags.length > 0 && (
                         <div className="tags-wrapper">
-                          {article.tags && article.tags.slice(0, 3).map((tag) => (
-                            <Badge
-                              key={tag}
-                              bg="light"
-                              text="dark"
-                              className="me-1"
-                            >
+                          {article.tags.slice(0, 3).map((tag) => (
+                            <span key={tag} className="tag-badge">
                               #{tag}
-                            </Badge>
+                            </span>
                           ))}
+                          {article.tags.length > 3 && (
+                            <span className="tag-more">+{article.tags.length - 3}</span>
+                          )}
                         </div>
-                        <div className="d-flex gap-3">
-                          <small className="text-muted">
-                            {formatDate(article.add_date)}
-                          </small>
-                          <small className="text-muted">
-                            <i className="bi bi-eye me-1"></i>
-                            {article.count || 0}
-                          </small>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+                      )}
+                    </div>
+                    <Link
+                      to={`/blog/${article.id}`}
+                      className="read-more-link"
+                    >
+                      Read More
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
 
-            {totalPages > 1 && (
-              <div className="d-flex justify-content-center mt-4">
-                <Pagination>
-                  <Pagination.First onClick={() => setPage(1)} disabled={page === 1} />
-                  <Pagination.Prev onClick={() => setPage(page - 1)} disabled={page === 1} />
+          {totalPages > 1 && (
+            <div className="my-articles-pagination">
+              <div className="pagination-wrapper">
+                <button
+                  type="button"
+                  className="pagination-btn"
+                  disabled={page === 1}
+                  onClick={() => setPage(1)}
+                  title="First page"
+                >
+                  <i className="bi bi-chevron-double-left"></i>
+                </button>
+                <button
+                  type="button"
+                  className="pagination-btn"
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                  title="Previous page"
+                >
+                  <i className="bi bi-chevron-left"></i>
+                </button>
+
+                <div className="pagination-pages">
                   {[...Array(totalPages)].map((_, idx) => {
                     const pageNum = idx + 1
                     if (
@@ -150,33 +180,52 @@ export default function MyArticlesList() {
                       (pageNum >= page - 1 && pageNum <= page + 1)
                     ) {
                       return (
-                        <Pagination.Item
+                        <button
+                          type="button"
                           key={pageNum}
-                          active={pageNum === page}
+                          className={`pagination-page ${pageNum === page ? 'active' : ''}`}
                           onClick={() => setPage(pageNum)}
                         >
                           {pageNum}
-                        </Pagination.Item>
+                        </button>
                       )
                     } else if (pageNum === page - 2 || pageNum === page + 2) {
-                      return <Pagination.Ellipsis key={pageNum} disabled />
+                      return (
+                        <span key={pageNum} className="pagination-ellipsis">
+                          ...
+                        </span>
+                      )
                     }
                     return null
                   })}
-                  <Pagination.Next
-                    onClick={() => setPage(page + 1)}
-                    disabled={page === totalPages}
-                  />
-                  <Pagination.Last
-                    onClick={() => setPage(totalPages)}
-                    disabled={page === totalPages}
-                  />
-                </Pagination>
+                </div>
+
+                <button
+                  type="button"
+                  className="pagination-btn"
+                  disabled={page === totalPages}
+                  onClick={() => setPage(page + 1)}
+                  title="Next page"
+                >
+                  <i className="bi bi-chevron-right"></i>
+                </button>
+                <button
+                  type="button"
+                  className="pagination-btn"
+                  disabled={page === totalPages}
+                  onClick={() => setPage(totalPages)}
+                  title="Last page"
+                >
+                  <i className="bi bi-chevron-double-right"></i>
+                </button>
               </div>
-            )}
-          </>
-        )}
-      </Card.Body>
-    </Card>
+              <div className="pagination-info">
+                Page {page} of {totalPages}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   )
 }
