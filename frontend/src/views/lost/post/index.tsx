@@ -20,14 +20,15 @@ export default function LostPost() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
   // —— 地址输入字段 ——
-  const [country, setCountry] = useState('United States')
+  const [country, setCountry] = useState('Poland')
   const [region, setRegion] = useState('')
   const [city, setCity] = useState('')
   const [street, setStreet] = useState('')
-  const [building, setBuilding] = useState('')
   const [postal, setPostal] = useState('')
-  const [lat, setLat] = useState('')
-  const [lng, setLng] = useState('')
+
+  // —— 联系信息 ——
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -47,22 +48,37 @@ export default function LostPost() {
     setSuccess(false)
 
     try {
-      if (!species || !lostAt) {
-        setError('Please fill in required fields (Species and Lost Time)')
+      // 验证必填字段
+      if (!petName.trim()) {
+        setError('Pet name is required')
+        return
+      }
+      if (!species) {
+        setError('Species is required')
+        return
+      }
+      if (!lostAt) {
+        setError('Lost date and time is required')
+        return
+      }
+      if (!photo) {
+        setError('Pet photo is required')
+        return
+      }
+      if (!country.trim() || !region.trim() || !city.trim() || !street.trim()) {
+        setError('Please fill in all location information (Country, Region, City, Street)')
         return
       }
 
       // ✅ 新增 address_data 结构
       const address_data = {
-        country: country || null,
-        region: region || null,
-        city: city || null,
-        street,
-        building_number: building,
-        postal_code: postal,
-        lat: lat ? Number(lat) : null,
-        lng: lng ? Number(lng) : null,
+        country: country || undefined,
+        region: region || undefined,
+        city: city || undefined,
+        street: street || undefined,
+        postal_code: postal || undefined,
       }
+      console.warn('[LostPost] address_data:', address_data)
 
       const payload = {
         pet_name: petName,
@@ -71,10 +87,17 @@ export default function LostPost() {
         lost_time: new Date(lostAt).toISOString(),
         description,
         photo: photo ?? undefined,
+        contact_phone: contactPhone || undefined,
+        contact_email: contactEmail || undefined,
         address_data,
       }
 
+      console.warn('Submitting payload:', payload)
       const fd = buildLostFormData(payload as any)
+      console.warn('FormData entries:')
+      ;(fd as any).forEach((value: any, key: string) => {
+        console.warn(`  ${key}:`, value instanceof File ? `File(${value.name})` : value)
+      })
       setLoading(true)
       await lostApi.create(fd)
       setSuccess(true)
@@ -179,13 +202,15 @@ export default function LostPost() {
                     <h5 className="section-title">🐾 Basic Information</h5>
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Pet Name (Optional)</Form.Label>
+                      <Form.Label>Pet Name *</Form.Label>
                       <Form.Control
                         type="text"
                         placeholder="e.g., Max, Fluffy, Buddy"
                         value={petName}
                         onChange={(e) => setPetName(e.target.value)}
+                        required
                       />
+                      <Form.Text className="text-danger">Required</Form.Text>
                     </Form.Group>
 
                     <Row>
@@ -203,7 +228,7 @@ export default function LostPost() {
                             <option value="bird">🐦 Bird</option>
                             <option value="other">Other</option>
                           </Form.Select>
-                          <Form.Text className="text-muted">Required</Form.Text>
+                          <Form.Text className="text-danger">Required</Form.Text>
                         </Form.Group>
                       </Col>
                       <Col md={6}>
@@ -228,35 +253,39 @@ export default function LostPost() {
                         onChange={(e) => setLostAt(e.target.value)}
                         required
                       />
-                      <Form.Text className="text-muted">Required</Form.Text>
+                      <Form.Text className="text-danger">Required</Form.Text>
                     </Form.Group>
                   </div>
 
-                  {/* Section 2: Location Information */}
+                  {/* Section 2: Last Place Seen */}
                   <div className="form-section">
-                    <h5 className="section-title">📍 Location Information</h5>
+                    <h5 className="section-title">📍 Last Place Seen</h5>
                     
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Country</Form.Label>
+                          <Form.Label>Country *</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="e.g., United States"
+                            placeholder="e.g., Poland"
                             value={country}
                             onChange={(e) => setCountry(e.target.value)}
+                            required
                           />
+                          <Form.Text className="text-danger">Required</Form.Text>
                         </Form.Group>
                       </Col>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>State/Region</Form.Label>
+                          <Form.Label>State/Region *</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="e.g., California"
+                            placeholder="e.g., Mazovia"
                             value={region}
                             onChange={(e) => setRegion(e.target.value)}
+                            required
                           />
+                          <Form.Text className="text-danger">Required</Form.Text>
                         </Form.Group>
                       </Col>
                     </Row>
@@ -264,13 +293,15 @@ export default function LostPost() {
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>City</Form.Label>
+                          <Form.Label>City *</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="e.g., San Francisco"
+                            placeholder="e.g., Warsaw"
                             value={city}
                             onChange={(e) => setCity(e.target.value)}
+                            required
                           />
+                          <Form.Text className="text-danger">Required</Form.Text>
                         </Form.Group>
                       </Col>
                       <Col md={6}>
@@ -278,7 +309,7 @@ export default function LostPost() {
                           <Form.Label>Postal Code</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="e.g., 94102"
+                            placeholder="e.g., 00-001"
                             value={postal}
                             onChange={(e) => setPostal(e.target.value)}
                           />
@@ -287,59 +318,16 @@ export default function LostPost() {
                     </Row>
 
                     <Form.Group className="mb-3">
-                      <Form.Label>Street Address</Form.Label>
+                      <Form.Label>Street Address *</Form.Label>
                       <Form.Control
                         type="text"
-                        placeholder="e.g., 123 Main Street"
+                        placeholder="e.g., ul. Nowy Świat 10"
                         value={street}
                         onChange={(e) => setStreet(e.target.value)}
+                        required
                       />
+                      <Form.Text className="text-danger">Required</Form.Text>
                     </Form.Group>
-
-                    <Row>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Building/House Number</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder="e.g., Apt 5B"
-                            value={building}
-                            onChange={(e) => setBuilding(e.target.value)}
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
-
-                    <div className="coordinates-info">
-                      <p>💡 <small>Optional: You can add latitude and longitude coordinates if you know them for more precise location</small></p>
-                    </div>
-
-                    <Row>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Latitude</Form.Label>
-                          <Form.Control
-                            type="number"
-                            placeholder="e.g., 37.7749"
-                            step="0.0001"
-                            value={lat}
-                            onChange={(e) => setLat(e.target.value)}
-                          />
-                        </Form.Group>
-                      </Col>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Longitude</Form.Label>
-                          <Form.Control
-                            type="number"
-                            placeholder="e.g., -122.4194"
-                            step="0.0001"
-                            value={lng}
-                            onChange={(e) => setLng(e.target.value)}
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
                   </div>
 
                   {/* Section 3: Description & Photo */}
@@ -347,21 +335,22 @@ export default function LostPost() {
                     <h5 className="section-title">📝 Description & Photo</h5>
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Description</Form.Label>
+                      <Form.Label>Description (Optional)</Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={4}
                         placeholder="Describe your pet: breed, color, distinctive marks, behavior, etc. The more details, the better!"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
+                        style={{ resize: 'none' }}
                       />
                       <Form.Text className="text-muted">
-                        {description.length}/500 characters
+                        {description.length}/500 characters - Optional
                       </Form.Text>
                     </Form.Group>
 
                     <Form.Group className="mb-3">
-                      <Form.Label>Pet Photo</Form.Label>
+                      <Form.Label>Pet Photo *</Form.Label>
                       <div className="photo-upload-area">
                         {photoPreview ? (
                           <div className="photo-preview">
@@ -389,11 +378,48 @@ export default function LostPost() {
                               accept="image/*"
                               onChange={handlePhotoChange}
                               style={{ display: 'none' }}
+                              required
                             />
                           </label>
                         )}
                       </div>
+                      <Form.Text className="text-danger">Required</Form.Text>
                     </Form.Group>
+                  </div>
+
+                  {/* Section 4: Contact Information */}
+                  <div className="form-section">
+                    <h5 className="section-title">📞 Your Contact Information</h5>
+                    <p className="info-text">So the owner can reach you if they have information about your pet</p>
+                    
+                    <Row>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Phone Number *</Form.Label>
+                          <Form.Control
+                            type="tel"
+                            placeholder="e.g., +48 12 345 67 89"
+                            value={contactPhone}
+                            onChange={(e) => setContactPhone(e.target.value)}
+                            required
+                          />
+                          <Form.Text className="text-danger">Required</Form.Text>
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Email Address *</Form.Label>
+                          <Form.Control
+                            type="email"
+                            placeholder="e.g., your.email@example.com"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            required
+                          />
+                          <Form.Text className="text-danger">Required</Form.Text>
+                        </Form.Group>
+                      </Col>
+                    </Row>
                   </div>
 
                   {/* Submit Button */}

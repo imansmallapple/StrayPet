@@ -66,15 +66,16 @@ export default function ReportFoundPet({ onSuccess }: ReportFoundPetProps) {
       setLoading(true)
 
       const address_data = {
-        country: country || null,
-        region: region || null,
-        city: city || null,
-        street: street || null,
-        building_number: building || null,
-        postal_code: postal || null,
-        lat: lat ? Number(lat) : null,
-        lng: lng ? Number(lng) : null,
+        country: country || undefined,
+        region: region || undefined,
+        city: city || undefined,
+        street: street || undefined,
+        building_number: building || undefined,
+        postal_code: postal || undefined,
+        lat: lat ? Number(lat) : undefined,
+        lng: lng ? Number(lng) : undefined,
       }
+      console.warn('[ReportFoundPet] address_data:', address_data)
 
       const payload = {
         pet_name: petName || undefined,
@@ -86,6 +87,8 @@ export default function ReportFoundPet({ onSuccess }: ReportFoundPetProps) {
         lost_time: new Date(foundTime).toISOString(),
         description: description || undefined,
         photo: photo || undefined,
+        contact_phone: contactPhone || undefined,
+        contact_email: contactEmail || undefined,
         address_data,
         status: 'found', // Mark as found pet
       }

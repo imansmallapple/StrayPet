@@ -1,6 +1,6 @@
 // src/views/lost/detail/index.tsx
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Badge, Button, Alert } from 'react-bootstrap'
 import { lostApi, type LostPet } from '@/services/modules/lost'
 import './index.scss'
@@ -86,16 +86,34 @@ export default function LostDetail() {
   }
 
   const getAddress = () => {
+    if (!item) return '—'
+    
+    // Try to build from returned address fields
+    const parts: string[] = []
+    
+    // Add street if available
+    if (item.street) parts.push(item.street)
+    
+    // Add postal code if available
+    if (item.postal_code) parts.push(item.postal_code)
+    
+    // Add city, region, country
+    if (item.city) parts.push(item.city)
+    if (item.region) parts.push(item.region)
+    if (item.country) parts.push(item.country)
+    
+    // If we have at least one part, return joined address
+    if (parts.length > 0) {
+      return parts.join(', ')
+    }
+    
+    // Fallback to address object if available
     if (typeof item.address === 'string') return item.address
     if (typeof item.address === 'object' && item.address !== null) {
       return (item.address as any).full || '—'
     }
-    // Build from individual fields
-    const parts = []
-    if (item.city) parts.push(item.city)
-    if (item.region) parts.push(item.region)
-    if (item.country) parts.push(item.country)
-    return parts.length > 0 ? parts.join(', ') : '—'
+    
+    return '—'
   }
 
   return (
@@ -157,7 +175,7 @@ export default function LostDetail() {
               </div>
 
               <div className="info-section">
-                <h5 className="section-title">📍 Location & Time</h5>
+                <h5 className="section-title">📍 Lost Location & Time</h5>
                 
                 <InfoRow label="Location" value={getAddress()} />
                 <InfoRow 
@@ -177,13 +195,39 @@ export default function LostDetail() {
                 <h5 className="section-title">👤 Reporter Information</h5>
                 
                 {item.reporter_username && (
-                  <InfoRow label="Reporter" value={item.reporter_username} />
+                  <InfoRow 
+                    label="Reporter" 
+                    value={
+                      <Link 
+                        to={`/user/profile/${item.reporter}`}
+                        className="info-link"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#0d6efd'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+                      >
+                        {item.reporter_username}
+                      </Link>
+                    } 
+                  />
                 )}
                 {item.contact_phone && (
                   <InfoRow label="Phone" value={item.contact_phone} />
                 )}
                 {item.contact_email && (
-                  <InfoRow label="Email" value={item.contact_email} />
+                  <InfoRow 
+                    label="Email" 
+                    value={
+                      <a 
+                        href={`mailto:${item.contact_email}`}
+                        className="info-link"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#0d6efd'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+                      >
+                        {item.contact_email}
+                      </a>
+                    } 
+                  />
                 )}
                 <InfoRow 
                   label="Posted" 
@@ -193,7 +237,12 @@ export default function LostDetail() {
 
               {item.status === 'open' && (
                 <div className="action-section">
-                  <Button variant="primary" className="contact-btn w-100" size="lg">
+                  <Button 
+                    variant="primary" 
+                    className="contact-btn w-100" 
+                    size="lg"
+                    onClick={() => navigate(`/user/profile/${item.reporter}`)}
+                  >
                     📞 Contact Reporter
                   </Button>
                   <p className="help-text">
@@ -218,7 +267,7 @@ export default function LostDetail() {
 
 interface InfoRowProps {
   label: string
-  value: string
+  value: string | React.ReactNode
   highlight?: boolean
 }
 

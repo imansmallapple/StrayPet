@@ -36,6 +36,10 @@ export default function ReportLostPet({ onSuccess }: ReportLostPetProps) {
   const [lat, setLat] = useState('')
   const [lng, setLng] = useState('')
 
+  // Contact information
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -62,15 +66,16 @@ export default function ReportLostPet({ onSuccess }: ReportLostPetProps) {
       setLoading(true)
 
       const address_data = {
-        country: country || null,
-        region: region || null,
-        city: city || null,
-        street: street || null,
-        building_number: building || null,
-        postal_code: postal || null,
-        lat: lat ? Number(lat) : null,
-        lng: lng ? Number(lng) : null,
+        country: country || undefined,
+        region: region || undefined,
+        city: city || undefined,
+        street: street || undefined,
+        building_number: building || undefined,
+        postal_code: postal || undefined,
+        lat: lat ? Number(lat) : undefined,
+        lng: lng ? Number(lng) : undefined,
       }
+      console.warn('[ReportLostPet] address_data:', address_data)
 
       // Format lost_time properly from datetime-local input
       // datetime-local gives us "2026-01-04T12:30", we need to format it for Django
@@ -95,6 +100,8 @@ export default function ReportLostPet({ onSuccess }: ReportLostPetProps) {
         description: description || undefined,
         reward: reward || undefined,
         photo: photo || undefined,
+        contact_phone: contactPhone || undefined,
+        contact_email: contactEmail || undefined,
         address_data,
       }
 
@@ -359,6 +366,36 @@ export default function ReportLostPet({ onSuccess }: ReportLostPetProps) {
                   </div>
                 )}
               </Form.Group>
+            </div>
+
+            {/* Contact Information */}
+            <div className="form-section">
+              <h5 className="subsection-title">📞 Your Contact Information</h5>
+              <p className="info-text">So the owner can reach you if they have information about your pet</p>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Phone Number (optional)</Form.Label>
+                    <Form.Control
+                      type="tel"
+                      placeholder="e.g., +1 (555) 123-4567"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Email Address (optional)</Form.Label>
+                    <Form.Control
+                      type="email"
+                      placeholder="e.g., your.email@example.com"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
             </div>
 
             <div className="form-actions">

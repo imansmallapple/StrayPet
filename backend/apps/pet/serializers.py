@@ -760,49 +760,124 @@ class DonationDetailSerializer(serializers.ModelSerializer):
 
 class LostSerializer(serializers.ModelSerializer):
     reporter_username = serializers.ReadOnlyField(source='reporter.username')
-    country = serializers.IntegerField(source='address.country_id', read_only=True)
-    region = serializers.IntegerField(source='address.region_id', read_only=True)
-    city = serializers.CharField(source='address.city.name', read_only=True)
+    # 返回地址的完整字符串
+    country = serializers.SerializerMethodField(read_only=True)
+    region = serializers.SerializerMethodField(read_only=True)
+    city = serializers.SerializerMethodField(read_only=True)
+    street = serializers.SerializerMethodField(read_only=True)
+    postal_code = serializers.SerializerMethodField(read_only=True)
     photo_url = serializers.SerializerMethodField(read_only=True)
 
-    # 新增：嵌套地址字段
-    address_data = serializers.DictField(write_only=True, required=False)
+    # 接受 JSON 字符串或字典 - 使用 CharField 避免 JSONField 在 to_internal_value 前的处理
+    address_data = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Lost
         fields = [
             'id', 'pet_name', 'species', 'breed', 'color', 'sex', 'size',
             'address', 'address_data',  # ✅ 新增
-            'country', 'region', 'city',
+            'country', 'region', 'city', 'street', 'postal_code',
             'lost_time', 'description', 'reward', 'photo', 'photo_url',
             'status', 'reporter', 'reporter_username',
+            'contact_phone', 'contact_email',
             'created_at', 'updated_at',
         ]
         read_only_fields = ('reporter', 'created_at', 'updated_at')
 
+    def to_internal_value(self, data):
+        """处理 FormData: QueryDict 可能将值作为列表，提取第一个元素"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.warning(f"[LostSerializer.to_internal_value] Raw data type: {type(data)}")
+        logger.warning(f"[LostSerializer.to_internal_value] Raw data keys: {list(data.keys())}")
+        if 'address_data' in data:
+            logger.warning(f"[LostSerializer.to_internal_value] address_data raw value: {data.get('address_data')}, type: {type(data.get('address_data'))}")
+        
+        normalized_data = {}
+        for key, value in data.items():
+            if isinstance(value, list):
+                normalized_data[key] = value[0] if value else None
+            else:
+                normalized_data[key] = value
+        
+        logger.warning(f"[LostSerializer.to_internal_value] Normalized address_data: {normalized_data.get('address_data')}")
+        
+        result = super().to_internal_value(normalized_data)
+        logger.warning(f"[LostSerializer.to_internal_value] Result keys: {result.keys()}")
+        logger.warning(f"[LostSerializer.to_internal_value] Result address_data: {result.get('address_data')}")
+        
+        # Parse address_data JSON string if present
+        if 'address_data' in result and result['address_data']:
+            try:
+                if isinstance(result['address_data'], str):
+                    result['address_data'] = json.loads(result['address_data'])
+                    logger.warning(f"[LostSerializer.to_internal_value] Parsed address_data: {result['address_data']}")
+            except json.JSONDecodeError as e:
+                logger.error(f"[LostSerializer.to_internal_value] Failed to parse address_data JSON: {e}")
+                result['address_data'] = {}
+        
+        return result
+
+    def get_country(self, obj):
+        if obj.address and obj.address.country:
+            return obj.address.country.name
+        return None
+
+    def get_region(self, obj):
+        if obj.address and obj.address.region:
+            return obj.address.region.name
+        return None
+
+    def get_city(self, obj):
+        if obj.address and obj.address.city:
+            return obj.address.city.name
+        return None
+
+    def get_street(self, obj):
+        if obj.address and obj.address.street:
+            return obj.address.street
+        return None
+
+    def get_postal_code(self, obj):
+        if obj.address and obj.address.postal_code:
+            return obj.address.postal_code
+        return None
+
     def create(self, validated_data):
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.warning(f"[LostSerializer.create] validated_data keys: {validated_data.keys()}")
+        logger.warning(f"[LostSerializer.create] full validated_data: {validated_data}")
+        
         address_data = validated_data.pop('address_data', None)
+        logger.warning(f"[LostSerializer.create] address_data: {address_data}, type: {type(address_data)}")
+        
         if address_data:
             # Allow JSON string input in multipart/form-data
             if isinstance(address_data, str):
                 try:
                     address_data = json.loads(address_data)
-                except Exception:
+                    logger.warning(f"[LostSerializer.create] Parsed JSON address_data: {address_data}")
+                except Exception as e:
+                    logger.error(f"[LostSerializer.create] Failed to parse JSON: {e}")
                     address_data = None
             
             # Only process address_data if it has non-null/non-empty values
             if address_data:
                 # Check if there's any meaningful data
                 has_data = any(v for v in address_data.values() if v is not None and v != '' and v != 0)
+                logger.warning(f"[LostSerializer.create] has_data: {has_data}, keys: {address_data.keys()}")
+                
                 if has_data:
                     try:
                         address = _create_or_resolve_address(address_data)
                         validated_data['address'] = address
+                        logger.warning(f"[LostSerializer.create] Created address: {address.id}")
                     except Exception as e:
                         # Log error but don't fail the request
-                        import logging
-                        logger = logging.getLogger(__name__)
-                        logger.warning(f"Failed to create address from data {address_data}: {e}")
+                        logger.error(f"[LostSerializer.create] Failed to create address from data {address_data}: {e}")
         
         return super().create(validated_data)
 

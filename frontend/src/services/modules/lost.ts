@@ -15,6 +15,8 @@ export type LostPet = {
   city?: string
   region?: string
   country?: string
+  street?: string
+  postal_code?: string
 
   lost_time: string
   description?: string
@@ -48,12 +50,14 @@ export type LostCreatePayload = {
   color?: string
   sex: 'male' | 'female'
   size?: string
-  address: number
+  address?: number
   lost_time: string
   description?: string
   reward?: string | number
   photo?: File | null
   status?: 'open' | 'found' | 'closed'
+  contact_phone?: string
+  contact_email?: string
   address_data?: {
     country?: string | null
     region?: string | null
@@ -84,9 +88,19 @@ export function buildLostFormData(p: LostCreatePayload | LostUpdatePayload): For
   } else if ((p as any).address_data) {
     // Only send address_data if it has non-null/non-empty values
     const addressData = (p as any).address_data
-    const hasAddressData = Object.values(addressData).some(v => v !== null && v !== '' && v !== undefined)
+    console.warn('[buildLostFormData] addressData:', addressData)
+    
+    // Check if there's ANY meaningful data in address_data (not just required fields)
+    const hasAddressData = Object.values(addressData).some(v => 
+      v !== null && v !== undefined && v !== '' && v !== 0
+    )
+    console.warn('[buildLostFormData] hasAddressData:', hasAddressData)
+    
     if (hasAddressData) {
       fd.append('address_data', JSON.stringify(addressData))
+      console.warn('[buildLostFormData] Appended address_data to FormData:', JSON.stringify(addressData))
+    } else {
+      console.warn('[buildLostFormData] no address_data values found, not appending')
     }
   }
   
@@ -105,6 +119,10 @@ export function buildLostFormData(p: LostCreatePayload | LostUpdatePayload): For
     fd.append('reward', String(p.reward))
   }
   if (p.photo instanceof File) fd.append('photo', p.photo)
+  
+  // Add contact information
+  if ((p as any).contact_phone) fd.append('contact_phone', (p as any).contact_phone)
+  if ((p as any).contact_email) fd.append('contact_email', (p as any).contact_email)
   
   // Handle status field
   if ((p as any).status) {
