@@ -9,7 +9,7 @@ interface FilterState {
   city: string
   species: string
   petName: string
-  color: string
+  lastSeen: string
 }
 
 export default function LostPetsPage() {
@@ -18,23 +18,62 @@ export default function LostPetsPage() {
   const page = Number(sp.get('page') || 1)
   const pageSize = 12
 
-  // Initialize filters from URL parameters
-  const [filters, setFilters] = useState<FilterState>({
+  // Temporary filter state (for input fields)
+  const [tempFilters, setTempFilters] = useState<FilterState>({
     city: sp.get('city') || '',
     species: sp.get('species') || '',
     petName: sp.get('pet_name') || '',
-    color: sp.get('color') || '',
+    lastSeen: sp.get('last_seen') || '',
   })
 
-  // Build params from filters
+  // Applied filter state (from URL, used for API request)
+  const appliedFilters = useMemo(() => ({
+    city: sp.get('city') || '',
+    species: sp.get('species') || '',
+    petName: sp.get('pet_name') || '',
+    lastSeen: sp.get('last_seen') || '',
+  }), [sp])
+
+  // Build params from applied filters
   const params = useMemo(() => {
     const p: Record<string, any> = { page, page_size: pageSize, status: 'open' }
-    if (filters.city) p.city = filters.city
-    if (filters.species) p.species = filters.species
-    if (filters.petName) p.pet_name__icontains = filters.petName
-    if (filters.color) p.color__icontains = filters.color
+    if (appliedFilters.city) p.city = appliedFilters.city
+    if (appliedFilters.species) p.species = appliedFilters.species
+    if (appliedFilters.petName) p.pet_name = appliedFilters.petName
+    
+    // Convert lastSeen filter to lost_from/lost_to dates
+    if (appliedFilters.lastSeen) {
+      const now = new Date()
+      let fromDate: Date | null = null
+      
+      switch (appliedFilters.lastSeen) {
+        case 'today':
+          fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          break
+        case 'within_3_days':
+          fromDate = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+          break
+        case 'within_1_week':
+          fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          break
+        case 'within_2_weeks':
+          fromDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+          break
+        case 'within_1_month':
+          fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          break
+        case 'within_1_year':
+          fromDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+          break
+      }
+      
+      if (fromDate) {
+        p.lost_from = fromDate.toISOString()
+      }
+    }
+    
     return p
-  }, [page, pageSize, filters])
+  }, [page, pageSize, appliedFilters])
 
   const { data, loading } = useRequest(
     () => lostApi.list(params).then(res => res.data as PageResp<LostPet>),
@@ -46,28 +85,29 @@ export default function LostPetsPage() {
     setSp(sp, { replace: true })
   }
 
-  // Handle filter changes
+  // Handle filter input changes (update temp state only)
   const handleFilterChange = (key: keyof FilterState, value: string) => {
-    const newFilters = { ...filters, [key]: value }
-    setFilters(newFilters)
-    
-    // Update URL params
+    setTempFilters({ ...tempFilters, [key]: value })
+  }
+
+  // Handle search button click (apply filters)
+  const handleSearch = () => {
     const newSp = new URLSearchParams()
-    if (newFilters.city) newSp.set('city', newFilters.city)
-    if (newFilters.species) newSp.set('species', newFilters.species)
-    if (newFilters.petName) newSp.set('pet_name', newFilters.petName)
-    if (newFilters.color) newSp.set('color', newFilters.color)
+    if (tempFilters.city) newSp.set('city', tempFilters.city)
+    if (tempFilters.species) newSp.set('species', tempFilters.species)
+    if (tempFilters.petName) newSp.set('pet_name', tempFilters.petName)
+    if (tempFilters.lastSeen) newSp.set('last_seen', tempFilters.lastSeen)
     newSp.set('page', '1')
     setSp(newSp)
   }
 
   // Reset filters
   const handleResetFilters = () => {
-    setFilters({
+    setTempFilters({
       city: '',
       species: '',
       petName: '',
-      color: '',
+      lastSeen: '',
     })
     setSp(new URLSearchParams())
   }
@@ -108,7 +148,7 @@ export default function LostPetsPage() {
                 type="text"
                 className="filter-input"
                 placeholder="All locations"
-                value={filters.city}
+                value={tempFilters.city}
                 onChange={(e) => handleFilterChange('city', e.target.value)}
               />
             </div>
@@ -119,7 +159,7 @@ export default function LostPetsPage() {
                 type="text"
                 className="filter-input"
                 placeholder="Pet's name"
-                value={filters.petName}
+                value={tempFilters.petName}
                 onChange={(e) => handleFilterChange('petName', e.target.value)}
               />
             </div>
@@ -128,7 +168,7 @@ export default function LostPetsPage() {
               <label className="filter-label">Pet Type</label>
               <select 
                 className="filter-select"
-                value={filters.species}
+                value={tempFilters.species}
                 onChange={(e) => handleFilterChange('species', e.target.value)}
               >
                 <option value="">All Types</option>
@@ -139,14 +179,31 @@ export default function LostPetsPage() {
             </div>
 
             <div className="filter-section">
-              <label className="filter-label">Color</label>
-              <input 
-                type="text"
-                className="filter-input"
-                placeholder="e.g., Brown, Black"
-                value={filters.color}
-                onChange={(e) => handleFilterChange('color', e.target.value)}
-              />
+              <label className="filter-label">Lost Time</label>
+              <select 
+                className="filter-select"
+                value={tempFilters.lastSeen}
+                onChange={(e) => handleFilterChange('lastSeen', e.target.value)}
+              >
+                <option value="">All Time</option>
+                <option value="today">Today</option>
+                <option value="within_3_days">Within 3 days</option>
+                <option value="within_1_week">Within 1 week</option>
+                <option value="within_2_weeks">Within 2 weeks</option>
+                <option value="within_1_month">Within 1 month</option>
+                <option value="within_1_year">Within 1 year</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="filter-section">
+              <button 
+                className="search-btn"
+                onClick={handleSearch}
+                type="button"
+              >
+                🔍 Search
+              </button>
             </div>
           </aside>
 

@@ -46,6 +46,7 @@ class PetFilter(df.FilterSet):
 
 class LostFilter(df.FilterSet):
     q = df.CharFilter(method='search', label='Search')
+    pet_name = df.CharFilter(field_name='pet_name', lookup_expr='icontains')
     created_from = df.DateTimeFilter(field_name='created_at', lookup_expr='gte')
     created_to = df.DateTimeFilter(field_name='created_at', lookup_expr='lte')
     lost_from = df.DateTimeFilter(field_name='lost_time', lookup_expr='gte')
@@ -58,7 +59,7 @@ class LostFilter(df.FilterSet):
 
     class Meta:
         model = Lost
-        fields = ['species', 'breed', 'color', 'sex', 'size', 'status', 'country', 'region', 'city']
+        fields = ['species', 'breed', 'color', 'sex', 'size', 'status', 'country', 'region', 'city', 'pet_name']
 
     def search(self, queryset, name, value):
         if not value:

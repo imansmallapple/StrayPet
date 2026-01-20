@@ -258,6 +258,10 @@ class LostViewSet(viewsets.ModelViewSet):
     # ✅ 允许 multipart/form-data 与 application/x-www-form-urlencoded
     parser_classes = [MultiPartParser, FormParser]
 
+    def list(self, request, *args, **kwargs):
+        logger.info(f"Lost list request params: {request.query_params.dict()}")
+        return super().list(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         # If user is authenticated, set them as reporter, otherwise create anonymous entry
         if self.request.user and self.request.user.is_authenticated:
