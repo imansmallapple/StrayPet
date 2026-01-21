@@ -257,6 +257,8 @@ class PetListSerializer(serializers.ModelSerializer):
     shelter_address = serializers.SerializerMethodField()
     shelter_phone = serializers.SerializerMethodField()
     shelter_website = serializers.SerializerMethodField()
+    shelter_id = serializers.SerializerMethodField()
+    shelter_description = serializers.SerializerMethodField()
 
     class Meta:
         model = Pet
@@ -271,7 +273,7 @@ class PetListSerializer(serializers.ModelSerializer):
             "status", "created_by", "applications_count",
             "add_date", "pub_date",
             "is_favorited", "favorites_count",
-            "shelter_name", "shelter_address", "shelter_phone", "shelter_website",
+            "shelter_id", "shelter_name", "shelter_address", "shelter_phone", "shelter_website", "shelter_description",
         )
         read_only_fields = ("status", "created_by", "applications_count", "add_date", "pub_date")
 
@@ -394,6 +396,24 @@ class PetListSerializer(serializers.ModelSerializer):
         )
         if shelter:
             return shelter.website or ""
+        return ""
+
+    def get_shelter_id(self, obj: Pet):
+        """获取关联的收容所 ID"""
+        shelter = obj.shelter if obj.shelter else (
+            getattr(obj, 'from_donor', None) and getattr(obj, 'from_donor', None).shelter
+        )
+        if shelter:
+            return shelter.id
+        return None
+
+    def get_shelter_description(self, obj: Pet) -> str:
+        """获取关联的收容所描述"""
+        shelter = obj.shelter if obj.shelter else (
+            getattr(obj, 'from_donor', None) and getattr(obj, 'from_donor', None).shelter
+        )
+        if shelter:
+            return shelter.description or ""
         return ""
 
 

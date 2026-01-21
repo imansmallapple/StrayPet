@@ -1,37 +1,23 @@
 // src/views/adoption/detail/index.tsx
 import { useParams, useNavigate } from 'react-router-dom'
-// no hooks imported from react directly in this file anymore
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useRequest } from 'ahooks'
 import {
   Container,
   Row,
   Col,
   Card,
-  Button,
   Table,
   Badge,
   Spinner,
 } from 'react-bootstrap'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
+import { shelterApi, type Shelter } from '@/services/modules/shelter'
 import './index.scss'
 // Use local MapboxMap implementation for interactive map
 import SafeHtml from '@/components/SafeHtml'
-import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-// Local Leaflet dependency for IE/WebGL fallback
-import L, { type LatLngTuple } from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-// Fix Leaflet marker icon paths in bundled environments
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import markerIconUrl from 'leaflet/dist/images/marker-icon.png'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 type PetDetail = Pet & {
   city?: string
@@ -60,12 +46,24 @@ type PetDetail = Pet & {
   shelter_address?: string
   shelter_city?: string
   shelter_phone?: string
+  shelter_email?: string
   shelter_website?: string
+  shelter_description?: string
+  shelter_current_animals?: number
+  shelter_capacity?: number
+  shelter_occupancy_rate?: number
+  shelter_id?: number
+  shelter?: {
+    id?: number
+    name?: string
+    description?: string
+  } | number
 }
 
 export default function AdoptDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [shelter, setShelter] = useState<Shelter | null>(null)
 
   const { data, loading } = useRequest(
     () =>
@@ -77,6 +75,46 @@ export default function AdoptDetail() {
       refreshDeps: [id],
     },
   )
+
+  // 当 pet 数据加载完成后，根据 shelter_id 获取 shelter 详情
+  useEffect(() => {
+    if (data) {
+      // 调试日志：查看 pet 数据中的 shelter 相关字段
+      console.warn('=== Pet data loaded ===')
+      console.warn('Full pet object keys:', Object.keys(data))
+      console.warn('Shelter fields:', {
+        shelter_id: (data as any).shelter_id,
+        shelter_name: (data as any).shelter_name,
+        shelter_description: (data as any).shelter_description,
+        shelter_phone: (data as any).shelter_phone,
+        shelter_email: (data as any).shelter_email,
+        shelter_address: (data as any).shelter_address,
+        shelter_website: (data as any).shelter_website,
+      })
+      console.warn('Full data:', data)
+      
+      // 尝试多种方式获取 shelter_id
+      const shelterId = (data as any).shelter_id 
+        || (data as any).shelter?.id 
+        || (data as any).shelter
+      
+      console.warn('Detected shelterId:', shelterId)
+      
+      if (shelterId && typeof shelterId === 'number') {
+        console.warn('Fetching shelter details for shelterId:', shelterId)
+        shelterApi
+          .detail(shelterId)
+          .then(res => {
+            console.warn('=== Shelter data loaded ===')
+            console.warn('Shelter data:', res.data)
+            setShelter(res.data)
+          })
+          .catch(err => console.error('Failed to load shelter details:', err))
+      } else {
+        console.warn('No valid shelterId found')
+      }
+    }
+  }, [data])
 
   // Prepare photo data
   const allPhotos = data?.photos && data.photos.length > 0 
@@ -143,13 +181,6 @@ export default function AdoptDetail() {
   if (pet.needs_attention) healthTraits.push('Needs lots of attention')
 
   const traits = pet.traits && pet.traits.length > 0 ? pet.traits : healthTraits
-  // Prefer the `address_display` string returned by backend pet serializer (PetListSerializer)
-  // Fallbacks: `pet.address` (id or string) -> `pet.city` -> empty
-  const _rawAddr = (pet.address_display || pet.address || pet.city || '').trim()
-  const address = (_rawAddr === '-' || _rawAddr === '—') ? '' : _rawAddr
-  
-
-  
 
   return (
     <div className="pet-detail-page">
@@ -260,76 +291,7 @@ export default function AdoptDetail() {
 
           {/* 右侧：收容所卡片 */}
           <Col lg={4}>
-            <Card className="pet-detail-shelter-card">
-              <Card.Body>
-                {/* 收容所徽标和名称 */}
-                <div className="shelter-header">
-                  <div className="shelter-logo">
-                    {/* 收容所图标 */}
-                    <div className="logo-placeholder">🏛️</div>
-                  </div>
-                  <h4 className="shelter-name">{pet.shelter_name || 'Local Animal Shelter'}</h4>
-                  <p className="shelter-tagline">For Animal Adoption</p>
-                </div>
-
-                {/* 地址信息 */}
-                <div className="shelter-address-section">
-                  <h6 className="section-title">Location</h6>
-                  <p className="shelter-address">
-                    {pet.shelter_address || ((pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : 'No address available')}
-                  </p>
-                </div>
-
-                {/* 地图 */}
-                <ExternalMapPreview
-                  address={address}
-                  lat={typeof (pet as any)?.address_lat === 'number' ? (pet as any).address_lat : undefined}
-                  lon={typeof (pet as any)?.address_lon === 'number' ? (pet as any).address_lon : undefined}
-                />
-
-                {/* 联系信息 */}
-                <div className="shelter-contact-section">
-                  <h6 className="section-title">Interested in adopting this pet?</h6>
-                  {pet.shelter_phone && (
-                    <Button
-                      type="button"
-                      variant="outline-success"
-                      className="w-100 mb-2 contact-btn"
-                      href={`tel:${pet.shelter_phone}`}
-                    >
-                      📞 {pet.shelter_phone}
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline-warning"
-                    className="w-100 contact-btn"
-                    onClick={() => navigate(`/adopt/${pet.id}/apply`)}
-                  >
-                    💬 Ask about this pet
-                  </Button>
-                </div>
-
-                {/* 网站链接 */}
-                {pet.shelter_website && (
-                  <div className="shelter-footer">
-                    <a
-                      href={pet.shelter_website}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="shelter-website-link"
-                    >
-                      Visit shelter website →
-                    </a>
-                  </div>
-                )}
-
-                {/* 最后活动时间 */}
-                <div className="shelter-metadata">
-                  <small>Last updated: {pet.pub_date?.slice(0, 10) || 'Recently'}</small>
-                </div>
-              </Card.Body>
-            </Card>
+            <ShelterCard pet={pet} navigate={navigate} shelter={shelter} />
           </Col>
         </Row>
       </Container>
@@ -337,170 +299,256 @@ export default function AdoptDetail() {
   )
 }
 
-type MapboxMapProps = {
-  address?: string | undefined
-  lon?: number | undefined
-  lat?: number | undefined
-  className?: string | undefined
-  width?: string | number | undefined
-  height?: number | undefined
-}
+// Shelter Card Component
+function ShelterMapPreview({ lon, lat }: { lon: number; lat: number }) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
+  const initAttemptedRef = useRef(false)
 
-function MapboxMap({ address, lon, lat, className, width='100%', height=220 }: MapboxMapProps) {
-  const ref = useRef<HTMLDivElement|null>(null)
-  const mapInstanceRef = useRef<mapboxgl.Map | L.Map | null>(null)
-  const initializedRef = useRef(false)
-  const showStaticFallbackRef = useRef(false)
+  const handleMapClick = useCallback(() => {
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+    window.open(googleMapsUrl, '_blank')
+  }, [lat, lon])
 
   useEffect(() => {
-    if (initializedRef.current) return // Prevent re-initialization
+    if (!ref.current || initAttemptedRef.current) return
     
     const token = import.meta.env.VITE_MAPBOX_TOKEN
-    if (!ref.current) return
-
     if (!token) {
       console.warn('Mapbox token missing: set VITE_MAPBOX_TOKEN')
-      showStaticFallbackRef.current = true
-      initializedRef.current = true
       return
     }
-    mapboxgl.accessToken = token
 
-    // IE 检测：IE11 及以下通过 document.documentMode 或 UA 中的 Trident/MSIE
-    const isIE = ((document as any).documentMode) || /MSIE|Trident/.test(navigator.userAgent)
-    if (isIE) {
-      const centerLatLng: LatLngTuple = (typeof lon === 'number' && typeof lat === 'number')
-        ? [lat as number, lon as number]
-        : [0, 0]
-      const leafletMap = L.map(ref.current!, { zoomControl: true })
-      leafletMap.setView(centerLatLng, (typeof lon === 'number' && typeof lat === 'number') ? 12 : 1)
-      const tileUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
-      const attribution = '© Mapbox © OpenStreetMap'
-      L.tileLayer(tileUrl, { tileSize: 256, attribution, crossOrigin: true }).addTo(leafletMap)
-      if (typeof lon === 'number' && typeof lat === 'number') {
-        const defaultIcon = L.icon({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl })
-        L.marker(centerLatLng, { icon: defaultIcon }).addTo(leafletMap)
-      }
-      mapInstanceRef.current = leafletMap
-      initializedRef.current = true
-      return () => { 
-        if (mapInstanceRef.current && 'remove' in mapInstanceRef.current) {
-          mapInstanceRef.current.remove()
-          mapInstanceRef.current = null
-        }
-      }
+    // Check WebGL support before creating map
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+    if (!gl) {
+      console.warn('WebGL not supported, will use static image fallback')
+      return
     }
 
-    const supports = typeof (mapboxgl as any).supported === 'function'
-      ? (mapboxgl as any).supported()
-      : !!document.createElement('canvas').getContext('webgl')
+    initAttemptedRef.current = true
 
-    if (!supports) {
-      // WebGL 不支持（非 IE 的老设备等）：使用本地 Leaflet 交互兜底
-      console.warn('Mapbox GL not supported; using local Leaflet tiles fallback')
-      const centerLatLng: LatLngTuple = (typeof lon === 'number' && typeof lat === 'number')
-        ? [lat as number, lon as number]
-        : [0, 0]
-      const leafletMap = L.map(ref.current!, { zoomControl: true })
-      leafletMap.setView(centerLatLng, (typeof lon === 'number' && typeof lat === 'number') ? 12 : 1)
-      const tileUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${token}`
-      const attribution = '© Mapbox © OpenStreetMap'
-      L.tileLayer(tileUrl, { tileSize: 256, attribution, crossOrigin: true }).addTo(leafletMap)
-      if (typeof lon === 'number' && typeof lat === 'number') {
-        const defaultIcon = L.icon({ iconUrl: markerIconUrl, iconRetinaUrl: markerIcon2xUrl, shadowUrl: markerShadowUrl })
-        L.marker(centerLatLng, { icon: defaultIcon }).addTo(leafletMap)
-      }
-      mapInstanceRef.current = leafletMap
-      initializedRef.current = true
-      return () => { 
-        if (mapInstanceRef.current && 'remove' in mapInstanceRef.current) {
-          mapInstanceRef.current.remove()
-          mapInstanceRef.current = null
-        }
-      }
+    try {
+      mapboxgl.accessToken = token
+
+      const map = new mapboxgl.Map({
+        container: ref.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [lon, lat],
+        zoom: 13,
+        interactive: true,
+      })
+
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right')
+      new mapboxgl.Marker().setLngLat([lon, lat]).addTo(map)
+      map.on('click', handleMapClick)
+      
+      mapInstanceRef.current = map
+    } catch (error) {
+      console.error('Failed to initialize Mapbox map, will use static fallback:', error)
+      initAttemptedRef.current = false
     }
 
-    const center = (typeof lon === 'number' && typeof lat === 'number')
-      ? [lon, lat] as [number, number]
-      : undefined
-
-    const map = new mapboxgl.Map({
-      container: ref.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: center ?? [0, 0],
-      zoom: center ? 12 : 1,
-      interactive: true,
-    })
-    map.addControl(new mapboxgl.NavigationControl())
-    map.on('load', () => {
-      map.resize()
-    })
-    if (center) new mapboxgl.Marker().setLngLat(center).addTo(map)
-
-    mapInstanceRef.current = map
-    initializedRef.current = true
     return () => {
-      if (mapInstanceRef.current && 'remove' in mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove()
+        } catch (e) {
+          console.warn('Error removing map:', e)
+        }
         mapInstanceRef.current = null
       }
     }
-  }, [lat, lon])
+  }, [lat, lon, handleMapClick])
 
-  // Static image fallback for missing token
-  if (showStaticFallbackRef.current) {
-    const canStatic = typeof lon === 'number' && typeof lat === 'number'
-    const token = import.meta.env.VITE_MAPBOX_TOKEN
-    if (canStatic && token) {
-      const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ff0000(${lon},${lat})/${lon},${lat},12,0/${Math.max(300, typeof width === 'number' ? width : 600)}x${height}?access_token=${token}`
-      return (
-        <img
-          src={url}
-          alt={address || 'Location'}
-          className={className}
-          style={{ width, height, borderRadius: 12, objectFit: 'cover' }}
-        />
-      )
-    }
+  const token = import.meta.env.VITE_MAPBOX_TOKEN
+  if (!token) {
+    return (
+      <div 
+        style={{ 
+          width: '100%',
+          height: '180px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#f8f9fa',
+          color: '#6c757d'
+        }}
+      >
+        <i className="bi bi-map fs-3"></i>
+      </div>
+    )
   }
 
-  return <div ref={ref} className={className} style={{ width, height }} />
-}
-
-// Interactive map component with Google Maps external link
-type ExternalMapPreviewProps = {
-  address?: string | undefined
-  lat?: number | undefined
-  lon?: number | undefined
-}
-
-function ExternalMapPreview({ address, lat, lon }: ExternalMapPreviewProps) {
-  const hasCoords = typeof lat === 'number' && typeof lon === 'number'
-  const googleLink = hasCoords
-    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-    : (address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null)
+  const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+7c3aed(${lon},${lat})/${lon},${lat},13,0/400x180@2x?access_token=${token}`
   
   return (
-    <div className="external-map-card">
-      <div className="ext-map-header">
-        {googleLink && (
-          <a href={googleLink} target="_blank" rel="noopener noreferrer" className="ext-map-link">View larger map</a>
-        )}
-      </div>
-      <div className="ext-map-interactive">
-        {hasCoords ? (
-          <MapboxMap
-            address={address}
-            lat={lat}
-            lon={lon}
-            className="mapbox-map"
-            width="100%"
-            height={280}
-          />
-        ) : (
-          <div className="ext-map-thumb-placeholder">No map preview</div>
-        )}
+    <div style={{ position: 'relative', width: '100%', height: '180px', cursor: 'pointer' }} onClick={handleMapClick}>
+      {/* Static map image always shown as fallback */}
+      <img 
+        src={staticMapUrl} 
+        alt="Map location"
+        style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }}
+      />
+      
+      {/* Interactive map container */}
+      <div ref={ref} style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }} />
+      
+      {/* Google Maps 图标提示 */}
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: 8,
+          right: 8,
+          backgroundColor: 'white',
+          borderRadius: '4px',
+          padding: '4px 8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          fontSize: '12px',
+          zIndex: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}
+      >
+        <i className="bi bi-box-arrow-up-right"></i>
+        <span>View in Maps</span>
       </div>
     </div>
+  )
+}
+
+type ShelterCardProps = {
+  pet: PetDetail
+  navigate: ReturnType<typeof useNavigate>
+  shelter?: Shelter | null
+}
+
+function ShelterCard({ pet, navigate, shelter }: ShelterCardProps) {
+  const petData = pet as PetDetail
+  const hasCoords = typeof (pet as any)?.address_lat === 'number' && typeof (pet as any)?.address_lon === 'number'
+    || (shelter?.latitude && shelter?.longitude)
+
+  return (
+    <article className="shelter-card">
+      {/* Map or Cover Image */}
+      {hasCoords ? (
+        <div className="shelter-map">
+          <ShelterMapPreview 
+            lon={(shelter?.longitude ?? (pet as any).address_lon) as number} 
+            lat={(shelter?.latitude ?? (pet as any).address_lat) as number} 
+          />
+        </div>
+      ) : (
+        <div className="cover-placeholder">
+          <i className="bi bi-house-heart"></i>
+        </div>
+      )}
+
+      <div className="shelter-content">
+        {/* Logo and Name */}
+        <div className="shelter-header">
+          {shelter?.logo_url ? (
+            <img 
+              src={shelter.logo_url} 
+              alt={`${shelter.name} logo`}
+              className="shelter-logo"
+            />
+          ) : (
+            <div className="shelter-logo-placeholder">
+              <i className="bi bi-building"></i>
+            </div>
+          )}
+          <div className="header-info">
+            <h3 className="shelter-name">{shelter?.name || petData.shelter_name || 'Local Animal Shelter'}</h3>
+            <p className="address">
+              <i className="bi bi-geo-alt-fill"></i>
+              {shelter ? 
+                [shelter.street, shelter.city, shelter.region].filter(Boolean).join(', ') || 'Address not available'
+                : (petData.shelter_address || petData.shelter_city || petData.city || 'Address not available')
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Description */}
+        {(shelter?.description || petData.shelter_description) && (
+          <p className="description">
+            {(shelter?.description || petData.shelter_description || '').length > 100
+              ? `${(shelter?.description || petData.shelter_description || '').substring(0, 100)}...`
+              : (shelter?.description || petData.shelter_description || '')}
+          </p>
+        )}
+
+        {/* Capacity Info */}
+        <div className="capacity-section">
+          <div className="capacity-header">
+            <span>Capacity</span>
+            <span className="occupancy-badge">
+              {shelter?.occupancy_rate !== undefined 
+                ? `${Math.round(shelter.occupancy_rate)}%`
+                : (petData.shelter_occupancy_rate !== undefined 
+                  ? `${Math.round(petData.shelter_occupancy_rate)}%`
+                  : (petData.status || 'Available'))
+              }
+            </span>
+          </div>
+          <div className="capacity-bar">
+            <div 
+              className="capacity-fill"
+              style={{ width: `${Math.min(shelter?.occupancy_rate ?? petData.shelter_occupancy_rate ?? 65, 100)}%` }}
+            ></div>
+          </div>
+          <p className="capacity-text">
+            {shelter?.current_animals !== undefined && shelter?.capacity !== undefined
+              ? `${shelter.current_animals} / ${shelter.capacity} animals`
+              : (petData.shelter_current_animals !== undefined && petData.shelter_capacity !== undefined
+                ? `${petData.shelter_current_animals} / ${petData.shelter_capacity} animals`
+                : 'Based on this shelter\'s typical occupancy')
+            }
+          </p>
+        </div>
+
+        {/* Contact Info */}
+        <div className="contact-section">
+          {(shelter?.phone || petData.shelter_phone) && (
+            <div className="contact-item">
+              <i className="bi bi-telephone"></i>
+              <small>{shelter?.phone || petData.shelter_phone}</small>
+            </div>
+          )}
+          {!shelter && petData.contact_phone && !petData.shelter_phone && (
+            <div className="contact-item">
+              <i className="bi bi-telephone"></i>
+              <small>{petData.contact_phone}</small>
+            </div>
+          )}
+          {shelter?.email && (
+            <div className="contact-item">
+              <i className="bi bi-envelope"></i>
+              <small>{shelter.email}</small>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="action-buttons">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate(`/adopt/${pet.id}/apply`)}
+          >
+            💬 Ask about this pet
+          </button>
+          {(shelter?.email) && (
+            <a href={`mailto:${shelter.email}`} className="btn btn-secondary">
+              <i className="bi bi-envelope"></i>
+              Contact
+            </a>
+          )}
+        </div>
+      </div>
+    </article>
   )
 }

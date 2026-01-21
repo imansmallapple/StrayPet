@@ -414,29 +414,11 @@ export default function SheltersPage() {
                         type="button"
                         className="btn btn-secondary"
                         onClick={() => {
-                          const contactOptions = []
-                          if (shelter.phone) {
-                            contactOptions.push({
-                              label: 'Call',
-                              action: () => window.location.href = `tel:${shelter.phone}`
-                            })
-                          }
+                          // Prioritize email, then fall back to phone
                           if (shelter.email) {
-                            contactOptions.push({
-                              label: 'Email',
-                              action: () => window.location.href = `mailto:${shelter.email}`
-                            })
-                          }
-                          
-                          if (contactOptions.length === 1) {
-                            contactOptions[0].action()
-                          } else if (contactOptions.length > 1) {
-                            const choice = window.confirm(
-                              `Contact options:\n\n` +
-                              contactOptions.map((opt, idx) => `${idx + 1}. ${opt.label}`).join('\n') +
-                              `\n\nPress OK to call, or Cancel to email`
-                            )
-                            contactOptions[choice ? 0 : 1]?.action()
+                            window.location.href = `mailto:${shelter.email}`
+                          } else if (shelter.phone) {
+                            window.location.href = `tel:${shelter.phone}`
                           }
                         }}
                       >
