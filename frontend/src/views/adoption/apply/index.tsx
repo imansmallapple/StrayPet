@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import axios from 'axios'
 import { adoptApi, type Pet } from '@/services/modules/adopt'
+import PageHeroTitle from '@/components/page-hero-title'
 import './index.scss'
 
 const API_ORIGIN = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000'
@@ -69,103 +70,149 @@ export default function AdoptApply() {
   }
 
   return (
-    <div className="apply-layout">
-      <main className="apply-main">
-        <h1>Adoption Application</h1>
+    <div className="adoption-apply-page">
+      <PageHeroTitle
+        title="Adoption Application"
+        subtitle="Complete your application to adopt this pet"
+      />
 
-        {/* 宠物摘要 */}
-        <section className="pet-summary card">
-          <div className="thumb">
-            {loading ? <div className="sk" /> : (
-              <img src={petImg} alt={pet?.name || 'pet'} onError={(e)=>{ e.currentTarget.onerror=null; e.currentTarget.src='/images/pet-placeholder.jpg' }} />
-            )}
-          </div>
-          <div className="info">
-            <h2>{pet?.name ?? '—'}</h2>
-            <p className="muted">
-              {(pet?.species ?? 'Pet')}
-              {pet?.breed ? ` • ${pet.breed}` : ''}
-              {pet?.sex ? ` • ${pet.sex}` : ''}
-            </p>
-            <Link to={`/adopt/${id}`}>查看详情 →</Link>
-          </div>
-        </section>
+      <div className="apply-container">
+        {/* Main Content */}
+        <main className="apply-main">
+          {/* Pet Summary Card */}
+          <section className="pet-summary-card">
+            <div className="pet-summary-thumb">
+              {loading ? <div className="skeleton" /> : (
+                <img 
+                  src={petImg} 
+                  alt={pet?.name || 'pet'} 
+                  onError={(e)=>{ e.currentTarget.onerror=null; e.currentTarget.src='/images/pet-placeholder.jpg' }} 
+                />
+              )}
+            </div>
+            <div className="pet-summary-info">
+              <h2>{pet?.name ?? '—'}</h2>
+              <p className="pet-meta">
+                {(pet?.species ?? 'Pet')}
+                {pet?.breed ? ` • ${pet.breed}` : ''}
+                {pet?.sex ? ` • ${pet.sex}` : ''}
+              </p>
+              <Link to={`/adopt/${id}`} className="view-details-link">View Full Details →</Link>
+            </div>
+          </section>
 
-        {/* 申请表单 */}
-        <form className="card form" onSubmit={onSubmit}>
-          <div className="grid">
-            <label>
-              全名
-              <input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Your full name" />
-            </label>
-            <label>
-              联系电话
-              <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="e.g. +1 234 567 890" />
-            </label>
+          {/* Application Form */}
+          <form className="application-form card" onSubmit={onSubmit}>
+            <h3>Your Information</h3>
+            
+            <div className="form-grid">
+              <label className="form-group">
+                <span className="label-text">Full Name *</span>
+                <input 
+                  value={fullName} 
+                  onChange={e=>setFullName(e.target.value)} 
+                  placeholder="Your full name"
+                  required
+                />
+              </label>
 
-            <label>
-              家中有孩子吗？
-              <select value={hasKids} onChange={e=>setHasKids(e.target.value as any)}>
-                <option value="">请选择</option>
-                <option value="yes">有</option>
-                <option value="no">无</option>
-              </select>
-            </label>
+              <label className="form-group">
+                <span className="label-text">Phone Number *</span>
+                <input 
+                  value={phone} 
+                  onChange={e=>setPhone(e.target.value)} 
+                  placeholder="e.g. +1 234 567 890"
+                  required
+                />
+              </label>
 
-            <label>
-              现在有其它宠物吗？
-              <select value={hasPets} onChange={e=>setHasPets(e.target.value as any)}>
-                <option value="">请选择</option>
-                <option value="yes">有</option>
-                <option value="no">无</option>
-              </select>
-            </label>
+              <label className="form-group">
+                <span className="label-text">Do you have children at home? *</span>
+                <select 
+                  value={hasKids} 
+                  onChange={e=>setHasKids(e.target.value as any)}
+                  required
+                >
+                  <option value="">— Select —</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
 
-            <label>
-              住所类型
-              <select value={homeType} onChange={e=>setHomeType(e.target.value as any)}>
-                <option value="">请选择</option>
-                <option value="house">House</option>
-                <option value="apartment">Apartment</option>
-              </select>
-            </label>
+              <label className="form-group">
+                <span className="label-text">Do you have other pets? *</span>
+                <select 
+                  value={hasPets} 
+                  onChange={e=>setHasPets(e.target.value as any)}
+                  required
+                >
+                  <option value="">— Select —</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
 
-            <label className="full">
-              申请说明（必填）
+              <label className="form-group">
+                <span className="label-text">Home Type *</span>
+                <select 
+                  value={homeType} 
+                  onChange={e=>setHomeType(e.target.value as any)}
+                  required
+                >
+                  <option value="">— Select —</option>
+                  <option value="house">House</option>
+                  <option value="apartment">Apartment</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="form-group form-group-full">
+              <span className="label-text">Application Message *</span>
               <textarea
                 required
-                rows={5}
+                rows={6}
                 value={message}
                 onChange={e=>setMessage(e.target.value)}
-                placeholder="请简要说明你的养宠经验、作息、居住环境、为什么适合这只宠物等…"
+                placeholder="Tell us about your pet care experience, daily schedule, living environment, and why you're a good match for this pet..."
               />
             </label>
+
+            <label className="form-checkbox">
+              <input 
+                type="checkbox" 
+                checked={agree} 
+                onChange={e=>setAgree(e.target.checked)} 
+                required
+              />
+              <span>I confirm that the above information is accurate and truthful, and I agree to the platform's adoption guidelines.</span>
+            </label>
+
+            <div className="form-actions">
+              <Link to={`/adopt/${id}`} className="btn btn-secondary">← Back</Link>
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting…' : 'Submit Application'}
+              </button>
+            </div>
+          </form>
+        </main>
+
+        {/* Sidebar */}
+        <aside className="apply-sidebar">
+          <div className="tips-card card">
+            <h3>💡 Important Tips</h3>
+            <ul>
+              <li>Make sure all family members agree to adoption.</li>
+              <li>The pet owner will contact you via message or phone after review.</li>
+              <li>If the pet status changes to <strong>pending</strong>, another application is being reviewed.</li>
+              <li>Be honest and detailed in your application for better matching.</li>
+            </ul>
           </div>
-
-          <label className="agree">
-            <input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)} />
-            我确认上述信息真实准确，并同意平台的领养须知。
-          </label>
-
-          <div className="actions">
-            <Link to={`/adopt/${id}`} className="btn">返回</Link>
-            <button type="submit" className="btn primary" disabled={submitting}>
-              {submitting ? '提交中…' : '提交申请'}
-            </button>
-          </div>
-        </form>
-      </main>
-
-      <aside className="apply-side">
-        <div className="card tips">
-          <h3>温馨提示</h3>
-          <ul>
-            <li>请确保家庭成员都同意领养。</li>
-            <li>提交后，发布者会通过站内信或电话联系你。</li>
-            <li>若该宠物状态变为 <b>pending</b>，说明已有申请在处理。</li>
-          </ul>
-        </div>
-      </aside>
+        </aside>
+      </div>
     </div>
   )
 }
