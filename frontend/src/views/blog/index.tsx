@@ -18,6 +18,7 @@ export default function BlogList() {
   const ordering = searchParams.get('ordering') || '-add_date'
   
   const [searchInput, setSearchInput] = useState(search)
+  const [favoriteStates, setFavoriteStates] = useState<Record<number, boolean>>({})
 
   // 加载文章列表
   const { data: articlesData, loading: articlesLoading } = useRequest(
@@ -117,15 +118,24 @@ export default function BlogList() {
     }
 
     try {
+      // 立即更新本地状态，给用户更快的反馈
+      setFavoriteStates(prev => ({
+        ...prev,
+        [articleId]: !isFavorited
+      }))
+
       if (isFavorited) {
         await blogApi.unfavoriteArticle(articleId)
       } else {
         await blogApi.favoriteArticle(articleId)
       }
-      // 刷新文章列表以更新收藏状态
-      window.location.reload()
     } catch (error) {
       console.error('Error toggling favorite:', error)
+      // 如果操作失败，恢复状态
+      setFavoriteStates(prev => ({
+        ...prev,
+        [articleId]: isFavorited
+      }))
       alert('Failed to update favorite status')
     }
   }
@@ -199,21 +209,25 @@ export default function BlogList() {
           ) : (
             <>
               <div className="articles-list">
-                {articles.map((article) => (
-                  <article key={article.id} className="article-card">
-                    <div className="article-header">
-                      <Link to={`/blog/${article.id}`} className="article-title-link">
-                        <h3 className="article-title">{article.title}</h3>
-                      </Link>
-                      <button
-                        type="button"
-                        className={`save-btn ${article.is_favorited ? 'saved' : ''}`}
-                        onClick={() => handleFavorite(article.id, article.is_favorited || false)}
-                        title={article.is_favorited ? 'Unsave article' : 'Save article'}
-                      >
-                        <i className={`bi ${article.is_favorited ? 'bi-bookmark-fill' : 'bi-bookmark'}`}></i>
-                      </button>
-                    </div>
+                {articles.map((article) => {
+                  // 使用favoriteStates中的值如果存在，否则使用原始的is_favorited值
+                  const isFavorited = favoriteStates[article.id] !== undefined ? favoriteStates[article.id] : (article.is_favorited || false)
+                  
+                  return (
+                    <article key={article.id} className="article-card">
+                      <div className="article-header">
+                        <Link to={`/blog/${article.id}`} className="article-title-link">
+                          <h3 className="article-title">{article.title}</h3>
+                        </Link>
+                        <button
+                          type="button"
+                          className={`save-btn ${isFavorited ? 'saved' : ''}`}
+                          onClick={() => handleFavorite(article.id, isFavorited)}
+                          title={isFavorited ? 'Unsave article' : 'Save article'}
+                        >
+                          <i className={`bi ${isFavorited ? 'bi-bookmark-fill' : 'bi-bookmark'}`}></i>
+                        </button>
+                      </div>
                     
                     <div className="article-meta">
                       {article.author && (
@@ -252,7 +266,8 @@ export default function BlogList() {
                       </Link>
                     </div>
                   </article>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Pagination */}
