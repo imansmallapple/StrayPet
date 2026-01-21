@@ -109,6 +109,27 @@ export default function BlogList() {
     setSearchParams({})
   }
 
+  const handleFavorite = async (articleId: number, isFavorited: boolean) => {
+    if (!user) {
+      // 需要登录时，可以提示或重定向
+      alert('Please log in to save articles')
+      return
+    }
+
+    try {
+      if (isFavorited) {
+        await blogApi.unfavoriteArticle(articleId)
+      } else {
+        await blogApi.favoriteArticle(articleId)
+      }
+      // 刷新文章列表以更新收藏状态
+      window.location.reload()
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+      alert('Failed to update favorite status')
+    }
+  }
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -184,6 +205,14 @@ export default function BlogList() {
                       <Link to={`/blog/${article.id}`} className="article-title-link">
                         <h3 className="article-title">{article.title}</h3>
                       </Link>
+                      <button
+                        type="button"
+                        className={`save-btn ${article.is_favorited ? 'saved' : ''}`}
+                        onClick={() => handleFavorite(article.id, article.is_favorited || false)}
+                        title={article.is_favorited ? 'Unsave article' : 'Save article'}
+                      >
+                        <i className={`bi ${article.is_favorited ? 'bi-bookmark-fill' : 'bi-bookmark'}`}></i>
+                      </button>
                     </div>
                     
                     <div className="article-meta">

@@ -196,11 +196,17 @@
 
 .article-header {
   margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .article-title-link {
   text-decoration: none;
   color: inherit;
+  flex: 1;
+  min-width: 0;
 }
 
 .article-title {
@@ -213,6 +219,41 @@
 
   &:hover {
     color: #f59e0b;
+  }
+}
+
+.save-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  padding: 0;
+
+  &:hover {
+    border-color: #f59e0b;
+    color: #f59e0b;
+    transform: scale(1.05);
+  }
+
+  &.saved {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    color: white;
+
+    &:hover {
+      border-color: #d97706;
+      background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+      transform: scale(1.1);
+    }
   }
 }
 
