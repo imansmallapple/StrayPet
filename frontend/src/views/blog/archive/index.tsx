@@ -1,9 +1,10 @@
 // src/views/blog/archive/index.tsx
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
-import { Container, Card, Badge, Spinner, Pagination, Button } from 'react-bootstrap'
+import { Container, Card, Badge, Spinner, Button } from 'react-bootstrap'
 import { blogApi } from '@/services/modules/blog'
 import { useState } from 'react'
+import Pagination from '@/components/Pagination'
 import './index.scss'
 
 export default function BlogArchive() {
@@ -126,39 +127,12 @@ export default function BlogArchive() {
             ))}
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="d-flex justify-content-center mt-4 mb-4">
-                <Pagination>
-                  <Pagination.First onClick={() => handlePageChange(1)} disabled={page === 1} />
-                  <Pagination.Prev onClick={() => handlePageChange(page - 1)} disabled={page === 1} />
-                  
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (page <= 3) {
-                      pageNum = i + 1
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = page - 2 + i
-                    }
-                    return (
-                      <Pagination.Item
-                        key={pageNum}
-                        active={pageNum === page}
-                        onClick={() => handlePageChange(pageNum)}
-                      >
-                        {pageNum}
-                      </Pagination.Item>
-                    )
-                  })}
-
-                  <Pagination.Next onClick={() => handlePageChange(page + 1)} disabled={page === totalPages} />
-                  <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={page === totalPages} />
-                </Pagination>
-              </div>
-            )}
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              showFirstLast
+            />
           </>
         )}
       </Container>

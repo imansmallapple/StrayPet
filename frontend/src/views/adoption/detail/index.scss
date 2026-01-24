@@ -14,13 +14,16 @@
 
 .pet-detail-hero-text .muted {
     font-size: 18px;
-    opacity: 0.9;
+    opacity: 1;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .pet-detail-hero-text h1 {
     margin: 4px 0 0;
     font-size: 44px;
     font-weight: 800;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* 内容区整体偏上，制造“半浮动”效果 */

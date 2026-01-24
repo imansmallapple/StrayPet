@@ -3,6 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
 import PageHeroTitle from '@/components/page-hero-title'
+import Pagination from '@/components/Pagination'
 import './index.scss'
 
 interface FilterState {
@@ -89,6 +90,8 @@ export default function Adopt() {
     () => adoptApi.list(params).then(res => res.data as Paginated<Pet>),
     { refreshDeps: [params] }
   )
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.count / pageSize)) : 1
 
   function goPage(n: number) {
     sp.set('page', String(n))
@@ -414,18 +417,12 @@ export default function Adopt() {
                   </div>
                 )}
 
-                {data && data.count > pageSize && (
-                  <div className="pager">
-                    <button type="button" disabled={page <= 1} onClick={() => goPage(page - 1)}>Prev</button>
-                    <span>{page}</span>
-                    <button
-                      type="button"
-                      disabled={list.length < pageSize}
-                      onClick={() => goPage(page + 1)}
-                    >
-                      Next
-                    </button>
-                  </div>
+                {data && (
+                  <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={goPage}
+                  />
                 )}
               </>
             )}

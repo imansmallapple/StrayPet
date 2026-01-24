@@ -196,8 +196,8 @@ export default function ReportLostPet({ onSuccess }: ReportLostPetProps) {
                   <Form.Group className="mb-3">
                     <Form.Label>Gender</Form.Label>
                     <Form.Select value={sex} onChange={(e) => setSex(e.target.value as 'male' | 'female')}>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
+                      <option value="male">Boy</option>
+                      <option value="female">Girl</option>
                     </Form.Select>
                   </Form.Group>
                 </Col>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { lostApi, type LostPet, type PageResp } from '@/services/modules/lost'
+import Pagination from '@/components/Pagination'
 
 export default function LostList() {
   const [sp, setSp] = useSearchParams()
@@ -78,11 +79,11 @@ export default function LostList() {
       </div>
 
       {data && (
-        <footer style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', marginTop: 16 }}>
-          <button type="button" disabled={page <= 1} onClick={() => goto(page - 1)}>上一页</button>
-          <span style={{ color: '#64748b' }}>{page} / {totalPages}</span>
-          <button type="button" disabled={page >= totalPages} onClick={() => goto(page + 1)}>下一页</button>
-        </footer>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={goto}
+        />
       )}
     </div>
   )

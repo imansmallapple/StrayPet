@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { lostApi, type LostPet, type PageResp } from '@/services/modules/lost'
+import Pagination from '@/components/Pagination'
 import './index.scss'
 
 interface FilterState {
@@ -79,6 +80,8 @@ export default function LostPetsPage() {
     () => lostApi.list(params).then(res => res.data as PageResp<LostPet>),
     { refreshDeps: [params] }
   )
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.count / pageSize)) : 1
 
   function goPage(n: number) {
     sp.set('page', String(n))
@@ -284,18 +287,12 @@ export default function LostPetsPage() {
                   </div>
                 )}
 
-                {data && data.count > pageSize && (
-                  <div className="pager">
-                    <button type="button" disabled={page <= 1} onClick={() => goPage(page - 1)}>Prev</button>
-                    <span>{page}</span>
-                    <button
-                      type="button"
-                      disabled={list.length < pageSize}
-                      onClick={() => goPage(page + 1)}
-                    >
-                      Next
-                    </button>
-                  </div>
+                {data && (
+                  <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={goPage}
+                  />
                 )}
               </>
             )}

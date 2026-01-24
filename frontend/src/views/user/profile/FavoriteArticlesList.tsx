@@ -1,9 +1,10 @@
 // src/views/user/profile/FavoriteArticlesList.tsx
 import { useState } from 'react'
 import { useRequest } from 'ahooks'
-import { Card, Row, Col, Badge, Spinner, Alert, Pagination } from 'react-bootstrap'
+import { Card, Row, Col, Badge, Spinner, Alert } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
+import Pagination from '@/components/Pagination'
 
 export default function FavoriteArticlesList() {
   const [page, setPage] = useState(1)
@@ -145,41 +146,12 @@ export default function FavoriteArticlesList() {
             </Row>
 
             {totalPages > 1 && (
-              <div className="d-flex justify-content-center mt-4">
-                <Pagination>
-                  <Pagination.First onClick={() => setPage(1)} disabled={page === 1} />
-                  <Pagination.Prev onClick={() => setPage(page - 1)} disabled={page === 1} />
-                  {[...Array(totalPages)].map((_, idx) => {
-                    const pageNum = idx + 1
-                    if (
-                      pageNum === 1 ||
-                      pageNum === totalPages ||
-                      (pageNum >= page - 1 && pageNum <= page + 1)
-                    ) {
-                      return (
-                        <Pagination.Item
-                          key={pageNum}
-                          active={pageNum === page}
-                          onClick={() => setPage(pageNum)}
-                        >
-                          {pageNum}
-                        </Pagination.Item>
-                      )
-                    } else if (pageNum === page - 2 || pageNum === page + 2) {
-                      return <Pagination.Ellipsis key={pageNum} disabled />
-                    }
-                    return null
-                  })}
-                  <Pagination.Next
-                    onClick={() => setPage(page + 1)}
-                    disabled={page === totalPages}
-                  />
-                  <Pagination.Last
-                    onClick={() => setPage(totalPages)}
-                    disabled={page === totalPages}
-                  />
-                </Pagination>
-              </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                showFirstLast
+              />
             )}
           </>
         )}

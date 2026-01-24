@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRequest } from 'ahooks'
 import { Link, useNavigate } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
+import Pagination from '@/components/Pagination'
 import './MyArticlesList.scss'
 
 export default function MyArticlesList() {
@@ -150,79 +151,12 @@ export default function MyArticlesList() {
           </div>
 
           {totalPages > 1 && (
-            <div className="my-articles-pagination">
-              <div className="pagination-wrapper">
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={page === 1}
-                  onClick={() => setPage(1)}
-                  title="First page"
-                >
-                  <i className="bi bi-chevron-double-left"></i>
-                </button>
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={page === 1}
-                  onClick={() => setPage(page - 1)}
-                  title="Previous page"
-                >
-                  <i className="bi bi-chevron-left"></i>
-                </button>
-
-                <div className="pagination-pages">
-                  {[...Array(totalPages)].map((_, idx) => {
-                    const pageNum = idx + 1
-                    if (
-                      pageNum === 1 ||
-                      pageNum === totalPages ||
-                      (pageNum >= page - 1 && pageNum <= page + 1)
-                    ) {
-                      return (
-                        <button
-                          type="button"
-                          key={pageNum}
-                          className={`pagination-page ${pageNum === page ? 'active' : ''}`}
-                          onClick={() => setPage(pageNum)}
-                        >
-                          {pageNum}
-                        </button>
-                      )
-                    } else if (pageNum === page - 2 || pageNum === page + 2) {
-                      return (
-                        <span key={pageNum} className="pagination-ellipsis">
-                          ...
-                        </span>
-                      )
-                    }
-                    return null
-                  })}
-                </div>
-
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={page === totalPages}
-                  onClick={() => setPage(page + 1)}
-                  title="Next page"
-                >
-                  <i className="bi bi-chevron-right"></i>
-                </button>
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={page === totalPages}
-                  onClick={() => setPage(totalPages)}
-                  title="Last page"
-                >
-                  <i className="bi bi-chevron-double-right"></i>
-                </button>
-              </div>
-              <div className="pagination-info">
-                Page {page} of {totalPages}
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              showFirstLast
+            />
           )}
         </>
       )}

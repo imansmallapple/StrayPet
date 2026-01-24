@@ -5,6 +5,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
 import { useAuth } from '@/hooks/useAuth'
 import PageHeroTitle from '@/components/page-hero-title'
+import Pagination from '@/components/Pagination'
 import './index.scss'
 
 export default function BlogList() {
@@ -271,66 +272,12 @@ export default function BlogList() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="pagination-section">
-                  <button
-                    type="button"
-                    className="pagination-btn"
-                    disabled={page === 1}
-                    onClick={() => handlePageChange(1)}
-                  >
-                    First
-                  </button>
-                  <button
-                    type="button"
-                    className="pagination-btn"
-                    disabled={page === 1}
-                    onClick={() => handlePageChange(page - 1)}
-                  >
-                    Prev
-                  </button>
-                  
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (page <= 3) {
-                      pageNum = i + 1
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = page - 2 + i
-                    }
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        className={`pagination-btn ${pageNum === page ? 'active' : ''}`}
-                        onClick={() => handlePageChange(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-
-                  <button
-                    type="button"
-                    className="pagination-btn"
-                    disabled={page === totalPages}
-                    onClick={() => handlePageChange(page + 1)}
-                  >
-                    Next
-                  </button>
-                  <button
-                    type="button"
-                    className="pagination-btn"
-                    disabled={page === totalPages}
-                    onClick={() => handlePageChange(totalPages)}
-                  >
-                    Last
-                  </button>
-                </div>
-              )}
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                showFirstLast
+              />
             </>
           )}
         </div>

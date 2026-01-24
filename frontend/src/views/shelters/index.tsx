@@ -5,6 +5,7 @@ import { shelterApi, type Shelter } from '@/services/modules/shelter'
 import { useAuth } from '@/hooks/useAuth'
 import CreateShelter from './components/CreateShelter'
 import PageHeroTitle from '@/components/page-hero-title'
+import Pagination from '@/components/Pagination'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './index.scss'
@@ -442,27 +443,11 @@ export default function SheltersPage() {
         )}
 
         {/* Pagination */}
-        {totalCount > 12 && (
-          <div className="pagination-section">
-            <button
-              type="button"
-              className="pagination-btn"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-            >
-              Prev
-            </button>
-            <span className="page-info">Page {currentPage}</span>
-            <button
-              type="button"
-              className="pagination-btn"
-              disabled={currentPage * 12 >= totalCount}
-              onClick={() => setCurrentPage(currentPage + 1)}
-            >
-              Next
-            </button>
-          </div>
-        )}
+        <Pagination
+          page={currentPage}
+          totalPages={Math.ceil(totalCount / 12)}
+          onPageChange={setCurrentPage}
+        />
 
         {/* Create Shelter Modal */}
         <CreateShelter

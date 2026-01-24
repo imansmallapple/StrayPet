@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Row, Col, Card, Badge, Button, Spinner, Alert, Form } from 'react-bootstrap'
 import { lostApi, type LostPet, type PageResp } from '@/services/modules/lost'
+import Pagination from '@/components/Pagination'
 import './FoundPetsList.scss'
 
 interface FoundPetsListProps {
@@ -220,25 +221,11 @@ export default function FoundPetsList({ onReportClick }: FoundPetsListProps) {
 
       {/* Pagination */}
       {data && totalPages > 1 && (
-        <div className="pagination-container">
-          <Button
-            variant="outline-secondary"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-          >
-            ← Previous
-          </Button>
-          <span className="page-info">
-            Page <strong>{page}</strong> of <strong>{totalPages}</strong>
-          </span>
-          <Button
-            variant="outline-secondary"
-            disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            Next →
-          </Button>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       )}
     </div>
   )

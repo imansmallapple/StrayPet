@@ -260,8 +260,8 @@ export default function LostPost() {
                             value={sex}
                             onChange={(e) => setSex(e.target.value as 'male' | 'female')}
                           >
-                            <option value="male">♂️ Male</option>
-                            <option value="female">♀️ Female</option>
+                            <option value="male">Boy</option>
+                            <option value="female">Girl</option>
                           </Form.Select>
                         </Form.Group>
                       </Col>
