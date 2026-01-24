@@ -1,6 +1,6 @@
 
 // DialogModal 组件和类型定义在最顶部，避免嵌套定义警告
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { blogApi, type Comment } from '@/services/modules/blog'
@@ -56,7 +56,7 @@ const DialogModal = ({ show, onHide, dialogComments, dialogActiveId, findParentU
                     {c.user.username}
                     {c.parent && index > 0 && (
                       <span className="dialog-comment-reply">
-                        回复 <span className="dialog-reply-target">@{findParentUsername(c.parent)}</span>
+                        reply <span className="dialog-reply-target">@{findParentUsername(c.parent)}</span>
                       </span>
                     )}
                   </div>
@@ -196,7 +196,7 @@ export default function BlogDetail() {
   )
 
   const article = articleData?.data
-  const comments = commentsData?.data.results || []
+  const comments = useMemo(() => commentsData?.data.results || [], [commentsData])
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -218,6 +218,24 @@ export default function BlogDetail() {
       setSubmitError(error.response?.data?.detail || 'Failed to post comment')
     }
   }
+
+  // 处理锚点跳转到指定评论
+  useEffect(() => {
+    if (!commentsLoading && comments.length > 0) {
+      const hash = window.location.hash
+      if (hash.startsWith('#comment-')) {
+        const commentId = hash.replace('#comment-', '')
+        const timer = setTimeout(() => {
+          const element = document.getElementById(`comment-${commentId}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
+        }, 300)
+        return () => clearTimeout(timer)
+      }
+    }
+    return undefined
+  }, [commentsLoading, comments])
 
   // 渲染评论表单组件
   const renderCommentForm = (isReply: boolean = false, parentId?: number) => {
@@ -482,7 +500,7 @@ export default function BlogDetail() {
               </strong>
               {isReply && parentUsername && (
                 <span className="reply-to">
-                  {' '}回复 <span className="reply-target">@{parentUsername}</span>
+                  {' '}reply <span className="reply-target">@{parentUsername}</span>
                 </span>
               )}
             </div>
@@ -493,7 +511,7 @@ export default function BlogDetail() {
                   className="reply-btn"
                   onClick={() => handleReply(comment.id, comment.user.username)}
                 >
-                  回复
+                  Reply
                 </span>
               )}
             </div>
@@ -550,14 +568,14 @@ export default function BlogDetail() {
             {shouldCollapse && (
               <div className="replies-toggle" onClick={() => toggleReplies(comment.id)}>
                 <i className="bi bi-chevron-down me-1"></i>
-                共 {replyCount} 条回复
+                {replyCount} repl{replyCount > 1 ? 'ies' : 'y'}
                 <i className="bi bi-chevron-right ms-1"></i>
               </div>
             )}
             {isExpanded && replyCount > 2 && (
               <div className="replies-toggle expanded" onClick={() => toggleReplies(comment.id)}>
                 <i className="bi bi-chevron-up me-1"></i>
-                收起回复
+                Collapse Replies
               </div>
             )}
           </div>

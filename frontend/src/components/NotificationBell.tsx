@@ -179,7 +179,17 @@ export default function NotificationBell() {
         ) : (
           <div className="notification-list">
             {unreadNotifications.map((notification: Notification) => (
-              <div key={notification.id} className="notification-item">
+              <div 
+                key={notification.id} 
+                className="notification-item"
+                onClick={() => {
+                  if (notification.notification_type === 'reply' && notification.id) {
+                    navigate(`/user/profile#message-center?tab=replies&notificationId=${notification.id}`)
+                    setShowNotifications(false)
+                  }
+                }}
+                style={{ cursor: notification.notification_type === 'reply' ? 'pointer' : 'default' }}
+              >
                 <div className="notification-content">
                   <div className="notification-title">
                     {notification.from_user && (

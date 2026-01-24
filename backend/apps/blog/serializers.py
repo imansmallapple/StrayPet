@@ -172,8 +172,27 @@ class BlogCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['id', 'owner', 'content', 'parent', 'add_date', 'pub_date']
-        read_only_fields = ('content_type', 'object_id', 'add_date', 'pub_date')
+        fields = ['id', 'owner', 'content', 'parent', 'add_date', 'pub_date', 'content_type', 'object_id']
+        read_only_fields = ('content_type', 'object_id', 'add_date', 'pub_date', 'id')
+
+    def create(self, validated_data):
+        """自定义create方法以支持content_object"""
+        content_object = self.context.get('content_object')
+        if not content_object:
+            raise ValueError('content_object is required in context')
+        
+        # 从content_object中提取content_type和object_id
+        from django.contrib.contenttypes.models import ContentType
+        content_type = ContentType.objects.get_for_model(content_object)
+        
+        comment = Comment.objects.create(
+            owner=validated_data.get('owner'),
+            content=validated_data.get('content'),
+            parent=validated_data.get('parent'),
+            content_type=content_type,
+            object_id=content_object.pk
+        )
+        return comment
 
 
 class BlogCommentListSerializer(serializers.ModelSerializer):

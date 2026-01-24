@@ -15,7 +15,9 @@ type TabKey = 'info' | 'favorite-pets' | 'favorite-articles' | 'my-articles' | '
 export default function Profile() {
   const [me, setMe] = useState<ApiUserMe | null>(null)
   const location = useLocation()
-  const hashTab = (location.hash.replace('#', '') as TabKey)
+  // 从hash中提取tab名称，忽略查询字符串部分
+  const hashPart = location.hash.replace('#', '').split('?')[0]
+  const hashTab = (hashPart as TabKey)
   const validTabs: TabKey[] = ['info', 'favorite-pets', 'favorite-articles', 'my-articles', 'my-pets', 'message-center', 'friends']
   const activeTab: TabKey = validTabs.includes(hashTab) ? hashTab : 'info'
   const [loading, setLoading] = useState(true)

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Spinner, Alert, Tabs, Tab, Container, Row, Col, Card, Button, Form, InputGroup, Badge } from 'react-bootstrap'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { blogApi } from '@/services/modules/blog'
 import { notificationApi, type Notification } from '@/services/modules/notification'
 import http from '@/services/http'
@@ -42,16 +42,27 @@ interface Message {
   is_read?: boolean
   article_id?: number
   article_title?: string
+  parent?: number
 }
 
 export default function MessageCenter() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [messageType, setMessageType] = useState<MessageType>('private')
   const [messages, setMessages] = useState<Message[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [privateMessages, setPrivateMessages] = useState<MessageItem[]>([])
+
+  // 从hash中解析查询参数
+  const getHashParams = () => {
+    const hash = window.location.hash
+    const queryIndex = hash.indexOf('?')
+    if (queryIndex === -1) return new URLSearchParams()
+    const queryString = hash.substring(queryIndex + 1)
+    return new URLSearchParams(queryString)
+  }
   const [messageInput, setMessageInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -67,6 +78,7 @@ export default function MessageCenter() {
       return new Set(stored ? JSON.parse(stored) : [])
     }
   )
+  const initTabRef = useRef(false)
 
   // 保存已关闭的对话到 localStorage
   const saveClosedConversations = (closed: Set<number>) => {
@@ -232,14 +244,17 @@ export default function MessageCenter() {
       const formattedMessages: Message[] = (data?.results || []).map((item: any) => ({
         id: item.id,
         type: 'replies' as const,
-        from_user: item.user || { id: 0, username: '未知用户' },
-        title: item.parent_comment?.content || '原始评论已删除',
-        content: item.content || '无内容',
+        from_user: item.user || { id: 0, username: 'Unknown User' },
+        title: item.parent_comment?.content || 'Original comment deleted',
+        content: item.content || 'No content',
         created_at: item.add_date || item.pub_date || new Date().toISOString(),
         is_read: false,
         article_id: item.article_id,
         article_title: item.article_title,
+        parent: item.parent,
       }))
+      console.warn('API response sample:', (data?.results || [])[0])
+      console.warn('Formatted messages sample:', formattedMessages[0])
       setMessages(formattedMessages)
     } catch (err: any) {
       console.error('Failed to load messages:', {
@@ -308,6 +323,41 @@ export default function MessageCenter() {
     }
   }, [searchParams, conversations, loadConversation])
 
+  // 处理通知ID参数，自动显示回复消息
+  useEffect(() => {
+    const notificationId = searchParams.get('notificationId')
+    if (notificationId && messageType !== 'replies') {
+      // 使用微任务延迟更新以避免直接在useEffect中调用setState
+      queueMicrotask(() => {
+        setMessageType('replies')
+      })
+    }
+  }, [searchParams, messageType])
+
+  // 初始化：根据URL hash中的查询参数设置初始的messageType
+  useEffect(() => {
+    if (initTabRef.current) return // 防止重复初始化
+    
+    const hash = window.location.hash
+    if (hash.includes('message-center')) {
+      const hashParams = getHashParams()
+      const tab = hashParams.get('tab')
+      const notificationId = hashParams.get('notificationId')
+      
+      if (tab && tab !== messageType) {
+        queueMicrotask(() => {
+          setMessageType(tab as MessageType)
+          initTabRef.current = true
+        })
+      } else if (notificationId && messageType !== 'replies') {
+        queueMicrotask(() => {
+          setMessageType('replies')
+          initTabRef.current = true
+        })
+      }
+    }
+  }, [searchParams, messageType])
+
   // 翻译消息内容（从中文翻译成英文）
   const translateMessageContent = (content: string): string => {
     const translations: { [key: string]: string } = {
@@ -372,11 +422,41 @@ export default function MessageCenter() {
     }
   }
 
+  const handleReplyToReply = (messageId: number, articleId: number | undefined, parentCommentId: number | undefined) => {
+    if (!articleId) {
+      console.error('DEBUG: articleId is undefined')
+      alert('Cannot reply: article not found')
+      return
+    }
+    // Navigate to the article page, jump to parent comment (the one being replied to)
+    const targetCommentId = parentCommentId || messageId
+    const url = `/blog/${articleId}#comment-${targetCommentId}`
+    navigate(url)
+  }
+
+  const handleNavigateToArticle = (articleId: number | undefined) => {
+    if (!articleId) {
+      console.error('DEBUG: articleId is undefined for article navigation')
+      alert('Article not found')
+      return
+    }
+    const url = `/blog/${articleId}`
+    navigate(url)
+  }
+
   return (
     <div className="message-center">
       <Tabs
         activeKey={messageType}
-        onSelect={(k) => setMessageType((k as MessageType) || 'private')}
+        onSelect={(k) => {
+          const newType = (k as MessageType) || 'private'
+          setMessageType(newType)
+          // 更新 URL 以反映当前选中的标签页，包括tab参数
+          const newUrl = `/user/profile#message-center?tab=${newType}`
+          window.history.replaceState(null, '', newUrl)
+          // 重置初始化标记，允许后续的URL参数更新
+          initTabRef.current = false
+        }}
         className="mb-3"
       >
         <Tab eventKey="private" title="My Messages">
@@ -742,8 +822,8 @@ export default function MessageCenter() {
                       </Card.Footer>
                     </Card>
                   ) : (
-                    <Card className="shadow-sm border-0">
-                      <Card.Body className="text-center py-5 text-muted">
+                    <Card className="shadow-sm border-0" style={{ height: '100%' }}>
+                      <Card.Body className="text-center text-muted d-flex flex-column align-items-center justify-content-center">
                         <i className="bi bi-chat" style={{ fontSize: '3rem' }}></i>
                         <div className="mt-3">Select a conversation to start chatting</div>
                       </Card.Body>
@@ -775,23 +855,26 @@ export default function MessageCenter() {
                   <div key={msg.id} className="reply-card">
                     <div className="card-header">
                       <div className="d-flex align-items-center gap-2 mb-2">
-                        <strong>{msg.from_user?.username || '未知用户'}回复了我</strong>
+                        <strong>{msg.from_user?.username || 'Unknown User'} replied to me</strong>
                         <small className="text-muted">{formatDate(msg.created_at)}</small>
                       </div>
                     </div>
                     <div className="card-body">
                       <p className="reply-content mb-3">{msg.content}</p>
-                      {msg.title && msg.title !== '原始评论已删除' && (
+                      {msg.title && msg.title !== 'Original comment deleted' && (
                         <div className="original-comment mb-3 p-3 bg-light rounded border-start border-primary">
                           <small className="text-muted d-block mb-1">
-                            <i className="bi bi-chat-left-quote me-1"></i>回复于评论
+                            <i className="bi bi-chat-left-quote me-1"></i>Reply to comment
                           </small>
                           <small className="text-dark">{msg.title}</small>
                         </div>
                       )}
                       {msg.article_title && (
-                        <small className="text-muted d-block mb-0">
-                          <i className="bi bi-file-text me-1"></i>在文章：<span className="text-primary">{msg.article_title}</span>
+                        <small className="text-muted d-block mb-0" style={{ cursor: 'pointer' }} onClick={(e) => {
+                          e.stopPropagation()
+                          handleNavigateToArticle(msg.article_id)
+                        }}>
+                          <i className="bi bi-file-text me-1"></i>In article: <span className="text-primary" style={{ textDecoration: 'underline' }}>{msg.article_title}</span>
                         </small>
                       )}
                     </div>
@@ -799,12 +882,10 @@ export default function MessageCenter() {
                       <button
                         type="button"
                         className="btn btn-sm btn-primary"
-                        onClick={() => {
-                          // TODO: 回复
-                        }}
+                        onClick={() => handleReplyToReply(msg.id, msg.article_id, msg.parent)}
                       >
                         <i className="bi bi-reply me-1"></i>
-                        回复
+                        Reply
                       </button>
                     </div>
                   </div>

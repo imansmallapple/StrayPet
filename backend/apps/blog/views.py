@@ -23,7 +23,8 @@ from .serializers import (
     BlogCommentSerializer,
     BlogCommentListSerializer
 )
-from django.db.models import Sum, F, Coalesce
+from django.db.models import Sum, F
+from django.db.models.functions import Coalesce
 from apps.comment.serializers import CommentSerializer, CommentListSerializer
 
 
@@ -68,7 +69,6 @@ class ArticleViewSet(mixins.ListModelMixin,
         return super().get_serializer_class()
 
     def get_queryset(self):
-        from django.db.models import Sum, Coalesce
         queryset = super().get_queryset()
         # 注解 count 字段用于排序和序列化
         queryset = queryset.annotate(
@@ -141,16 +141,21 @@ class ArticleViewSet(mixins.ListModelMixin,
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def add_comment(self, request, pk=None):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         content_object = self.get_object()
         
         # 检查是否是回复评论
-        parent = serializer.validated_data.get('parent')
-        if parent:
+        parent_id = request.data.get('parent')
+        if parent_id:
+            from apps.comment.models import Comment
+            parent = Comment.objects.get(id=parent_id)
             content_object = parent.content_object
         
-        serializer.save(content_object=content_object)
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'request': request, 'content_object': content_object}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
@@ -229,6 +234,7 @@ class ArticleViewSet(mixins.ListModelMixin,
         
         # 为每个回复添加所属文章和被回复评论的信息
         replies_data = []
+        
         for reply in replies:
             serializer = BlogCommentListSerializer(reply, context={'request': request})
             data = serializer.data
@@ -238,11 +244,28 @@ class ArticleViewSet(mixins.ListModelMixin,
                 parent_serializer = BlogCommentListSerializer(reply.parent, context={'request': request})
                 data['parent_comment'] = parent_serializer.data
             
-            # 获取回复所属的文章
-            if hasattr(reply, 'content_object') and reply.content_object:
-                if isinstance(reply.content_object, Article):
-                    data['article_id'] = reply.content_object.id
-                    data['article_title'] = reply.content_object.title
+            # 获取回复所属的文章 - 通过 parent.content_object
+            article_id = None
+            article_title = None
+            try:
+                # 回复评论本身没有 content_object，需要通过 parent 评论获取
+                if reply.parent:
+                    parent = reply.parent
+                    if parent.content_type_id and parent.object_id:
+                        try:
+                            from django.contrib.contenttypes.models import ContentType
+                            article_ct = ContentType.objects.get(app_label='blog', model='article')
+                            if parent.content_type_id == article_ct.id:
+                                article = Article.objects.get(id=parent.object_id)
+                                article_id = article.id
+                                article_title = article.title
+                        except Exception:
+                            pass
+            except Exception as e:
+                pass
+            
+            data['article_id'] = article_id
+            data['article_title'] = article_title
             
             replies_data.append(data)
         
