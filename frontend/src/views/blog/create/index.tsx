@@ -1,7 +1,6 @@
 // src/views/blog/create/index.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useRequest } from 'ahooks'
 import { Container, Card, Form, Button, Alert, Spinner } from 'react-bootstrap'
 import { blogApi } from '@/services/modules/blog'
 import { useAuth } from '@/hooks/useAuth'
@@ -19,7 +18,6 @@ export default function CreateEditArticle() {
     title: '',
     description: '',
     content: '',
-    category: '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,11 +25,6 @@ export default function CreateEditArticle() {
   // FluentEditor 实例 refs
   const editorContainerRef = useRef<HTMLDivElement | null>(null)
   const fluentRef = useRef<any | null>(null)
-
-  // 加载分类
-  const { data: categoriesData } = useRequest(() => blogApi.listCategories())
-
-  const categories = categoriesData?.data || []
 
   // 检查是否登录
   useEffect(() => {
@@ -129,7 +122,6 @@ export default function CreateEditArticle() {
         title: string
         description?: string
         content: string
-        category?: number
       } = {
         title: formData.title.trim(),
         content: formData.content.trim(),
@@ -137,10 +129,6 @@ export default function CreateEditArticle() {
 
       if (formData.description.trim()) {
         payload.description = formData.description.trim()
-      }
-
-      if (formData.category) {
-        payload.category = Number(formData.category)
       }
 
       if (isEdit) {
@@ -231,24 +219,6 @@ export default function CreateEditArticle() {
                   You can add <strong>images</strong> 📷, <strong>emojis</strong> 😊, and <strong>rich formatting</strong>.
                   {' '}<strong>Tip: Use #hashtag in your content to automatically create and tag topics!</strong>
                   {' '}For example: #猫咪护理 #宠物训练
-                </Form.Text>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Category (Optional)</Form.Label>
-                <Form.Select
-                  value={formData.category}
-                  onChange={(e) => handleInputChange('category', e.target.value)}
-                >
-                  <option value="">Select a category (or leave blank for '未分类')</option>
-                  {Array.isArray(categories) && categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </Form.Select>
-                <Form.Text className="text-muted">
-                  If not selected, the article will be categorized as '未分类'
                 </Form.Text>
               </Form.Group>
 

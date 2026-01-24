@@ -1,15 +1,6 @@
 // src/services/modules/blog.ts
 import http from '@/services/http'
 
-export type Category = {
-  id: number
-  name: string
-  parent?: number | null
-  sort: number
-  add_date: string
-  pub_date: string
-}
-
 export type Tag = {
   id: number
   name: string
@@ -83,11 +74,6 @@ export type Comment = {
 const BASE = '/blog'
 
 export const blogApi = {
-  // 分类相关
-  listCategories: () => http.get<Category[]>(`${BASE}/category/`),
-  
-  getCategory: (id: number) => http.get<Category>(`${BASE}/category/${id}/`),
-  
   // 标签相关
   listTags: () => http.get<Tag[]>(`${BASE}/tag/`),
   
@@ -97,7 +83,6 @@ export const blogApi = {
   listArticles: (params?: {
     page?: number
     page_size?: number
-    category?: number
     tags?: number
     search?: string
     ordering?: string
@@ -118,7 +103,6 @@ export const blogApi = {
     title?: string
     description?: string
     content?: string
-    category?: number
     tags?: number[]
   }) => http.patch<Article>(`${BASE}/article/${id}/`, data),
   

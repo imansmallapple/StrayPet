@@ -13,7 +13,6 @@ export default function BlogList() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = Number(searchParams.get('page')) || 1
-  const category = searchParams.get('category') || ''
   const tag = searchParams.get('tag') || ''
   const search = searchParams.get('search') || ''
   const ordering = searchParams.get('ordering') || '-add_date'
@@ -27,7 +26,6 @@ export default function BlogList() {
       const params: {
         page: number
         page_size: number
-        category?: number
         tags?: number
         search?: string
         ordering: string
@@ -36,18 +34,14 @@ export default function BlogList() {
         page_size: 10,
         ordering,
       }
-      if (category) params.category = Number(category)
       if (tag) params.tags = Number(tag)
       if (search) params.search = search
       return blogApi.listArticles(params)
     },
     {
-      refreshDeps: [page, category, tag, search, ordering],
+      refreshDeps: [page, tag, search, ordering],
     }
   )
-
-  // 加载分类列表
-  const { data: categoriesData } = useRequest(() => blogApi.listCategories())
 
   // 加载热门标签列表（按使用频率排序）
   const { data: tagsData } = useRequest(() => blogApi.getPopularTags())
@@ -58,7 +52,6 @@ export default function BlogList() {
   const articles = articlesData?.data.results || []
   const totalCount = articlesData?.data.count || 0
   const totalPages = Math.ceil(totalCount / 10)
-  const categories = categoriesData?.data || []
   const tags = tagsData?.data || []
   const archives = archiveData?.data || []
 
@@ -67,17 +60,6 @@ export default function BlogList() {
     params.set('page', String(newPage))
     setSearchParams(params)
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const handleCategoryChange = (categoryId: string) => {
-    const params = new URLSearchParams(searchParams)
-    if (categoryId) {
-      params.set('category', categoryId)
-    } else {
-      params.delete('category')
-    }
-    params.set('page', '1')
-    setSearchParams(params)
   }
 
   const handleTagClick = (tagId: number) => {
@@ -187,7 +169,7 @@ export default function BlogList() {
             </select>
           </div>
 
-          {(category || tag || search) && (
+          {(tag || search) && (
             <div className="clear-filters">
               <button type="button" onClick={clearFilters} className="clear-btn">
                 <i className="bi bi-x-circle"></i>
@@ -297,26 +279,6 @@ export default function BlogList() {
               </button>
             </section>
           )}
-
-          {/* Categories */}
-          <section className="sidebar-widget">
-            <h3 className="widget-title">
-              <i className="bi bi-folder"></i>
-              Categories
-            </h3>
-            <select
-              value={category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="category-select"
-            >
-              <option value="">All Categories</option>
-              {Array.isArray(categories) && categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </section>
 
           {/* Hashtag Tip */}
           {user && (
