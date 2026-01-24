@@ -13,7 +13,7 @@ class PetFilter(df.FilterSet):
     status  = df.CharFilter(field_name="status", lookup_expr="iexact")
     sex     = df.CharFilter(field_name="sex",     lookup_expr="iexact")
     size    = df.CharFilter(field_name="size",    lookup_expr="iexact")
-    city    = df.CharFilter(field_name="address__city__name", lookup_expr="icontains")
+    city    = df.CharFilter(method="filter_city")
     # 年龄段：用总月数范围过滤（前端映射成 age_min/age_max）
     age_min = df.NumberFilter(method="filter_age_min")
     age_max = df.NumberFilter(method="filter_age_max")
@@ -30,6 +30,12 @@ class PetFilter(df.FilterSet):
     good_with_cats = df.BooleanFilter(field_name="good_with_cats")
     affectionate = df.BooleanFilter(field_name="affectionate")
     needs_attention = df.BooleanFilter(field_name="needs_attention")
+
+    def filter_city(self, qs, name, v):
+        """Filter by city - search in both address and shelter address"""
+        return qs.filter(
+            Q(address__city__name__icontains=v) | Q(shelter__address__city__name__icontains=v)
+        )
 
     def filter_age_min(self, qs, name, v):
         v = int(v); y, m = v // 12, v % 12

@@ -260,7 +260,8 @@ export default function LostPetsPage() {
                             <p className="muted">
                               {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}{' '}
                               {pet.species || 'Pet'}
-                              {pet.color ? ` • ${pet.color}` : ''}
+                              {pet.sex === 'male' ? ' • ♂️ Boy' : ' • ♀️ Girl'}
+                              {pet.size ? ` • ${pet.size}` : ''}
                             </p>
                             <p className="desc">Lost: {lostDate}</p>
                           </div>

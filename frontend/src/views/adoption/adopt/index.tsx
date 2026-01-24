@@ -12,6 +12,17 @@ interface FilterState {
   sex: string
   petName: string
   size: string
+  traits: {
+    sterilized: boolean
+    vaccinated: boolean
+    child_friendly: boolean
+    trained: boolean
+    loves_play: boolean
+    loves_walks: boolean
+    good_with_dogs: boolean
+    good_with_cats: boolean
+    affectionate: boolean
+  }
 }
 
 interface FavoritedPets {
@@ -34,6 +45,17 @@ export default function Adopt() {
     sex: sp.get('sex') || '',
     petName: sp.get('pet_name') || '',
     size: sp.get('size') || '',
+    traits: {
+      sterilized: sp.get('sterilized') === 'true',
+      vaccinated: sp.get('vaccinated') === 'true',
+      child_friendly: sp.get('child_friendly') === 'true',
+      trained: sp.get('trained') === 'true',
+      loves_play: sp.get('loves_play') === 'true',
+      loves_walks: sp.get('loves_walks') === 'true',
+      good_with_dogs: sp.get('good_with_dogs') === 'true',
+      good_with_cats: sp.get('good_with_cats') === 'true',
+      affectionate: sp.get('affectionate') === 'true',
+    },
   })
 
   // 获取当前用户信息
@@ -57,6 +79,16 @@ export default function Adopt() {
     if (sex) p.sex = sex
     if (petName) p.name = petName
     if (size) p.size = size
+    // Add trait filters
+    if (sp.get('sterilized') === 'true') p.sterilized = true
+    if (sp.get('vaccinated') === 'true') p.vaccinated = true
+    if (sp.get('child_friendly') === 'true') p.child_friendly = true
+    if (sp.get('trained') === 'true') p.trained = true
+    if (sp.get('loves_play') === 'true') p.loves_play = true
+    if (sp.get('loves_walks') === 'true') p.loves_walks = true
+    if (sp.get('good_with_dogs') === 'true') p.good_with_dogs = true
+    if (sp.get('good_with_cats') === 'true') p.good_with_cats = true
+    if (sp.get('affectionate') === 'true') p.affectionate = true
     return p
   }, [page, pageSize, sp])
 
@@ -72,7 +104,20 @@ export default function Adopt() {
 
   // Handle filter changes - only update local state, not URL
   const handleFilterChange = (key: keyof FilterState, value: string) => {
+    if (key === 'traits') return // Skip direct traits assignment
     const newFilters = { ...filters, [key]: value }
+    setFilters(newFilters)
+  }
+
+  // Handle trait checkbox changes
+  const handleTraitChange = (trait: keyof FilterState['traits']) => {
+    const newFilters = {
+      ...filters,
+      traits: {
+        ...filters.traits,
+        [trait]: !filters.traits[trait]
+      }
+    }
     setFilters(newFilters)
   }
 
@@ -84,6 +129,16 @@ export default function Adopt() {
     if (filters.sex) newSp.set('sex', filters.sex)
     if (filters.petName) newSp.set('pet_name', filters.petName)
     if (filters.size) newSp.set('size', filters.size)
+    // Add selected traits to URL
+    if (filters.traits.sterilized) newSp.set('sterilized', 'true')
+    if (filters.traits.vaccinated) newSp.set('vaccinated', 'true')
+    if (filters.traits.child_friendly) newSp.set('child_friendly', 'true')
+    if (filters.traits.trained) newSp.set('trained', 'true')
+    if (filters.traits.loves_play) newSp.set('loves_play', 'true')
+    if (filters.traits.loves_walks) newSp.set('loves_walks', 'true')
+    if (filters.traits.good_with_dogs) newSp.set('good_with_dogs', 'true')
+    if (filters.traits.good_with_cats) newSp.set('good_with_cats', 'true')
+    if (filters.traits.affectionate) newSp.set('affectionate', 'true')
     newSp.set('page', '1')
     setSp(newSp)
   }
@@ -96,6 +151,17 @@ export default function Adopt() {
       sex: '',
       petName: '',
       size: '',
+      traits: {
+        sterilized: false,
+        vaccinated: false,
+        child_friendly: false,
+        trained: false,
+        loves_play: false,
+        loves_walks: false,
+        good_with_dogs: false,
+        good_with_cats: false,
+        affectionate: false,
+      },
     })
     setSp(new URLSearchParams())
   }
@@ -194,8 +260,8 @@ export default function Adopt() {
                 onChange={(e) => handleFilterChange('sex', e.target.value)}
               >
                 <option value="">No matter</option>
-                <option value="M">♂️ Male</option>
-                <option value="F">♀️ Female</option>
+                <option value="male">♂️ Boy</option>
+                <option value="female">♀️ Girl</option>
               </select>
             </div>
 
@@ -210,7 +276,6 @@ export default function Adopt() {
                 <option value="small">Small</option>
                 <option value="medium">Medium</option>
                 <option value="large">Large</option>
-                <option value="xlarge">Extra Large</option>
               </select>
             </div>
 
@@ -218,44 +283,76 @@ export default function Adopt() {
               <label className="filter-label">Special Traits</label>
               <div className="checkbox-group">
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.sterilized}
+                    onChange={() => handleTraitChange('sterilized')}
+                  />
                   <span>Sterilization/Castration</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.vaccinated}
+                    onChange={() => handleTraitChange('vaccinated')}
+                  />
                   <span>Vaccinations</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.child_friendly}
+                    onChange={() => handleTraitChange('child_friendly')}
+                  />
                   <span>Child-friendly</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.trained}
+                    onChange={() => handleTraitChange('trained')}
+                  />
                   <span>Trained</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.loves_play}
+                    onChange={() => handleTraitChange('loves_play')}
+                  />
                   <span>Loves to play</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.loves_walks}
+                    onChange={() => handleTraitChange('loves_walks')}
+                  />
                   <span>Loves walks</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.good_with_dogs}
+                    onChange={() => handleTraitChange('good_with_dogs')}
+                  />
                   <span>Accepts dogs</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.good_with_cats}
+                    onChange={() => handleTraitChange('good_with_cats')}
+                  />
                   <span>Accepts cats</span>
                 </label>
                 <label className="checkbox-item">
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox"
+                    checked={filters.traits.affectionate}
+                    onChange={() => handleTraitChange('affectionate')}
+                  />
                   <span>Loves caresses</span>
-                </label>
-                <label className="checkbox-item">
-                  <input type="checkbox" />
-                  <span>Tolerates shelter stays very badly</span>
                 </label>
               </div>
             </div>
@@ -309,11 +406,25 @@ export default function Adopt() {
                       </div>
                       <div className="meta">
                         <h3>{pet.name}</h3>
-                        <p className="muted">
+                        <p className="muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                           {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}{' '}
-                          {pet.species || 'Pet'} • {pet.sex === 'M' ? '♂️' : pet.sex === 'F' ? '♀️' : '❓'} {pet.sex || 'Unknown'}
-                          {pet.age_years ? ` • ${pet.age_years}y` : pet.age_months ? ` • ${pet.age_months}m` : ''}
+                          {pet.species || 'Pet'} • {pet.sex === 'male' ? '♂️ Boy' : '♀️ Girl'}
+                          {' '} • 📅 {pet.age_years === 0 ? 'Baby' : pet.age_years !== undefined && pet.age_years !== null ? `${pet.age_years} years old` : pet.age_months ? `${pet.age_months} months old` : 'Age unknown'}
+                          {pet.size ? ` • 📏 ${pet.size}` : ''}
                         </p>
+                        {(pet.sterilized || pet.vaccinated || pet.child_friendly || pet.trained || pet.loves_play || pet.loves_walks || pet.good_with_dogs || pet.good_with_cats || pet.affectionate) && (
+                          <div className="traits-tags">
+                            {pet.sterilized && <span className="trait-tag">✓ Sterilized</span>}
+                            {pet.vaccinated && <span className="trait-tag">✓ Vaccinated</span>}
+                            {pet.child_friendly && <span className="trait-tag">✓ Child-friendly</span>}
+                            {pet.trained && <span className="trait-tag">✓ Trained</span>}
+                            {pet.loves_play && <span className="trait-tag">✓ Loves to play</span>}
+                            {pet.loves_walks && <span className="trait-tag">✓ Loves walks</span>}
+                            {pet.good_with_dogs && <span className="trait-tag">✓ Good with dogs</span>}
+                            {pet.good_with_cats && <span className="trait-tag">✓ Good with cats</span>}
+                            {pet.affectionate && <span className="trait-tag">✓ Affectionate</span>}
+                          </div>
+                        )}
                         <p className="desc">{pet.description || 'No description available'}</p>
                         <div className="actions">
                           <Link to={`/adopt/${pet.id}`}>View Details →</Link>

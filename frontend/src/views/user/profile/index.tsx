@@ -243,9 +243,12 @@ function PetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void }
   }
 
   const ageText = () => {
-    if (pet.age_years || pet.age_months) {
-      const yy = pet.age_years ? `${pet.age_years} years` : ''
-      const mm = pet.age_months ? `${pet.age_months} months` : ''
+    if (pet.age_years === 0) {
+      return 'Baby'
+    }
+    if (pet.age_years !== undefined && pet.age_years !== null || pet.age_months) {
+      const yy = pet.age_years !== undefined && pet.age_years !== null ? `${pet.age_years} years old` : ''
+      const mm = pet.age_months ? `${pet.age_months} months old` : ''
       return [yy, mm].filter(Boolean).join(' ')
     }
     return 'Age unknown'
@@ -381,9 +384,12 @@ function MyPetCard({ pet, onRemove }: { pet: Pet; onRemove: (id: number) => void
   }
 
   const ageText = () => {
-    if (pet.age_years || pet.age_months) {
-      const yy = pet.age_years ? `${pet.age_years} years` : ''
-      const mm = pet.age_months ? `${pet.age_months} months` : ''
+    if (pet.age_years === 0) {
+      return 'Baby'
+    }
+    if (pet.age_years !== undefined && pet.age_years !== null || pet.age_months) {
+      const yy = pet.age_years !== undefined && pet.age_years !== null ? `${pet.age_years} years old` : ''
+      const mm = pet.age_months ? `${pet.age_months} months old` : ''
       return [yy, mm].filter(Boolean).join(' ')
     }
     return 'Age unknown'

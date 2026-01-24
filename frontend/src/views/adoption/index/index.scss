@@ -331,10 +331,10 @@
 }
 
 .meta {
-    padding: 16px;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
     flex: 1;
     font-family: 'Poppins', sans-serif;
 }
@@ -350,8 +350,9 @@
 .muted {
     color: #64748b;
     margin: 0;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
+    line-height: 1.5;
 }
 
 .desc {
@@ -366,6 +367,27 @@
     line-clamp: 3;
     -webkit-box-orient: vertical;
     flex: 1;
+}
+
+.traits-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+}
+
+.trait-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 120px;
 }
 
 .pager {

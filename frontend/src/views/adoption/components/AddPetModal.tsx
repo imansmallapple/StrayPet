@@ -115,9 +115,8 @@ export default function AddPetModal({ show, onHide, onSuccess }: AddPetModalProp
                 onChange={handleChange}
                 required
               >
-                <option value="M">♂️ Male</option>
-                <option value="F">♀️ Female</option>
-                <option value="U">❓ Unknown</option>
+                <option value="male">♂️ Boy</option>
+                <option value="female">♀️ Girl</option>
               </Form.Select>
             </Form.Group>
           </div>

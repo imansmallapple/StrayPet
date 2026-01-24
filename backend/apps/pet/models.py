@@ -13,8 +13,8 @@ User = get_user_model()
 
 class Pet(models.Model):
     SEX_CHOICES = (
-        ("male", "Male"),
-        ("female", "Female"),
+        ("male", "Boy"),
+        ("female", "Girl"),
     )
 
     class Status(models.TextChoices):
@@ -38,6 +38,7 @@ class Pet(models.Model):
 
     age_years = models.PositiveIntegerField("Age (years)", default=0)
     age_months = models.PositiveIntegerField("Age (months)", default=0)
+    size = models.CharField("Size", max_length=20, blank=True, default="")  # small/medium/large/xlarge
     description = models.TextField("Description", blank=True, default="")
     
     # Health and traits
@@ -140,7 +141,7 @@ class Donation(models.Model):
     name = models.CharField("Pet Name", max_length=80)
     species = models.CharField("Species", max_length=40)  # cat/dog/…
     breed = models.CharField("Breed", max_length=80, blank=True, default="")
-    sex = models.CharField("Sex", max_length=10, choices=(("male", "Male"), ("female", "Female")), default="male")
+    sex = models.CharField("Sex", max_length=10, choices=(("male", "Boy"), ("female", "Girl")), default="male")
     age_years = models.PositiveIntegerField("Age (years)", default=0)
     age_months = models.PositiveIntegerField("Age (months)", default=0)
     description = models.TextField("Description", blank=True, default="")
@@ -411,7 +412,7 @@ class Lost(models.Model):
     species = models.CharField(max_length=50, help_text="cat/dog/…")
     breed = models.CharField(max_length=100, blank=True, default="")
     color = models.CharField(max_length=100, blank=True, default="")
-    sex = models.CharField("Sex", max_length=10, choices=(("male", "Male"), ("female", "Female")), default="male")
+    sex = models.CharField("Sex", max_length=10, choices=(("male", "Boy"), ("female", "Girl")), default="male")
     size = models.CharField(max_length=20, blank=True, default="")  # small/medium/large
 
     # 与 Donation 一致，使用 Address 外键（Country→Region→City 级联在 Address 中完成）

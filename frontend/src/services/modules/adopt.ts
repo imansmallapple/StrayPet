@@ -11,6 +11,7 @@ export type Pet = {
   sex?: string
   age_years?: number
   age_months?: number
+  size?: string
   city?: string
   address?: string
   address_display?: string

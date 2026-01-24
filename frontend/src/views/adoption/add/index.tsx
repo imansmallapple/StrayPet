@@ -210,12 +210,15 @@ export default function AdoptAdd() {
                       required
                     >
                       <option value="">Select age...</option>
-                      <option value="0">Very young</option>
-                      <option value="1">1-2 years old</option>
-                      <option value="2">2-3 years old</option>
-                      <option value="3">3-5 years old</option>
-                      <option value="5">5-7 years old</option>
-                      <option value="7">7+ years old</option>
+                      <option value="0">Under 1 year old</option>
+                      <option value="1">1 year old</option>
+                      <option value="2">2 years old</option>
+                      <option value="3">3 years old</option>
+                      <option value="4">4 years old</option>
+                      <option value="5">5 years old</option>
+                      <option value="6">6 years old</option>
+                      <option value="7">7 years old</option>
+                      <option value="8">7+ years old</option>
                     </Form.Select>
                   </Form.Group>
                 </Col>

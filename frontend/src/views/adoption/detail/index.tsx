@@ -161,8 +161,7 @@ export default function AdoptDetail() {
   const sexText = (() => {
     const sex = (pet.sex || '').toLowerCase()
     if (sex === 'male') return 'Boy'
-    if (sex === 'female') return 'Girl'
-    return 'Unknown'
+    return 'Girl'
   })()
 
   // Build traits array from backend boolean fields
@@ -248,6 +247,12 @@ export default function AdoptDetail() {
                       <th>Age</th>
                       <td>{ageText}</td>
                     </tr>
+                    {pet.size && (
+                      <tr>
+                        <th>Size</th>
+                        <td>{pet.size}</td>
+                      </tr>
+                    )}
                     <tr>
                       <th>City/Address</th>
                       <td className="address-cell">{(pet.address_display && pet.address_display !== '-' && pet.address_display !== '—') ? pet.address_display : (pet.city || pet.shelter_city || '—')}</td>

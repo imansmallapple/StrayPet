@@ -155,6 +155,10 @@ export default function FoundPetsList({ onReportClick }: FoundPetsListProps) {
                     <Card.Title className="pet-title">{title}</Card.Title>
                     
                     <div className="pet-details">
+                      <div className="detail-item">
+                        <span className="detail-icon">{pet.sex === 'male' ? '♂️' : '♀️'}</span>
+                        <span>{pet.sex === 'male' ? 'Boy' : 'Girl'}</span>
+                      </div>
                       {pet.breed && (
                         <div className="detail-item">
                           <span className="detail-icon">🐕</span>
@@ -165,6 +169,12 @@ export default function FoundPetsList({ onReportClick }: FoundPetsListProps) {
                         <div className="detail-item">
                           <span className="detail-icon">🎨</span>
                           <span>{pet.color}</span>
+                        </div>
+                      )}
+                      {pet.size && (
+                        <div className="detail-item">
+                          <span className="detail-icon">📏</span>
+                          <span>{pet.size}</span>
                         </div>
                       )}
                       <div className="detail-item">

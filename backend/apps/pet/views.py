@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class PetViewSet(viewsets.ModelViewSet):
     # Build a safe select_related list based on actual model relations so we don't crash
-    _pet_related = ["created_by", "address", "address__city", "address__region", "address__country", "shelter", "shelter__address", "location"]
+    _pet_related = ["created_by", "address", "address__city", "address__region", "address__country", "shelter", "shelter__address", "shelter__address__city", "location"]
     _valid_related = []
     for _f in _pet_related:
         root = _f.split("__")[0]

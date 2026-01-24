@@ -245,6 +245,7 @@ class PetListSerializer(serializers.ModelSerializer):
     applications_count = serializers.IntegerField(read_only=True, default=0)  # 预留统计字段
     age_display = serializers.SerializerMethodField()
     address_display = serializers.SerializerMethodField()
+    city = serializers.SerializerMethodField()  # 城市名称
     # provide numeric coordinates for frontend map (fallback: address -> location)
     address_lat = serializers.SerializerMethodField()
     address_lon = serializers.SerializerMethodField()
@@ -264,8 +265,8 @@ class PetListSerializer(serializers.ModelSerializer):
         model = Pet
         fields = (
             "id", "name", "species", "breed", "sex",
-            "age_years", "age_months", "age_display",
-            "description", "address_display", "cover", 'photo', 'photos',
+            "age_years", "age_months", "age_display", "size",
+            "description", "address_display", "city", "cover", 'photo', 'photos',
             "address_lat", "address_lon",
             "dewormed", "vaccinated", "microchipped", "child_friendly", "trained",
             "loves_play", "loves_walks", "good_with_dogs", "good_with_cats",
@@ -336,6 +337,18 @@ class PetListSerializer(serializers.ModelSerializer):
             return ", ".join([p for p in parts if p])
 
         return "-"
+
+    def get_city(self, obj: Pet) -> str:
+        """Extract city name from pet's shelter"""
+        # 从宠物关联的收容所获取城市
+        if obj.shelter and obj.shelter.address and obj.shelter.address.city:
+            return obj.shelter.address.city.name or ''
+        
+        # 备选：如果宠物本身有地址也可以使用
+        if obj.address and obj.address.city:
+            return obj.address.city.name or ''
+        
+        return ''
 
     def get_address_lat(self, obj: Pet):
         if getattr(obj, 'location_id', None) and getattr(obj, 'location', None) and getattr(obj.location, 'latitude', None) is not None:
