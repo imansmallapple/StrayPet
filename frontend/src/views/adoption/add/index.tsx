@@ -230,11 +230,19 @@ export default function AdoptAdd() {
                 <Form.Control
                   as="textarea"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 300) {
+                      setDescription(e.target.value);
+                    }
+                  }}
                   placeholder="Describe the pet's personality, behavior, and special needs..."
                   rows={4}
                   style={{ resize: 'none' }}
+                  maxLength={300}
                 />
+                <Form.Text className="text-muted">
+                  {description.length}/300 characters
+                </Form.Text>
               </Form.Group>
 
               {/* Additional Details */}
@@ -275,17 +283,6 @@ export default function AdoptAdd() {
                       <option>Small</option>
                       <option>Medium</option>
                       <option>Large</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-bold">Activity</Form.Label>
-                    <Form.Select value="" onChange={() => {}}>
-                      <option>Couch Potatoes</option>
-                      <option>Active</option>
-                      <option>Very Active</option>
                     </Form.Select>
                   </Form.Group>
                 </Col>

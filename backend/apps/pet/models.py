@@ -39,7 +39,7 @@ class Pet(models.Model):
     age_years = models.PositiveIntegerField("Age (years)", default=0)
     age_months = models.PositiveIntegerField("Age (months)", default=0)
     size = models.CharField("Size", max_length=20, blank=True, default="")  # small/medium/large/xlarge
-    description = models.TextField("Description", blank=True, default="")
+    description = models.CharField("Description", max_length=300, blank=True, default="")
     
     # Health and traits
     dewormed = models.BooleanField("Dewormed", default=False)
