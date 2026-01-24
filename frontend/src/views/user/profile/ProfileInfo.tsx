@@ -389,12 +389,12 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
           <div className="info-grid">
             <div className="info-item">
               <label className="info-label">Username</label>
-              <div className="info-value">{userData?.username || '—'}</div>
+              <div className="info-value">{userData?.username || <span className="empty-state">Not set</span>}</div>
             </div>
             
             <div className="info-item">
               <label className="info-label">Email</label>
-              <div className="info-value">{userData?.email || '—'}</div>
+              <div className="info-value">{userData?.email || <span className="empty-state">Not set</span>}</div>
             </div>
 
             <div className="info-item">
@@ -409,7 +409,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     className="form-control form-control-sm"
                   />
                 ) : (
-                  userData?.last_name || '—'
+                  userData?.last_name || <span className="empty-state">Not set</span>
                 )}
               </div>
             </div>
@@ -426,7 +426,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     className="form-control form-control-sm"
                   />
                 ) : (
-                  userData?.first_name || '—'
+                  userData?.first_name || <span className="empty-state">Not set</span>
                 )}
               </div>
             </div>
@@ -443,7 +443,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     className="form-control form-control-sm"
                   />
                 ) : (
-                  userData?.phone || '—'
+                  userData?.phone || <span className="empty-state">Not set</span>
                 )}
               </div>
             </div>
@@ -465,7 +465,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     </label>
                   </div>
                 ) : (
-                  <span className={`badge ${(userData as any)?.has_experience ? 'bg-success' : 'bg-secondary'}`}>
+                  <span className={`info-badge ${(userData as any)?.has_experience ? 'badge-success' : 'badge-secondary'}`}>
                     <i className={`bi ${(userData as any)?.has_experience ? 'bi-check' : 'bi-dash'} me-1`}></i>
                     {(userData as any)?.has_experience ? 'Experienced' : 'No experience'}
                   </span>
@@ -498,7 +498,13 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                         <option value="farm">🌾 Farm</option>
                       </select>
                     ) : (
-                      getLivingSituationLabel((userData as any)?.living_situation)
+                      (userData as any)?.living_situation ? (
+                        <span className="living-situation-badge">
+                          {getLivingSituationLabel((userData as any)?.living_situation)}
+                        </span>
+                      ) : (
+                        <span className="empty-state">Not set</span>
+                      )
                     )}
                   </div>
                 </div>
@@ -520,9 +526,9 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                         </label>
                       </div>
                     ) : (
-                      <span className={`badge ${(userData as any)?.has_yard ? 'bg-success' : 'bg-secondary'}`}>
+                      <span className={`info-badge ${(userData as any)?.has_yard ? 'badge-success' : 'badge-secondary'}`}>
                         <i className={`bi ${(userData as any)?.has_yard ? 'bi-check' : 'bi-dash'} me-1`}></i>
-                        {(userData as any)?.has_yard ? 'Yes' : 'No'}
+                        {(userData as any)?.has_yard ? 'Has yard' : 'No yard'}
                       </span>
                     )}
                   </div>
@@ -723,7 +729,7 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
 }
 
 function getLivingSituationLabel(situation?: string): string {
-  if (!situation) return '—'
+  if (!situation) return 'Not set'
   const situationMap: Record<string, string> = {
     apartment: '🏢 Apartment',
     house: '🏠 House',

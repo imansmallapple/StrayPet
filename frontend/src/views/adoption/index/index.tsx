@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { adoptApi, type Pet, type Paginated } from '@/services/modules/adopt'
+import { useAuth } from '@/hooks/useAuth'
 import PageHeroTitle from '@/components/page-hero-title'
 import Pagination from '@/components/Pagination'
 import './index.scss'
@@ -28,9 +29,11 @@ interface FilterState {
 export default function Adopt() {
   const [sp, setSp] = useSearchParams()
   const nav = useNavigate()
+  const { user } = useAuth()
   const page = Number(sp.get('page') || 1)
   const pageSize = Number(sp.get('page_size') || 12)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [savedPets, setSavedPets] = useState<Set<number>>(() => new Set())
 
   // Initialize filters from URL parameters
   const [filters, setFilters] = useState<FilterState>({
@@ -51,12 +54,6 @@ export default function Adopt() {
       affectionate: sp.get('affectionate') === 'true',
     },
   })
-
-  // 获取当前用户信息
-  const user = useMemo(() => {
-    const userStr = localStorage.getItem('user')
-    return userStr ? JSON.parse(userStr) : null
-  }, [])
 
   const isAdmin = user?.is_staff === true
 
@@ -89,6 +86,20 @@ export default function Adopt() {
   const { data, loading } = useRequest(
     () => adoptApi.list(params).then(res => res.data as Paginated<Pet>),
     { refreshDeps: [params] }
+  )
+
+  // 加载用户已保存的宠物列表
+  useRequest(
+    () => user ? adoptApi.myFavorites({ page: 1, page_size: 1000 }) : Promise.resolve(null),
+    { 
+      refreshDeps: [user],
+      onSuccess: (res) => {
+        if (res?.data?.results) {
+          const favoriteIds = new Set(res.data.results.map(p => p.id))
+          setSavedPets(favoriteIds)
+        }
+      }
+    }
   )
 
   const totalPages = data ? Math.max(1, Math.ceil(data.count / pageSize)) : 1
@@ -367,41 +378,91 @@ export default function Adopt() {
                 </div>
 
                 <div className="grid">
-                  {list.map(pet => (
-                    <Link key={pet.id} to={`/adopt/${pet.id}`} className="card-link">
-                      <article className="card">
-                        <div className="thumb">
-                          <img src={pet.photo || '/images/pet-placeholder.jpg'} alt={pet.name} />
-                          {pet.city && (
-                            <div className="city-badge">📍 {pet.city}</div>
-                          )}
-                        </div>
-                        <div className="meta">
-                          <h3>{pet.name}</h3>
-                          <p className="muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
-                            {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}{' '}
-                            {pet.species || 'Pet'} • {pet.sex === 'male' ? '♂️ Boy' : '♀️ Girl'}
-                            {' '} • 📅 {pet.age_years === 0 ? 'Baby' : pet.age_years !== undefined && pet.age_years !== null ? `${pet.age_years} years old` : pet.age_months ? `${pet.age_months} months old` : 'Age unknown'}
-                            {pet.size ? ` • 📏 ${pet.size}` : ''}
-                          </p>
-                          {(pet.sterilized || pet.vaccinated || pet.child_friendly || pet.trained || pet.loves_play || pet.loves_walks || pet.good_with_dogs || pet.good_with_cats || pet.affectionate) && (
-                            <div className="traits-tags">
-                              {pet.sterilized && <span className="trait-tag">✓ Sterilized</span>}
-                              {pet.vaccinated && <span className="trait-tag">✓ Vaccinated</span>}
-                              {pet.child_friendly && <span className="trait-tag">✓ Child-friendly</span>}
-                              {pet.trained && <span className="trait-tag">✓ Trained</span>}
-                              {pet.loves_play && <span className="trait-tag">✓ Loves to play</span>}
-                              {pet.loves_walks && <span className="trait-tag">✓ Loves walks</span>}
-                              {pet.good_with_dogs && <span className="trait-tag">✓ Good with dogs</span>}
-                              {pet.good_with_cats && <span className="trait-tag">✓ Good with cats</span>}
-                              {pet.affectionate && <span className="trait-tag">✓ Affectionate</span>}
-                            </div>
-                          )}
-                          <p className="desc">{pet.description || 'No description available'}</p>
-                        </div>
-                      </article>
-                    </Link>
-                  ))}
+                  {list.map(pet => {
+                    const isSaved = savedPets.has(pet.id)
+                    
+                    const handleSave = async (e: React.MouseEvent) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      
+                      if (!user) {
+                        alert('Please log in to save pets')
+                        return
+                      }
+
+                      try {
+                        // 立即更新本地状态，给用户更快的反馈
+                        const newSavedPets = new Set(savedPets)
+                        if (isSaved) {
+                          newSavedPets.delete(pet.id)
+                        } else {
+                          newSavedPets.add(pet.id)
+                        }
+                        setSavedPets(newSavedPets)
+
+                        if (isSaved) {
+                          await adoptApi.unfavorite(pet.id)
+                        } else {
+                          await adoptApi.favorite(pet.id)
+                        }
+                      } catch (error) {
+                        console.error('Error saving pet:', error)
+                        // 如果操作失败，恢复状态
+                        const revertedSavedPets = new Set(savedPets)
+                        if (isSaved) {
+                          revertedSavedPets.add(pet.id)
+                        } else {
+                          revertedSavedPets.delete(pet.id)
+                        }
+                        setSavedPets(revertedSavedPets)
+                        alert('Failed to save pet. Please try again.')
+                      }
+                    }
+                    
+                    return (
+                      <Link key={pet.id} to={`/adopt/${pet.id}`} className="card-link">
+                        <article className="card">
+                          <div className="thumb">
+                            <img src={pet.photo || '/images/pet-placeholder.jpg'} alt={pet.name} />
+                            {pet.city && (
+                              <div className="city-badge">📍 {pet.city}</div>
+                            )}
+                            <button
+                              type="button"
+                              className={`save-btn ${isSaved ? 'saved' : ''}`}
+                              onClick={handleSave}
+                              title={isSaved ? 'Remove from saved' : 'Save pet'}
+                            >
+                              <i className={`bi ${isSaved ? 'bi-bookmark-fill' : 'bi-bookmark'}`}></i>
+                            </button>
+                          </div>
+                          <div className="meta">
+                            <h3>{pet.name}</h3>
+                            <p className="muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+                              {pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'}{' '}
+                              {pet.species || 'Pet'} • {pet.sex === 'male' ? '♂️ Boy' : '♀️ Girl'}
+                              {' '} • 📅 {pet.age_years === 0 ? 'Baby' : pet.age_years !== undefined && pet.age_years !== null ? `${pet.age_years} years old` : pet.age_months ? `${pet.age_months} months old` : 'Age unknown'}
+                              {pet.size ? ` • 📏 ${pet.size}` : ''}
+                            </p>
+                            {(pet.sterilized || pet.vaccinated || pet.child_friendly || pet.trained || pet.loves_play || pet.loves_walks || pet.good_with_dogs || pet.good_with_cats || pet.affectionate) && (
+                              <div className="traits-tags">
+                                {pet.sterilized && <span className="trait-tag">✓ Sterilized</span>}
+                                {pet.vaccinated && <span className="trait-tag">✓ Vaccinated</span>}
+                                {pet.child_friendly && <span className="trait-tag">✓ Child-friendly</span>}
+                                {pet.trained && <span className="trait-tag">✓ Trained</span>}
+                                {pet.loves_play && <span className="trait-tag">✓ Loves to play</span>}
+                                {pet.loves_walks && <span className="trait-tag">✓ Loves walks</span>}
+                                {pet.good_with_dogs && <span className="trait-tag">✓ Good with dogs</span>}
+                                {pet.good_with_cats && <span className="trait-tag">✓ Good with cats</span>}
+                                {pet.affectionate && <span className="trait-tag">✓ Affectionate</span>}
+                              </div>
+                            )}
+                            <p className="desc">{pet.description || 'No description available'}</p>
+                          </div>
+                        </article>
+                      </Link>
+                    )
+                  })}
                 </div>
 
                 {list.length === 0 && (

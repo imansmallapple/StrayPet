@@ -329,6 +329,43 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.thumb .save-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    color: #64748b;
+
+    i {
+        font-size: 20px;
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 1);
+        transform: scale(1.1);
+        color: #f59e0b;
+    }
+
+    &.saved {
+        background: rgba(245, 158, 11, 0.95);
+        color: #fff;
+        
+        &:hover {
+          background: rgba(245, 158, 11, 1);
+        }
+    }
+}
+
 .card:hover .thumb img {
     transform: scale(1.05);
 }
