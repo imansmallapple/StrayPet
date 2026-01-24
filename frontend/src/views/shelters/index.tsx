@@ -345,11 +345,19 @@ export default function SheltersPage() {
                       <h3 className="shelter-name">{shelter.name}</h3>
                       {(() => {
                         const addressParts = []
-                        if (shelter.street) addressParts.push(shelter.street)
+                        if (shelter.street) {
+                          addressParts.push(shelter.street)
+                          if (shelter.building_number) {
+                            addressParts[0] += ` ${shelter.building_number}`
+                          }
+                        }
+                        if (shelter.postal_code) addressParts.push(shelter.postal_code)
                         if (shelter.city) addressParts.push(shelter.city)
+                        if (shelter.region) addressParts.push(shelter.region)
+                        if (shelter.country) addressParts.push(shelter.country)
                         const address = addressParts.length > 0 
                           ? addressParts.join(', ')
-                          : (shelter.region || shelter.country || 'No address')
+                          : 'No address'
                         return (
                           <p className="address">
                             <i className="bi bi-geo-alt-fill"></i>

@@ -15,6 +15,7 @@ export type Shelter = {
   // Address
   address?: number
   street?: string
+  building_number?: string
   city?: string
   region?: string
   country?: string

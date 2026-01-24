@@ -105,25 +105,17 @@ WSGI_APPLICATION = 'server.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Use SQLite if POSTGRES_HOST is not available (for local development)
-if os.environ.get("POSTGRES_HOST") or os.path.exists(os.environ.get("POSTGRES_HOST", "db")):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ.get("POSTGRES_DB", "straypet"),
-            "USER": os.environ.get("POSTGRES_USER", "sp_user"),
-            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "sp_pass"),
-            "HOST": os.environ.get("POSTGRES_HOST", "db"),
-            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
-        }
+# MIGRATED TO POSTGRESQL (强制使用 PostgreSQL)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB", "straypet"),
+        "USER": os.environ.get("POSTGRES_USER", "sp_user"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "sp_pass"),
+        "HOST": os.environ.get("POSTGRES_HOST", "db"),  # Docker 内使用服务名 'db'，本地开发时可设置为 'localhost'
+        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
 
 CACHES = {
     "default": {

@@ -915,6 +915,7 @@ class LostSerializer(serializers.ModelSerializer):
 class ShelterListSerializer(serializers.ModelSerializer):
     """Serializer for shelter list view"""
     street = serializers.CharField(source='address.street', read_only=True, allow_null=True)
+    building_number = serializers.CharField(source='address.building_number', read_only=True, allow_null=True)
     city = serializers.CharField(source='address.city.name', read_only=True, allow_null=True)
     region = serializers.CharField(source='address.region.name', read_only=True, allow_null=True)
     country = serializers.CharField(source='address.country.name', read_only=True, allow_null=True)
@@ -928,7 +929,7 @@ class ShelterListSerializer(serializers.ModelSerializer):
         model = Shelter
         fields = [
             'id', 'name', 'description', 'email', 'phone', 'website',
-            'street', 'city', 'region', 'country', 'postal_code', 'latitude', 'longitude',
+            'street', 'building_number', 'city', 'region', 'country', 'postal_code', 'latitude', 'longitude',
             'logo_url', 'cover_url',
             'capacity', 'current_animals', 'available_capacity', 'occupancy_rate',
             'is_verified', 'is_active', 'created_at', 'updated_at'
@@ -961,7 +962,10 @@ class ShelterDetailSerializer(serializers.ModelSerializer):
     region = serializers.CharField(source='address.region.name', read_only=True)
     country = serializers.CharField(source='address.country.name', read_only=True)
     street = serializers.CharField(source='address.street', read_only=True)
+    building_number = serializers.CharField(source='address.building_number', read_only=True, allow_null=True)
     postal_code = serializers.CharField(source='address.postal_code', read_only=True)
+    latitude = serializers.FloatField(source='address.latitude', read_only=True, allow_null=True)
+    longitude = serializers.FloatField(source='address.longitude', read_only=True, allow_null=True)
     logo_url = serializers.SerializerMethodField(read_only=True)
     cover_url = serializers.SerializerMethodField(read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
@@ -970,7 +974,7 @@ class ShelterDetailSerializer(serializers.ModelSerializer):
         model = Shelter
         fields = [
             'id', 'name', 'description', 'email', 'phone', 'website',
-            'address', 'street', 'city', 'region', 'country', 'postal_code',
+            'address', 'street', 'building_number', 'city', 'region', 'country', 'postal_code', 'latitude', 'longitude',
             'logo_url', 'cover_url',
             'capacity', 'current_animals', 'available_capacity', 'occupancy_rate',
             'founded_year', 'is_verified', 'is_active',
