@@ -18,7 +18,21 @@ A comprehensive platform for stray pet adoption, helping homeless animals find l
 - **Favorites**: Save pets of interest for easy access later
 - **Adoption Preferences**: Set ideal pet characteristics (species, size, age, etc.)
 
-### 🔍 Search & Filtering
+### � Messaging & Notifications
+
+- **Notification Center**: Real-time notifications for adoption updates, new messages, and replies
+- **Message Center**: Centralized hub for all notifications with deep linking to referenced articles
+- **Reply Tracking**: Track replies to your comments with automatic navigation to parent comment context
+- **Smart Notifications**: Direct navigation to relevant blog articles and discussions
+
+### 💬 Blog & Comments
+
+- **Blog Articles**: Read adoption guides, pet care tips, and community stories
+- **Comment System**: Engage with community through comments on articles
+- **Thread Replies**: Reply to comments and maintain conversation context
+- **Reply Notifications**: Receive notifications when others reply to your comments
+
+### �🔍 Search & Filtering
 
 - **Multi-criteria Filtering**: Filter by species, age, gender, location, etc.
 - **Map Search**: Find nearby pets based on geographic location
@@ -161,6 +175,16 @@ Access:
 - `GET /user/me/` - Get current user info
 - `PATCH /user/me/` - Update user info and preferences
 
+#### Blog & Comments Related
+
+- `GET /blog/` - Get blog articles list
+- `GET /blog/{id}/` - Get blog article details
+- `POST /blog/{id}/add_comment/` - Post a comment on an article
+- `GET /blog/{id}/comments/` - Get comments for an article
+- `POST /blog/{id}/add_comment_reply/` - Reply to a comment
+- `GET /blog/article/replies_to_me/` - Get replies to your comments with notification tracking
+- `POST /blog/{id}/add_comment/` - Add comment with automatic owner detection from request context
+
 #### Donation Related
 
 - `POST /pet/donation/` - Submit pet donation
@@ -223,7 +247,35 @@ VITE_MAPBOX_TOKEN=your-mapbox-token
 ### Code Style
 
 - **Backend**: Follow PEP 8 conventions
-- **Frontend**: Use ESLint + Prettier
+- **Frontend**: Use ESLint + Prettier with TypeScript strict mode
+
+### Project Organization
+
+- **Backend Tests**: All test scripts located in `backend/test/` folder
+  - Test files: `test_*.py` - API endpoint and functionality tests
+  - Debug scripts: `check_*.py`, `debug_*.py` - System diagnostics
+  - Migration scripts: `fix_*.py`, `migrate_*.py` - Data transformations
+- **Frontend Code**: Organized by feature in `frontend/src/views/` and `frontend/src/components/`
+
+### Key Implementation Details
+
+#### Frontend Deep Linking
+
+- Message Center and Blog Detail pages support URL hash-based navigation
+- Format: `#comment-{id}` automatically scrolls to comment
+- Example: Clicking a reply notification navigates to parent comment automatically
+
+#### API Response Context
+
+- Serializers receive `request` context for automatic user detection
+- Polymorphic relationships use ContentType framework for flexible references
+- Pagination preserves custom fields through `paginator.get_paginated_response()`
+
+#### Comment System Architecture
+
+- Nested comments support via parent_id field
+- Polymorphic comments can reference any content type (Articles, Pets, etc.)
+- Reply notifications track parent-child relationships for context navigation
 
 ### Git Commit Conventions
 
@@ -262,14 +314,47 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## � Documentation & Testing
 
-For detailed implementation documentation, test scripts, and verification reports, see [archived-docs/](./archived-docs/):
+### Test Suite Organization
 
-- 📖 **Implementation Docs** - Feature implementation guides and quick start references
-- 🧪 **Test Scripts** - API and functional test suites (30+ test files)
-- 🔧 **Debug Scripts** - System diagnostics and troubleshooting utilities
-- ✅ **Verification Docs** - Completion reports and quality assurance checklists
+All backend tests and diagnostic scripts are organized in `backend/test/`:
 
-📋 **Quick Index**: [archived-docs/INDEX.md](./archived-docs/INDEX.md) - Complete file reference and navigation guide
+- **API Tests** (`test_*.py`):
+  - Endpoint functionality verification
+  - Request/response validation
+  - Integration testing with database
+- **Debug Utilities** (`check_*.py`, `debug_*.py`):
+  - System state inspection
+  - Data model verification
+  - API response analysis
+
+- **Migration Scripts** (`fix_*.py`, `migrate_*.py`):
+  - Data transformations
+  - Schema updates
+  - Bulk operations
+
+### Running Tests
+
+```bash
+# From backend directory
+python manage.py test                    # Run Django test suite
+python test/test_api_endpoint.py        # Run specific test
+python test/debug_comments.py           # Run diagnostic script
+```
+
+### Frontend Development
+
+```bash
+cd frontend
+
+# Development server with HMR
+pnpm dev
+
+# ESLint checking
+pnpm lint
+
+# Type checking
+pnpm type-check
+```
 
 ## �📮 Contact
 
