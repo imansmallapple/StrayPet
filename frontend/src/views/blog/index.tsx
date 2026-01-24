@@ -40,6 +40,7 @@ export default function BlogList() {
     },
     {
       refreshDeps: [page, tag, search, ordering],
+      loadingDelay: 600, // 延迟600ms再显示loading，快速操作不显示
     }
   )
 

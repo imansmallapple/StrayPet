@@ -23,7 +23,7 @@ from .serializers import (
     BlogCommentSerializer,
     BlogCommentListSerializer
 )
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Coalesce
 from apps.comment.serializers import CommentSerializer, CommentListSerializer
 
 
@@ -51,10 +51,11 @@ class ArticleViewSet(mixins.ListModelMixin,
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [
         filters.DjangoFilterBackend,
-        SearchFilter, OrderingFilter
+        SearchFilter
     ]
     search_fields = ['title']
     ordering_fields = ['add_date', 'pub_date', 'count']
+    ordering = ['-add_date']  # 默认排序
     filterset_fields = ['category', 'tags']
 
     def get_serializer_class(self):
@@ -67,9 +68,41 @@ class ArticleViewSet(mixins.ListModelMixin,
         return super().get_serializer_class()
 
     def get_queryset(self):
-        return super().get_queryset().alias(
-            count=Sum('view_count__count')
-        ).annotate(count=F('count')).order_by('-add_date')
+        from django.db.models import Sum, Coalesce
+        queryset = super().get_queryset()
+        # 注解 count 字段用于排序和序列化
+        queryset = queryset.annotate(
+            count=Coalesce(Sum('view_count__count'), 0)
+        )
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        ordering = request.query_params.get('ordering', '-add_date')
+        self.queryset = self.get_queryset()
+        
+        # 调试：打印前5篇文章的count值
+        print(f"DEBUG: ordering={ordering}")
+        for article in self.queryset[:5]:
+            print(f"DEBUG: Article {article.id} - {article.title} - count={article.count}")
+        
+        # 应用排序
+        if ordering == '-count':
+            self.queryset = self.queryset.order_by('-count', '-add_date')
+            print("DEBUG: Applied -count ordering")
+        elif ordering == 'count':
+            self.queryset = self.queryset.order_by('count', '-add_date')
+            print("DEBUG: Applied count ordering")
+        else:
+            self.queryset = self.queryset.order_by(ordering)
+        
+        # 再次打印排序后的前5篇
+        print("DEBUG: After ordering:")
+        for article in self.queryset[:5]:
+            print(f"DEBUG: Article {article.id} - {article.title} - count={article.count}")
+        
+        return super().list(request, *args, **kwargs)
+        
+        return super().list(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
         obj = self.get_object()
