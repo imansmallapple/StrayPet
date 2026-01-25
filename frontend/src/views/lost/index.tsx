@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useRequest } from 'ahooks'
 import { lostApi, type LostPet, type PageResp } from '@/services/modules/lost'
 import Pagination from '@/components/Pagination'
+import LostPetsMap from './components/LostPetsMap'
 import './index.scss'
 
 interface FilterState {
@@ -81,6 +82,12 @@ export default function LostPetsPage() {
     { refreshDeps: [params] }
   )
 
+  // Load all lost pets for the map
+  const { data: allLostPets } = useRequest(
+    () => lostApi.listAll('open').then(res => res.data as PageResp<LostPet>),
+    { refreshDeps: [] }
+  )
+
   const totalPages = data ? Math.max(1, Math.ceil(data.count / pageSize)) : 1
 
   function goPage(n: number) {
@@ -128,6 +135,15 @@ export default function LostPetsPage() {
         <p className="subtitle">Help reunite lost pets with their families</p>
         <div className="page-header-underline"></div>
       </div>
+
+      {/* Map Section - Full Width */}
+      {allLostPets && allLostPets.results && allLostPets.results.length > 0 && (
+        <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+            <LostPetsMap />
+          </div>
+        </div>
+      )}
 
       <div className="lost-page">
         <div className="lost-container">

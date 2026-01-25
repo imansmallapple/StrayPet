@@ -799,6 +799,8 @@ class LostSerializer(serializers.ModelSerializer):
     city = serializers.SerializerMethodField(read_only=True)
     street = serializers.SerializerMethodField(read_only=True)
     postal_code = serializers.SerializerMethodField(read_only=True)
+    latitude = serializers.SerializerMethodField(read_only=True)
+    longitude = serializers.SerializerMethodField(read_only=True)
     photo_url = serializers.SerializerMethodField(read_only=True)
 
     # 接受 JSON 字符串或字典 - 使用 CharField 避免 JSONField 在 to_internal_value 前的处理
@@ -809,7 +811,7 @@ class LostSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'pet_name', 'species', 'breed', 'color', 'sex', 'size',
             'address', 'address_data',  # ✅ 新增
-            'country', 'region', 'city', 'street', 'postal_code',
+            'country', 'region', 'city', 'street', 'postal_code', 'latitude', 'longitude',
             'lost_time', 'description', 'reward', 'photo', 'photo_url',
             'status', 'reporter', 'reporter_username',
             'contact_phone', 'contact_email',
@@ -875,6 +877,16 @@ class LostSerializer(serializers.ModelSerializer):
     def get_postal_code(self, obj):
         if obj.address and obj.address.postal_code:
             return obj.address.postal_code
+        return None
+
+    def get_latitude(self, obj):
+        if obj.address and obj.address.latitude is not None:
+            return float(obj.address.latitude)
+        return None
+
+    def get_longitude(self, obj):
+        if obj.address and obj.address.longitude is not None:
+            return float(obj.address.longitude)
         return None
 
     def create(self, validated_data):

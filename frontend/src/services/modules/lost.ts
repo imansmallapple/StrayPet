@@ -17,6 +17,8 @@ export type LostPet = {
   country?: string
   street?: string
   postal_code?: string
+  latitude?: number | null
+  longitude?: number | null
 
   lost_time: string
   description?: string
@@ -135,6 +137,9 @@ export function buildLostFormData(p: LostCreatePayload | LostUpdatePayload): For
 export const lostApi = {
   list: (params: { page?: number; page_size?: number; ordering?: string; search?: string; status?: string } = {}) =>
     http.get<PageResp<LostPet>>(BASE, { params }),
+
+  listAll: (status: string = 'open') =>
+    http.get<PageResp<LostPet>>(BASE, { params: { status, page_size: 1000 } }),
 
   retrieve: (id: number) => http.get<LostPet>(`${BASE}${id}/`),
 
