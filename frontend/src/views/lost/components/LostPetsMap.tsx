@@ -21,7 +21,6 @@ export default function LostPetsMap() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const [pets, setPets] = useState<LostPet[]>([])
-  const [loading, setLoading] = useState(true)
   const [mapLoaded, setMapLoaded] = useState(false)
   const mapErrorRef = useRef<string>('')
   const markersRef = useRef<mapboxgl.Marker[]>([])
@@ -37,8 +36,6 @@ export default function LostPetsMap() {
         console.warn('🗺️ Lost pets loaded:', data.length, 'pets')
       } catch (error) {
         console.error('Failed to fetch lost pets:', error)
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -432,15 +429,6 @@ export default function LostPetsMap() {
           color: '#1f2937',
           lineHeight: '1.4'
         }}>📍 Lost Pets Locations</h3>
-        <p className="map-info" style={{
-          margin: '0',
-          fontSize: '13px',
-          color: '#6b7280',
-          fontWeight: '500',
-          lineHeight: '1.5'
-        }}>
-          {loading ? '⏳ Loading map...' : mapErrorRef.current ? '⚠️ Map unavailable' : `✨ ${pets.length} lost pet${pets.length !== 1 ? 's' : ''} in ${markersRef.current.length} location${markersRef.current.length !== 1 ? 's' : ''}`}
-        </p>
       </div>
       {mapErrorRef.current ? (
         <div
