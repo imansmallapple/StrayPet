@@ -3,6 +3,7 @@
 import 'mapbox-gl/dist/mapbox-gl.css'
 import mapboxgl from 'mapbox-gl'
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { lostApi, type LostPet } from '@/services/modules/lost'
 import { POLAND_BOUNDS } from '@/utils/polandMapConfig'
 
@@ -15,6 +16,7 @@ if (token) {
 }
 
 export default function LostPetsMap() {
+  const navigate = useNavigate()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const [pets, setPets] = useState<LostPet[]>([])
@@ -113,6 +115,7 @@ export default function LostPetsMap() {
 
     // Create a local reference to track handlers for cleanup
     const eventHandlers = new Map<HTMLElement, (e: Event) => void>()
+    const popupHandlers = new Map<mapboxgl.Popup, { element: HTMLElement | null; handler: (e?: any) => void; closeHandler?: (e?: any) => void; isPopupHandler?: boolean; isDomListener?: boolean }>()
 
     // Helper function to parse coordinates
     const parseCoordinate = (value: any): number | null => {
@@ -126,6 +129,17 @@ export default function LostPetsMap() {
       
       const num = Number(numStr)
       return Number.isFinite(num) ? num : null
+    }
+
+    // Define delegated handler outside loop for event listener tracking
+    const delegatedClickHandler = (e: Event) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'STRONG' && target.hasAttribute('data-pet-id')) {
+        const petId = target.getAttribute('data-pet-id')
+        if (petId) {
+          navigate(`/lost/${petId}`)
+        }
+      }
     }
 
     // Create markers from pet data
@@ -222,9 +236,10 @@ export default function LostPetsMap() {
         .addTo(map.current!)
 
       // Create popup with proper anchor
+      const petName = pet.pet_name || `${pet.species}${pet.breed ? ' · ' + pet.breed : ''}`
       const popupContent = `
         <div style="font-size: 12px; max-width: 200px; padding: 8px;">
-          <strong>${pet.pet_name || `${pet.species}${pet.breed ? ' · ' + pet.breed : ''}`}</strong><br/>
+          <strong style="cursor: pointer; color: #d97706;" data-pet-id="${pet.id}">${petName}</strong><br/>
           ${emoji} ${pet.species}<br/>
           ${pet.sex === 'male' ? '♂️ Boy' : '♀️ Girl'}<br/>
           📍 ${pet.city || 'Unknown'}<br/>
@@ -241,6 +256,21 @@ export default function LostPetsMap() {
       }).setHTML(popupContent)
       
       marker.setPopup(popup)
+      
+      // Attach listener when popup opens, remove when it closes
+      const addPopupListener = () => {
+        const popupElement = popup.getElement() as HTMLElement
+        // eslint-disable-next-line @eslint-react/web-api/no-leaked-event-listener
+        popupElement.addEventListener('click', delegatedClickHandler)
+        
+        const removePopupListener = () => {
+          popupElement.removeEventListener('click', delegatedClickHandler)
+          popup.off('close', removePopupListener)
+        }
+        popup.on('close', removePopupListener)
+      }
+      
+      popup.on('open', addPopupListener)
       
       // Store marker with handler for later attachment
       const clickHandler = (e: Event) => {
@@ -285,8 +315,21 @@ export default function LostPetsMap() {
         element.removeEventListener('click', handler)
       })
       eventHandlers.clear()
+      
+      // Popup listeners are managed by popup.on('open'/'close') handlers
+      
+      // Cleanup popup handlers
+      popupHandlers.forEach(({ element, handler, isPopupHandler, isDomListener }) => {
+        if (isDomListener && element) {
+          // Remove DOM click listeners
+          element.removeEventListener('click', handler)
+        } else if (isPopupHandler) {
+          // Popup event handlers are cleaned up with popup.off() in parent cleanup
+        }
+      })
+      popupHandlers.clear()
     }
-  }, [pets, mapLoaded])
+  }, [pets, mapLoaded, navigate])
 
   // Cleanup marker event listeners on component unmount
   useEffect(() => {
