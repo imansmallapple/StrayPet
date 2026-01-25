@@ -7,7 +7,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, AllowAny, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from .models import Pet, Adoption, Lost, Donation, PetFavorite, Shelter, Ticket
+from .models import Pet, Adoption, Lost, Donation, PetFavorite, Shelter, Ticket, HolidayFamily
 from django.core.exceptions import FieldDoesNotExist
 from .serializers import PetListSerializer, PetCreateUpdateSerializer, AdoptionCreateSerializer, \
     AdoptionDetailSerializer, AdoptionReviewSerializer, LostSerializer, DonationCreateSerializer,\
@@ -17,11 +17,14 @@ from .permissions import IsOwnerOrAdmin, IsAdopterOrOwnerOrAdmin
 from .filters import PetFilter, LostFilter
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
-from .serializers import LostGeoSerializer
+from .serializers import LostGeoSerializer, HolidayFamilyApplicationSerializer
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import viewsets, permissions
+from django.utils import timezone
+from django.contrib.auth.models import User
 import logging
 logger = logging.getLogger(__name__)
+
 
 class PetViewSet(viewsets.ModelViewSet):
     # Build a safe select_related list based on actual model relations so we don't crash
@@ -470,3 +473,70 @@ class TicketViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(tickets, many=True, context={'request': request})
         return Response(serializer.data)
+
+class HolidayFamilyViewSet(viewsets.ModelViewSet):
+    """ViewSet for Holiday Family applications"""
+    
+    queryset = HolidayFamily.objects.all()
+    serializer_class = HolidayFamilyApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Users can only see their own application, admins can see all"""
+        if self.request.user.is_staff:
+            return HolidayFamily.objects.all()
+        return HolidayFamily.objects.filter(user=self.request.user)
+    
+    @action(detail=False, methods=['get'], url_path='my-application')
+    def my_application(self, request):
+        """Get current user's Holiday Family application"""
+        try:
+            application = HolidayFamily.objects.get(user=request.user)
+            serializer = self.get_serializer(application)
+            return Response(serializer.data)
+        except HolidayFamily.DoesNotExist:
+            return Response(
+                {"detail": "No application found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    def create(self, request, *args, **kwargs):
+        """Create a new Holiday Family application with notification"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        # Send notification to admin users
+        try:
+            self._notify_admins(serializer.instance)
+        except Exception as e:
+            # Log the error but don't fail the request
+            logger.error(f"Error sending admin notification: {e}")
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                "detail": "Application submitted successfully",
+                "data": serializer.data
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+    
+    def _notify_admins(self, application):
+        """Send notification to all admin users about new application"""
+        from apps.common.models import Notification
+        
+        admin_users = User.objects.filter(is_staff=True)
+        
+        for admin in admin_users:
+            try:
+                Notification.objects.create(
+                    user=admin,
+                    title="New Holiday Family Application",
+                    message=f"New application from {application.full_name} ({application.email})",
+                    notification_type="info",
+                    link=f"/admin/pet/holidayfamily/{application.id}/change/"
+                )
+            except Exception as e:
+                logger.error(f"Failed to create notification for admin {admin.id}: {e}")

@@ -1,7 +1,7 @@
 # apps/pet/admin.py
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto, Shelter, Ticket
+from .models import Pet, Adoption, DonationPhoto, Donation, Country, Region, City, Address, Lost, PetPhoto, Shelter, Ticket, HolidayFamily
 from django import forms
 
 class AddressAdminForm(forms.ModelForm):
@@ -335,3 +335,51 @@ class TicketAdmin(admin.ModelAdmin):
             color, obj.get_status_display()
         )
     get_status_display_colored.short_description = "Status"
+
+@admin.register(HolidayFamily)
+class HolidayFamilyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'full_name', 'email', 'city', 'status_badge', 'applied_at', 'reviewed_by')
+    list_filter = ('status', 'applied_at', 'pet_count')
+    search_fields = ('full_name', 'email', 'city', 'phone', 'motivation')
+    readonly_fields = ('user', 'applied_at', 'reviewed_at', 'status_badge_detail')
+    autocomplete_fields = ('reviewed_by',)
+    
+    fieldsets = (
+        ('Applicant Info', {
+            'fields': ('user', 'full_name', 'email', 'phone')
+        }),
+        ('Location', {
+            'fields': ('address', 'city')
+        }),
+        ('Pet Experience', {
+            'fields': ('pet_count', 'pet_types')
+        }),
+        ('Motivation', {
+            'fields': ('motivation',)
+        }),
+        ('Application Status', {
+            'fields': ('status', 'terms_agreed', 'applied_at', 'reviewed_at', 'reviewed_by', 'review_notes')
+        }),
+    )
+    
+    def status_badge(self, obj):
+        colors = {
+            'pending': '#ffc107',
+            'approved': '#28a745',
+            'rejected': '#dc3545',
+        }
+        color = colors.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="background-color:{}; color:white; padding:4px 8px; border-radius:3px; font-weight:bold;">{}</span>',
+            color, obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+    
+    def status_badge_detail(self, obj):
+        return self.status_badge(obj)
+    status_badge_detail.short_description = 'Status'
+    
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Editing an existing object
+            return self.readonly_fields + ['full_name', 'email', 'phone', 'address', 'city', 'pet_count', 'pet_types', 'motivation', 'terms_agreed']
+        return self.readonly_fields

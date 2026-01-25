@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'apps.user',
     'apps.comment',
     'apps.pet',
+    'apps.holiday_family',
     'rest_framework_simplejwt',
     'django_filters',
     'corsheaders',

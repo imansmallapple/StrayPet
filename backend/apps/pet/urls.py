@@ -2,7 +2,7 @@
 from rest_framework.routers import DefaultRouter
 from .views import PetViewSet, AdoptionViewSet, LostViewSet, DonationViewSet, ShelterViewSet, TicketViewSet
 from django.urls import path, include
-from apps.pet.views import LostGeoViewSet
+from apps.pet.views import LostGeoViewSet, HolidayFamilyViewSet
 
 router = DefaultRouter()
 router.register(r'', PetViewSet, basename='pet')
@@ -12,6 +12,7 @@ router.register(r'donation', DonationViewSet, basename='donation')
 router.register(r"lost_geo", LostGeoViewSet, basename="lost-geo")
 router.register(r'shelter', ShelterViewSet, basename='shelter')
 router.register(r'ticket', TicketViewSet, basename='ticket')
+router.register(r'holiday-family', HolidayFamilyViewSet, basename='holiday-family')
 
 urlpatterns = [
 	# Explicit lost routes to ensure /pet/lost/ resolves

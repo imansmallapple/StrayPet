@@ -131,10 +131,20 @@ class Notification(models.Model):
         ('mention', '有人提到了我'),
         ('friend_request', '好友申请'),
         ('system', '系统通知'),
+        ('holiday_family_apply', 'Holiday Family 申请'),
     )
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='reply')
+    
+    # 关联的 holiday family 申请
+    holiday_family_application = models.ForeignKey(
+        'holiday_family.HolidayFamilyApplication',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications'
+    )
     
     # 关联的评论
     comment = models.ForeignKey('comment.Comment', on_delete=models.CASCADE, null=True, blank=True)

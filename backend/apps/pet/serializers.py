@@ -2,7 +2,7 @@ from __future__ import annotations
 # apps/pet/serializers.py
 from rest_framework import serializers
 import json
-from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite, Shelter, Ticket
+from .models import Pet, Adoption, DonationPhoto, Donation, Lost, Address, Country, Region, City, PetFavorite, Shelter, Ticket, HolidayFamily
 from typing import TYPE_CHECKING
 from common.utils import geocode_address
 if TYPE_CHECKING:
@@ -1136,4 +1136,45 @@ class TicketSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class HolidayFamilyApplicationSerializer(serializers.ModelSerializer):
+    """Serializer for Holiday Family applications"""
+    
+    class Meta:
+        model = HolidayFamily
+        fields = [
+            'id',
+            'full_name',
+            'email',
+            'phone',
+            'address',
+            'city',
+            'pet_count',
+            'pet_types',
+            'motivation',
+            'terms_agreed',
+            'status',
+            'applied_at',
+            'reviewed_at',
+            'review_notes',
+        ]
+        read_only_fields = [
+            'id',
+            'status',
+            'applied_at',
+            'reviewed_at',
+            'review_notes',
+        ]
+    
+    def create(self, validated_data):
+        """Create a new Holiday Family application"""
+        user = self.context['request'].user
+        
+        # Check if user already has an application
+        if HolidayFamily.objects.filter(user=user).exists():
+            raise serializers.ValidationError("You have already submitted an application.")
+        
+        validated_data['user'] = user
         return super().create(validated_data)

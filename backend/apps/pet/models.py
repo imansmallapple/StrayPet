@@ -624,3 +624,65 @@ class Ticket(models.Model):
     
     def __str__(self):
         return f"[{self.get_priority_display()}] {self.title} ({self.get_status_display()})"
+
+
+class HolidayFamily(models.Model):
+    """Model for Holiday Family applications"""
+    
+    STATUS_CHOICES = [
+        ("pending", "Pending Review"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+    
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="holiday_family_application"
+    )
+    
+    # Personal Information
+    full_name = models.CharField("Full Name", max_length=150)
+    email = models.EmailField("Email")
+    phone = models.CharField("Phone Number", max_length=20)
+    address = models.CharField("Address", max_length=255)
+    city = models.CharField("City", max_length=100)
+    
+    # Pet Experience
+    pet_count = models.PositiveIntegerField("Number of Current Pets", default=0)
+    pet_types = models.CharField("Types of Pets", max_length=255, help_text="e.g., 2 dogs, 1 cat")
+    
+    # Motivation
+    motivation = models.TextField("Why do you want to be a Holiday Family?")
+    terms_agreed = models.BooleanField("Terms and Conditions Agreed", default=False)
+    
+    # Status and Review
+    status = models.CharField(
+        "Application Status",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
+    
+    applied_at = models.DateTimeField("Applied At", auto_now_add=True, db_index=True)
+    reviewed_at = models.DateTimeField("Reviewed At", null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="holiday_family_reviewed"
+    )
+    review_notes = models.TextField("Review Notes", blank=True)
+    
+    class Meta:
+        verbose_name = "Holiday Family"
+        verbose_name_plural = "Holiday Families"
+        ordering = ["-applied_at"]
+        indexes = [
+            models.Index(fields=["status", "-applied_at"]),
+            models.Index(fields=["user"]),
+        ]
+    
+    def __str__(self):
+        return f"{self.full_name} - {self.get_status_display()}"
