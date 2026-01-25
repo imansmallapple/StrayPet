@@ -39,6 +39,10 @@ export const authApi = {
   getUserProfile: (userId: number) => http.get<UserMe>(`/user/userinfo/${userId}/`),
   updateProfile: (data: Partial<UserMe>) => http.patch<UserMe>(ENDPOINTS.me, data),
 
+  // 密码相关
+  changePassword: (userId: number, data: { old_password: string; password: string }) =>
+    http.post<{ msg: string }>(`/user/userinfo/${userId}/change_password/`, data),
+
   // 通知相关
   getNotifications: (params?: {
     notification_type?: 'reply' | 'mention' | 'system'

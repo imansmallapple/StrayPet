@@ -1,6 +1,6 @@
 // src/views/lost/detail/index.tsx
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Badge, Button, Alert } from 'react-bootstrap'
 import { lostApi, type LostPet } from '@/services/modules/lost'
 import './index.scss'
@@ -8,6 +8,7 @@ import './index.scss'
 export default function LostDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [item, setItem] = useState<LostPet | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -44,12 +45,15 @@ export default function LostDetail() {
   }
 
   if (error) {
+    const handleBack = () => {
+      navigate(`/lost${location.search}`)
+    }
     return (
       <Container className="lost-detail-page">
         <Alert variant="danger">
           <Alert.Heading>Error</Alert.Heading>
           <p>{error}</p>
-          <Button variant="outline-danger" onClick={() => navigate('/lost')}>
+          <Button variant="outline-danger" onClick={handleBack}>
             Back to Lost Pets
           </Button>
         </Alert>
@@ -122,7 +126,7 @@ export default function LostDetail() {
         <Button 
           variant="outline-secondary" 
           className="back-btn"
-          onClick={() => navigate('/lost')}
+          onClick={() => navigate(`/lost${location.search}`)}
         >
           Back to Lost Pets
         </Button>

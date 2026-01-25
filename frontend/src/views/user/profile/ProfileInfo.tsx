@@ -27,6 +27,12 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
   const [messageError, setMessageError] = useState('')
   const [showResetModal, setShowResetModal] = useState(false)
   const [resettingAvatar, setResettingAvatar] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   // 加载好友关系
   useEffect(() => {
@@ -248,6 +254,52 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
     }
   }
 
+  const handleChangePassword = async () => {
+    setPasswordError('')
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Please fill in all password fields')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters')
+      return
+    }
+
+    if (oldPassword === newPassword) {
+      setPasswordError('New password must be different from the old password')
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      await authApi.changePassword(userData.id, {
+        old_password: oldPassword,
+        password: newPassword
+      })
+      alert('Password changed successfully')
+      setShowPasswordModal(false)
+      setOldPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.old_password?.[0] ||
+                       error?.response?.data?.password?.[0] ||
+                       error?.response?.data?.detail ||
+                       error?.response?.data?.msg ||
+                       'Failed to change password'
+      setPasswordError(errorMsg)
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
   // 打开与用户的对话
   const handleOpenChat = () => {
     // 清除该用户在已关闭列表中的记录
@@ -309,14 +361,24 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                   </Button>
                 </>
               ) : (
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <i className="bi bi-pencil me-1"></i>
-                  Edit Profile
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <i className="bi bi-pencil me-1"></i>
+                    Edit Profile
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline-warning"
+                    onClick={() => setShowPasswordModal(true)}
+                  >
+                    <i className="bi bi-key me-1"></i>
+                    Change Password
+                  </Button>
+                </>
               )}
             </div>
           )}
@@ -719,6 +781,88 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
               <>
                 <i className="bi bi-send me-1"></i>
                 Send
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal show={showPasswordModal} onHide={() => setShowPasswordModal(false)} centered>
+        <Modal.Header closeButton className="border-bottom-0">
+          <Modal.Title className="fw-600">
+            <i className="bi bi-key me-2"></i>
+            Change Password
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {passwordError && (
+            <Alert variant="danger" className="mb-3">
+              <i className="bi bi-exclamation-circle me-2"></i>
+              {passwordError}
+            </Alert>
+          )}
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-600 mb-2">Current Password</Form.Label>
+            <Form.Control
+              type="password"
+              placeholder="Enter your current password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              disabled={changingPassword}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-600 mb-2">New Password</Form.Label>
+            <Form.Control
+              type="password"
+              placeholder="Enter your new password (min 8 characters)"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              disabled={changingPassword}
+            />
+            <small className="text-muted d-block mt-2">
+              At least 8 characters, preferably with uppercase, lowercase and numbers
+            </small>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label className="fw-600 mb-2">Confirm New Password</Form.Label>
+            <Form.Control
+              type="password"
+              placeholder="Re-enter your new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={changingPassword}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer className="border-top-0">
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowPasswordModal(false)
+              setOldPassword('')
+              setNewPassword('')
+              setConfirmPassword('')
+              setPasswordError('')
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleChangePassword}
+            disabled={changingPassword}
+          >
+            {changingPassword ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Changing...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-lg me-1"></i>
+                Change Password
               </>
             )}
           </Button>

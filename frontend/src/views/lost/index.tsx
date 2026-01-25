@@ -259,7 +259,13 @@ export default function LostPetsPage() {
                       : 'Unknown'
 
                     return (
-                      <a key={pet.id} href={`/lost/${pet.id}`} className="card-link">
+                      <button 
+                        type="button"
+                        key={pet.id} 
+                        onClick={() => navigate(`/lost/${pet.id}${sp.toString() ? `?${sp.toString()}` : ''}`)}
+                        className="card-link"
+                        style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
+                      >
                         <article className="card">
                           <div className="thumb">
                             {imgSrc ? (
@@ -285,7 +291,7 @@ export default function LostPetsPage() {
                             <p className="desc">Lost: {lostDate}</p>
                           </div>
                         </article>
-                      </a>
+                      </button>
                     )
                   })}
                 </div>

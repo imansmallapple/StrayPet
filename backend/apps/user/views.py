@@ -193,7 +193,26 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
 
     @action(methods=['post'], detail=True)
     def change_password(self, request, pk=None):
+        """
+        Only the authenticated user can change their own password
+        POST /user/userinfo/{id}/change_password/
+        Body: { "old_password": "...", "password": "..." }
+        """
         instance = self.get_object()
+        
+        # Check if the user is authenticated and can only change their own password
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        if request.user.id != instance.id:
+            return Response(
+                {'detail': 'You can only change your own password'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.set_password(serializer.validated_data['password'])
