@@ -143,34 +143,40 @@ export default function LostPetsMap() {
       }
     }
 
-    // Group pets by city
-    const petsByCity = new Map<string, LostPet[]>()
+    // Group pets by coordinates (if multiple pets have the exact same coordinates)
+    const petsByCoords = new Map<string, LostPet[]>()
     pets.forEach((pet: LostPet) => {
-      const city = pet.city || 'Unknown'
-      if (!petsByCity.has(city)) {
-        petsByCity.set(city, [])
+      const lng = parseCoordinate(pet.longitude)
+      const lat = parseCoordinate(pet.latitude)
+      
+      // Skip invalid coordinates
+      if (lng == null || lat == null || !Number.isFinite(lng) || !Number.isFinite(lat)) {
+        return
       }
-      petsByCity.get(city)!.push(pet)
+      
+      const coordKey = `${lng},${lat}`
+      if (!petsByCoords.has(coordKey)) {
+        petsByCoords.set(coordKey, [])
+      }
+      petsByCoords.get(coordKey)!.push(pet)
     })
 
-    // Create markers from grouped city data
-    petsByCity.forEach((cityPets: LostPet[]) => {
-      const firstPet = cityPets[0]
+    // Create markers from grouped coordinate data
+    petsByCoords.forEach((petsAtCoord: LostPet[]) => {
+      const firstPet = petsAtCoord[0]
       const lng = parseCoordinate(firstPet.longitude)
       const lat = parseCoordinate(firstPet.latitude)
 
       // Skip if invalid coordinates
       if (lng == null || lat == null) {
-        console.warn(`⚠️ Skipping city ${firstPet.city} - invalid coordinates`)
         return
       }
 
       if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
-        console.warn(`⚠️ Skipping city ${firstPet.city} - non-finite coordinates`)
         return
       }
 
-      console.warn(`✅ Creating marker for ${firstPet.city} with ${cityPets.length} pet(s)`)
+      console.warn(`✅ Creating marker for coordinates [${lng}, ${lat}] with ${petsAtCoord.length} pet(s)`)
 
       // Create marker root element (Mapbox will position this via transform)
       // IMPORTANT: Don't add transform/position/margin to this element
@@ -192,21 +198,57 @@ export default function LostPetsMap() {
       markerVisual.style.alignItems = 'center'
       markerVisual.style.justifyContent = 'center'
 
-      // Show city marker with pet count badge
-      const cityMarkerContainer = document.createElement('div')
-      cityMarkerContainer.style.width = '50px'
-      cityMarkerContainer.style.height = '50px'
-      cityMarkerContainer.style.borderRadius = '50%'
-      cityMarkerContainer.style.border = '3px solid white'
-      cityMarkerContainer.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
-      cityMarkerContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
-      cityMarkerContainer.style.display = 'flex'
-      cityMarkerContainer.style.alignItems = 'center'
-      cityMarkerContainer.style.justifyContent = 'center'
-      cityMarkerContainer.style.position = 'relative'
+      // If only one pet at this location, show its specific icon; if multiple, show count badge
+      if (petsAtCoord.length === 1) {
+        // Single pet - show its uploaded image
+        const pet = petsAtCoord[0]
+        const markerContainer = document.createElement('div')
+        markerContainer.style.width = '50px'
+        markerContainer.style.height = '50px'
+        markerContainer.style.borderRadius = '50%'
+        markerContainer.style.border = '3px solid white'
+        markerContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+        markerContainer.style.display = 'flex'
+        markerContainer.style.alignItems = 'center'
+        markerContainer.style.justifyContent = 'center'
+        markerContainer.style.position = 'relative'
+        markerContainer.style.overflow = 'hidden'
 
-      // Pet count badge
-      if (cityPets.length > 1) {
+        // Show pet's uploaded image if available
+        if (pet.photo_url) {
+          const img = document.createElement('img')
+          img.src = pet.photo_url
+          img.style.width = '100%'
+          img.style.height = '100%'
+          img.style.objectFit = 'cover'
+          img.style.borderRadius = '50%'
+          markerContainer.appendChild(img)
+        } else {
+          // Fallback to emoji if no image
+          markerContainer.style.background = pet.species === 'dog' ? 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)' : 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)'
+          const emojiSpan = document.createElement('span')
+          emojiSpan.style.fontSize = '24px'
+          emojiSpan.style.fontWeight = 'bold'
+          emojiSpan.textContent = pet.species === 'dog' ? '🐕' : '🐱'
+          markerContainer.appendChild(emojiSpan)
+        }
+
+        markerVisual.appendChild(markerContainer)
+      } else {
+        // Multiple pets at same location - show count badge
+        const markerContainer = document.createElement('div')
+        markerContainer.style.width = '50px'
+        markerContainer.style.height = '50px'
+        markerContainer.style.borderRadius = '50%'
+        markerContainer.style.border = '3px solid white'
+        markerContainer.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
+        markerContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+        markerContainer.style.display = 'flex'
+        markerContainer.style.alignItems = 'center'
+        markerContainer.style.justifyContent = 'center'
+        markerContainer.style.position = 'relative'
+
+        // Pet count badge
         const badge = document.createElement('div')
         badge.style.position = 'absolute'
         badge.style.top = '-5px'
@@ -222,18 +264,18 @@ export default function LostPetsMap() {
         badge.style.fontSize = '12px'
         badge.style.fontWeight = 'bold'
         badge.style.border = '2px solid white'
-        badge.textContent = String(cityPets.length)
-        cityMarkerContainer.appendChild(badge)
+        badge.textContent = String(petsAtCoord.length)
+        markerContainer.appendChild(badge)
+
+        // Add emoji to marker
+        const emojiSpan = document.createElement('span')
+        emojiSpan.style.fontSize = '24px'
+        emojiSpan.style.fontWeight = 'bold'
+        emojiSpan.textContent = '🐾'
+        markerContainer.appendChild(emojiSpan)
+
+        markerVisual.appendChild(markerContainer)
       }
-
-      // Add emoji to city marker
-      const emojiSpan = document.createElement('span')
-      emojiSpan.style.fontSize = '24px'
-      emojiSpan.style.fontWeight = 'bold'
-      emojiSpan.textContent = '🐾'
-      cityMarkerContainer.appendChild(emojiSpan)
-
-      markerVisual.appendChild(cityMarkerContainer)
 
       // Add visual element to root
       markerRoot.appendChild(markerVisual)
@@ -246,23 +288,34 @@ export default function LostPetsMap() {
         .setLngLat([lng, lat])
         .addTo(map.current!)
 
-      // Create popup with city name and list of all pets in this city
-      const petListHTML = cityPets.map((pet) => {
+      // Create popup with list of all pets at this location
+      const petListHTML = petsAtCoord.map((pet) => {
         const petEmoji = pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾'
         const petName = pet.pet_name || `${pet.species}${pet.breed ? ' · ' + pet.breed : ''}`
+        const petImage = pet.photo_url ? `<img src="${pet.photo_url}" style="width: 100%; height: 100%; object-fit: cover;">` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f3f4f6; font-size: 24px;">${petEmoji}</div>`
         return `
-          <div style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px;">
-            <strong style="cursor: pointer; color: #d97706;" data-pet-id="${pet.id}">${petName}</strong><br/>
-            ${petEmoji} ${pet.species}${pet.breed ? ' · ' + pet.breed : ''}<br/>
-            ${pet.sex === 'male' ? '♂️ Boy' : '♀️ Girl'}<br/>
-            <small style="color: #666;">Lost: ${new Date(pet.lost_time).toLocaleDateString()}</small>
+          <div style="padding: 8px; border-bottom: 1px solid #eee;">
+            <div style="display: flex; gap: 8px; align-items: flex-start;">
+              <!-- Left: Circular pet image -->
+              <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 2px solid #e5e7eb;">
+                ${petImage}
+              </div>
+              <!-- Right: Pet info -->
+              <div style="flex: 1; min-width: 0;">
+                <strong style="cursor: pointer; color: #d97706; display: block; margin-bottom: 4px;" data-pet-id="${pet.id}">${petName}</strong>
+                <div style="font-size: 11px; color: #666;">
+                  ${petEmoji} ${pet.species}${pet.breed ? ' · ' + pet.breed : ''} &nbsp; ${pet.sex === 'male' ? '♂️ Boy' : '♀️ Girl'}
+                </div>
+              </div>
+            </div>
+            <small style="color: #999; display: block; margin-top: 4px;">Lost: ${new Date(pet.lost_time).toLocaleDateString()}</small>
           </div>
         `
       }).join('')
 
       const popupContent = `
         <div style="font-size: 13px; font-weight: bold; padding: 8px 8px 4px 8px; border-bottom: 2px solid #f59e0b;">
-          📍 ${firstPet.city || 'Unknown'} (${cityPets.length} pet${cityPets.length > 1 ? 's' : ''})
+          📍 ${firstPet.city || 'Unknown'} (${petsAtCoord.length} pet${petsAtCoord.length > 1 ? 's' : ''})
         </div>
         <div style="max-width: 300px; max-height: 400px; overflow-y: auto;">
           ${petListHTML}
@@ -316,9 +369,9 @@ export default function LostPetsMap() {
       requestAnimationFrame(() => {
         const bounds = new mapboxgl.LngLatBounds()
         
-        petsByCity.forEach((cityPets) => {
-          const lng = parseCoordinate(cityPets[0].longitude)
-          const lat = parseCoordinate(cityPets[0].latitude)
+        petsByCoords.forEach((petsAtCoord) => {
+          const lng = parseCoordinate(petsAtCoord[0].longitude)
+          const lat = parseCoordinate(petsAtCoord[0].latitude)
           if (lng != null && lat != null) {
             bounds.extend([lng, lat])
           }
