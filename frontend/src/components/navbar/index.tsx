@@ -24,6 +24,7 @@ export default function TopNavbar() {
         <NavLink to="/found" className="nav-link">Found/Stray</NavLink>
         <NavLink to="/shelters" className="nav-link">Shelters</NavLink>
         <NavLink to="/blog" className="nav-link">Blog</NavLink>
+        <NavLink to="/holiday-family" className="nav-link">Holiday Family</NavLink>
       </nav>
 
       <div className="header-right">
