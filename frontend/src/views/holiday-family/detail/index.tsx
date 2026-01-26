@@ -26,6 +26,7 @@ interface HolidayFamilyDetail {
   family_photos: Array<{ id: number; photo: string; uploaded_at: string }>
   terms_agreed: boolean
   status: 'pending' | 'approved' | 'rejected'
+  rejection_reason?: string
   created_at: string
   updated_at: string
 }
@@ -37,6 +38,12 @@ export default function HolidayFamilyDetail() {
   const [application, setApplication] = useState<HolidayFamilyDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showDocModal, setShowDocModal] = useState(false)
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [approving, setApproving] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
     const fetchApplication = async () => {
@@ -52,6 +59,48 @@ export default function HolidayFamilyDetail() {
 
     fetchApplication()
   }, [id])
+
+  useEffect(() => {
+    if (!toastMessage) return
+
+    const timer = setTimeout(() => {
+      setToastMessage(null)
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [toastMessage])
+
+  const handleApprove = async () => {
+    setApproving(true)
+    try {
+      const response = await holidayFamilyApi.approve(id as string)
+      const appData = response.data.data || response.data
+      setApplication(appData)
+      setToastMessage({ type: 'success', text: 'Application approved successfully!' })
+    } catch (_err) {
+      setToastMessage({ type: 'error', text: 'Failed to approve application' })
+    } finally {
+      setApproving(false)
+    }
+  }
+
+  const handleReject = async () => {
+    setRejecting(true)
+    try {
+      const response = await holidayFamilyApi.reject(id as string, rejectReason)
+      const appData = response.data.data || response.data
+      setApplication(appData)
+      setShowRejectModal(false)
+      setRejectReason('')
+      setToastMessage({ type: 'success', text: 'Application rejected successfully!' })
+    } catch (err: any) {
+      console.error('Reject error:', err)
+      console.error('Error response:', err.response?.data)
+      setToastMessage({ type: 'error', text: 'Failed to reject application' })
+    } finally {
+      setRejecting(false)
+    }
+  }
 
   if (!user?.is_staff) {
     return (
@@ -104,7 +153,7 @@ export default function HolidayFamilyDetail() {
   return (
     <div className="holiday-family-detail-container">
       <button type="button" className="back-btn" onClick={() => navigate('/holiday-family')}>
-        ← Back to List
+        Back to List
       </button>
 
       <div className="detail-header">
@@ -176,7 +225,7 @@ export default function HolidayFamilyDetail() {
               <p>{application.pet_count}</p>
             </div>
             <div className="info-item">
-              <label>Pet Types They Can Take</label>
+              <label>Can Take Care Of</label>
               <div className="pet-types">
                 {application.can_take_dogs && <span className="pet-tag">🐕 Dogs</span>}
                 {application.can_take_cats && <span className="pet-tag">🐈 Cats</span>}
@@ -191,12 +240,12 @@ export default function HolidayFamilyDetail() {
 
         {/* Story & Introduction Section */}
         <section className="detail-section full-width">
-          <h2>Why They Want to Be a Holiday Family</h2>
+          <h2>Reason for this application</h2>
           <div className="text-content">{application.motivation}</div>
         </section>
 
         <section className="detail-section full-width">
-          <h2>About Them</h2>
+          <h2>Description</h2>
           <div className="text-content">{application.introduction}</div>
         </section>
 
@@ -221,12 +270,127 @@ export default function HolidayFamilyDetail() {
         {application.id_document && (
           <section className="detail-section full-width">
             <h2>ID Document</h2>
-            <a href={application.id_document} target="_blank" rel="noopener noreferrer" className="document-link">
+            <button 
+              type="button"
+              className="document-link"
+              onClick={() => setShowDocModal(true)}
+              style={{ background: 'none', border: 'none', color: '#667eea', cursor: 'pointer', fontSize: '16px' }}
+            >
               📄 View ID Document
-            </a>
+            </button>
+          </section>
+        )}
+
+        {/* Action Buttons Section */}
+        {application.status === 'pending' && (
+          <section className="detail-section full-width action-buttons">
+            <button 
+              type="button"
+              className="approve-btn"
+              onClick={handleApprove}
+              disabled={approving}
+            >
+              {approving ? 'Approving...' : '✓ Approve'}
+            </button>
+            <button 
+              type="button"
+              className="reject-btn"
+              onClick={() => setShowRejectModal(true)}
+              disabled={rejecting}
+            >
+              {rejecting ? 'Rejecting...' : '✕ Reject'}
+            </button>
+          </section>
+        )}
+
+        {/* Rejection Reason Section */}
+        {application.status === 'rejected' && application.rejection_reason && (
+          <section className="detail-section full-width rejection-reason">
+            <h2>Rejection Reason</h2>
+            <div className="reason-content">{application.rejection_reason}</div>
           </section>
         )}
       </div>
+
+      {/* ID Document Modal */}
+      {showDocModal && (
+        <div className="modal-overlay" onClick={() => setShowDocModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button 
+              type="button"
+              className="modal-close"
+              onClick={() => setShowDocModal(false)}
+            >
+              ✕
+            </button>
+            <h2>ID Document</h2>
+            {application.id_document.endsWith('.pdf') ? (
+              <iframe
+                src={application.id_document}
+                title="ID Document"
+                sandbox="allow-same-origin allow-presentation"
+                style={{ width: '100%', height: '600px', border: 'none', borderRadius: '8px' }}
+              />
+            ) : (
+              <img 
+                src={application.id_document}
+                alt="ID Document"
+                style={{ width: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '8px' }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Reject Reason Modal */}
+      {showRejectModal && (
+        <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
+          <div className="modal-content reject-modal" onClick={e => e.stopPropagation()}>
+            <button 
+              type="button"
+              className="modal-close"
+              onClick={() => setShowRejectModal(false)}
+            >
+              ✕
+            </button>
+            <h2>Reject Application</h2>
+            <p className="reject-description">Please provide a reason for rejecting this application:</p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+              className="reject-textarea"
+              rows={6}
+            />
+            <div className="reject-actions">
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() => setShowRejectModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-reject-btn"
+                onClick={handleReject}
+                disabled={rejecting || !rejectReason.trim()}
+              >
+                {rejecting ? 'Rejecting...' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`toast-notification ${toastMessage.type}`}>
+          <div className="toast-content">
+            {toastMessage.type === 'success' ? '✓' : '✕'} {toastMessage.text}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

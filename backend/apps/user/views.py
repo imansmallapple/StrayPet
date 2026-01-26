@@ -182,6 +182,17 @@ class UserInfoViewSet(mixins.RetrieveModelMixin,
             return ChangePasswordSerializer
         return super().get_serializer_class()
 
+    @action(detail=False, methods=['get'], url_path='certified')
+    def certified(self, request):
+        """
+        GET /user/userinfo/certified/  获取所有认证过的 Holiday Family 用户
+        """
+        certified_users = User.objects.filter(
+            profile__is_holiday_family_certified=True
+        ).select_related('profile')
+        serializer = self.get_serializer(certified_users, many=True)
+        return Response(serializer.data)
+
     @action(methods=['post'], detail=True)
     def update_email(self, request, pk=None):
         instance = self.get_object()

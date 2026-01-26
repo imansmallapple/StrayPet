@@ -188,7 +188,7 @@ export default function NotificationBell() {
                     setShowNotifications(false)
                   }
                 }}
-                style={{ cursor: notification.notification_type === 'reply' ? 'pointer' : 'default' }}
+                style={{ cursor: (notification.notification_type === 'reply') ? 'pointer' : 'default' }}
               >
                 <div className="notification-content">
                   <div className="notification-title">
@@ -206,13 +206,24 @@ export default function NotificationBell() {
                         {notification.from_user.username}
                       </strong>
                     )}
-                    <span className="notification-type ms-2">
-                      {notification.notification_type === 'reply' && 'replied to you'}
-                      {notification.notification_type === 'friend_request' && 'sent a friend request'}
-                      {notification.notification_type === 'mention' && 'mentioned you'}
-                    </span>
+                    {notification.notification_type !== 'holiday_family_apply' && notification.notification_type !== 'holiday_family_approve' && notification.notification_type !== 'holiday_family_reject' && (
+                      <span className="notification-type ms-2">
+                        {notification.notification_type === 'reply' && 'replied to you'}
+                        {notification.notification_type === 'friend_request' && 'sent a friend request'}
+                        {notification.notification_type === 'mention' && 'mentioned you'}
+                      </span>
+                    )}
+                    {(notification.notification_type === 'holiday_family_apply' || notification.notification_type === 'holiday_family_approve' || notification.notification_type === 'holiday_family_reject') && (
+                      <span className="notification-type ms-2">
+                        {notification.notification_type === 'holiday_family_apply' && 'has submitted a Holiday Family application'}
+                        {notification.notification_type === 'holiday_family_approve' && 'approved your Holiday Family application'}
+                        {notification.notification_type === 'holiday_family_reject' && 'rejected your Holiday Family application'}
+                      </span>
+                    )}
                   </div>
-                  <div className="notification-text">{notification.comment_content || notification.content}</div>
+                  {notification.notification_type !== 'holiday_family_apply' && notification.notification_type !== 'holiday_family_approve' && notification.notification_type !== 'holiday_family_reject' && (
+                    <div className="notification-text">{notification.comment_content || notification.content}</div>
+                  )}
                   <small className="text-muted">{formatDate(notification.created_at)}</small>
                 </div>
 

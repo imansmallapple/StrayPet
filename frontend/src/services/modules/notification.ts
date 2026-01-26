@@ -2,7 +2,7 @@ import http from '@/services/http'
 
 export type Notification = {
   id: number
-  notification_type: 'reply' | 'mention' | 'friend_request' | 'system'
+  notification_type: 'reply' | 'mention' | 'friend_request' | 'system' | 'holiday_family_apply' | 'holiday_family_approve' | 'holiday_family_reject'
   title: string
   content: string
   from_user?: {
@@ -11,6 +11,7 @@ export type Notification = {
   }
   comment_content?: string
   friendship_id?: number
+  holiday_family_application_id?: number
   is_read: boolean
   created_at: string
   read_at?: string

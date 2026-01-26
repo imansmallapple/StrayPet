@@ -99,4 +99,12 @@ export const holidayFamilyApi = {
   // 获取申请列表（仅管理员）
   getList: () =>
     http.get(`${BASE}/`),
+
+  // 批准申请
+  approve: (id: string) =>
+    http.post(`${BASE}/${id}/approve/`),
+
+  // 拒绝申请
+  reject: (id: string, reason: string) =>
+    http.post(`${BASE}/${id}/reject/`, { reason }),
 }

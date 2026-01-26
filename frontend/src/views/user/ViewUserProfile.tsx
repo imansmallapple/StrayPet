@@ -48,6 +48,8 @@ export default function ViewUserProfile() {
         console.warn('User data received:', userData)
         console.warn('Avatar from API:', userData.avatar)
         console.warn('Avatar type:', typeof userData.avatar)
+        console.warn('is_holiday_family_certified from API:', (userData as any).is_holiday_family_certified)
+        console.warn('Full userData keys:', Object.keys(userData))
         
         // 处理avatar URL - 转换相对路径为绝对URL
         if (userData.avatar && typeof userData.avatar === 'string' && userData.avatar.startsWith('/')) {

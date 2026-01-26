@@ -49,6 +49,7 @@ class VerifyEmailCodeSerializer(serializers.Serializer):
 class UserMeSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False, default='')
     avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
+    is_holiday_family_certified = serializers.BooleanField(source='profile.is_holiday_family_certified', required=False, default=False)
     preferred_species = serializers.CharField(source='profile.preferred_species', allow_blank=True, required=False, default='')
     preferred_size = serializers.CharField(source='profile.preferred_size', allow_blank=True, required=False, default='')
     preferred_age_min = serializers.IntegerField(source='profile.preferred_age_min', allow_null=True, required=False)
@@ -76,7 +77,7 @@ class UserMeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name", "phone", "avatar",
+        fields = ("id", "username", "email", "first_name", "last_name", "phone", "avatar", "is_holiday_family_certified",
                   "preferred_species", "preferred_size", "preferred_age_min", "preferred_age_max",
                   "preferred_gender", "has_experience", "living_situation", "has_yard", 
                   "other_pets", "additional_notes",
@@ -179,10 +180,11 @@ class SendEmailCodeSerializer(serializers.Serializer):
 class UserInfoSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
     phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
+    is_holiday_family_certified = serializers.BooleanField(source='profile.is_holiday_family_certified', required=False, default=False)
     
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'avatar', 'phone', 'first_name', 'last_name')
+        fields = ('id', 'username', 'email', 'avatar', 'phone', 'first_name', 'last_name', 'is_holiday_family_certified')
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -376,11 +378,12 @@ class UserDetailSerializer(DynamicFieldsModelSerializer):
     # 把 phone 映射到 profile.phone
     phone = serializers.CharField(source='profile.phone', allow_blank=True, required=False)
     avatar = serializers.ImageField(source='profile.avatar', allow_null=True, required=False)
+    is_holiday_family_certified = serializers.BooleanField(source='profile.is_holiday_family_certified', required=False, default=False)
 
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name',
-                  'phone', 'avatar', 'is_staff', 'date_joined', 'last_login')
+                  'phone', 'avatar', 'is_staff', 'date_joined', 'last_login', 'is_holiday_family_certified')
         extra_kwargs = {
             'username': {'required': False},
             'email': {'required': False},
@@ -439,11 +442,12 @@ class NotificationSerializer(serializers.ModelSerializer):
     from_user = serializers.SerializerMethodField()
     comment_content = serializers.SerializerMethodField()
     friendship_id = serializers.IntegerField(source='friendship.id', allow_null=True, required=False)
+    holiday_family_application_id = serializers.IntegerField(source='holiday_family_application.id', allow_null=True, required=False)
     content = serializers.SerializerMethodField()
     
     class Meta:
         model = Notification
-        fields = ['id', 'notification_type', 'title', 'content', 'from_user', 'comment_content', 'friendship_id', 'is_read', 'created_at', 'read_at']
+        fields = ['id', 'notification_type', 'title', 'content', 'from_user', 'comment_content', 'friendship_id', 'holiday_family_application_id', 'is_read', 'created_at', 'read_at']
         read_only_fields = ['id', 'created_at', 'read_at']
     
     def get_from_user(self, obj):

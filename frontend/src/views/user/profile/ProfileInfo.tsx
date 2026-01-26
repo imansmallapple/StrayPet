@@ -328,6 +328,17 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
   return (
     <Fragment>
       <div className="profile-card">
+        {/* Holiday Family Certified Alert - moved to top */}
+        {userData?.is_holiday_family_certified && (
+          <div className="alert alert-success mb-0" style={{ padding: '12px 16px', borderRadius: 0, marginBottom: 0 }}>
+            <i className="bi bi-check-circle me-2"></i>
+            <strong>Holiday Family Verified</strong>
+            <p className="mb-0 mt-1" style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+              This user has been verified as a Holiday Family partner.
+            </p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="profile-card-header">
           <div className="header-title">
@@ -378,6 +389,16 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     <i className="bi bi-key me-1"></i>
                     Change Password
                   </Button>
+                  {userData?.is_staff && (
+                    <Button
+                      size="sm"
+                      variant="outline-success"
+                      onClick={() => navigate('/holiday-family/list')}
+                    >
+                      <i className="bi bi-list-check me-1"></i>
+                      View Applications
+                    </Button>
+                  )}
                 </>
               )}
             </div>

@@ -37,6 +37,7 @@ export const authApi = {
   getMe: () => http.get<UserMe>(ENDPOINTS.me),
   getProfile: () => http.get<UserMe>(ENDPOINTS.me),
   getUserProfile: (userId: number) => http.get<UserMe>(`/user/userinfo/${userId}/`),
+  getCertifiedUsers: () => http.get<UserMe[]>(`/user/userinfo/certified/`),
   updateProfile: (data: Partial<UserMe>) => http.patch<UserMe>(ENDPOINTS.me, data),
 
   // 密码相关
@@ -125,6 +126,7 @@ export type UserMe = {
   last_name?: string
   phone?: string
   avatar?: string | File
+  is_holiday_family_certified?: boolean
   preferred_species?: string
   preferred_size?: string
   preferred_age_min?: number

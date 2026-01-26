@@ -10,6 +10,7 @@ type User = {
   last_name?: string
   phone?: string
   is_staff?: boolean
+  is_holiday_family_certified?: boolean
 }
 
 type Ctx = {

@@ -23,6 +23,9 @@ class UserProfile(models.Model):
         help_text='User avatar image'
     )
     
+    # Holiday Family certification
+    is_holiday_family_certified = models.BooleanField(default=False, help_text="用户是否通过了Holiday Family认证")
+    
     # Pet adoption preferences
     preferred_species = models.CharField(max_length=50, blank=True, help_text="偏好的物种（如：dog, cat）")
     preferred_size = models.CharField(max_length=50, blank=True, help_text="偏好的大小（如：small, medium, large）")
@@ -132,10 +135,12 @@ class Notification(models.Model):
         ('friend_request', '好友申请'),
         ('system', '系统通知'),
         ('holiday_family_apply', 'Holiday Family 申请'),
+        ('holiday_family_approve', 'Holiday Family 申请已批准'),
+        ('holiday_family_reject', 'Holiday Family 申请已拒绝'),
     )
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
-    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='reply')
+    notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES, default='reply')
     
     # 关联的 holiday family 申请
     holiday_family_application = models.ForeignKey(

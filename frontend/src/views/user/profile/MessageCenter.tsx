@@ -280,8 +280,8 @@ export default function MessageCenter() {
     setLoading(true)
     setError('')
     try {
-      const { data } = await notificationApi.getUnread()
-      setNotifications(data || [])
+      const { data } = await notificationApi.getNotifications(1, 100)
+      setNotifications(data?.results || data || [])
     } catch (err: any) {
       console.error('Failed to load notifications:', err)
       setError('Failed to load notifications')

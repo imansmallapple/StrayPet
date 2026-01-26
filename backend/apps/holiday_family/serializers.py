@@ -36,9 +36,11 @@ class HolidayFamilyApplicationSerializer(serializers.ModelSerializer):
             'family_photos',
             'terms_agreed',
             'status',
+            'rejection_reason',
             'created_at',
+            'updated_at',
         ]
-        read_only_fields = ['id', 'user', 'status', 'created_at', 'family_photos']
+        read_only_fields = ['id', 'user', 'status', 'rejection_reason', 'created_at', 'updated_at', 'family_photos']
 
     def create(self, validated_data):
         # 获取 request 对象获取 user
@@ -73,4 +75,3 @@ class HolidayFamilyApplicationSerializer(serializers.ModelSerializer):
                     HolidayFamilyPhoto.objects.create(application=application, photo=photo_file)
         
         return application
-        read_only_fields = ['id', 'status', 'created_at']
