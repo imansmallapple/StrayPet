@@ -180,3 +180,95 @@ class HolidayFamilyApplicationViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_200_OK
             )
+
+    @action(detail=False, methods=['get'], url_path='user-application/(?P<user_id>[0-9]+)')
+    def user_application(self, request, user_id=None):
+        """Get the approved Holiday Family application for a specific user"""
+        try:
+            user = User.objects.get(id=user_id)
+            application = HolidayFamilyApplication.objects.filter(
+                user=user,
+                status='approved'
+            ).first()
+            
+            if not application:
+                return Response(
+                    {'error': 'No approved application found for this user'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = self.get_serializer(application)
+            return Response(serializer.data)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    @action(detail=True, methods=['patch', 'put'])
+    def update_application(self, request, pk=None):
+        """Update a holiday family application (owner only)"""
+        application = self.get_object()
+        
+        # 检查权限 - 只有申请者或管理员才能编辑
+        if request.user != application.user and not request.user.is_staff:
+            return Response(
+                {'error': 'You do not have permission to edit this application.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # 对于已批准的应用，用户只能编辑某些字段
+        if application.status == 'approved' and not request.user.is_staff:
+            # 允许编辑的字段
+            allowed_fields = ['phone', 'street_address', 'city', 'state', 'postal_code', 'motivation', 'introduction']
+            request_data = {k: v for k, v in request.data.items() if k in allowed_fields}
+        else:
+            request_data = request.data
+        
+        serializer = self.get_serializer(application, data=request_data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    'message': 'Application updated successfully',
+                    'data': serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def update_photos(self, request, pk=None):
+        """Update family photos for an application"""
+        from .models import HolidayFamilyPhoto
+        
+        application = self.get_object()
+        
+        # 检查权限 - 只有申请者或管理员才能编辑
+        if request.user != application.user and not request.user.is_staff:
+            return Response(
+                {'error': 'You do not have permission to edit this application.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # 处理删除的照片IDs
+        delete_photo_ids = request.data.getlist('delete_photo_ids')
+        if delete_photo_ids:
+            HolidayFamilyPhoto.objects.filter(
+                id__in=delete_photo_ids,
+                application=application
+            ).delete()
+        
+        # 处理新上传的照片
+        new_photos = request.FILES.getlist('family_photos')
+        for photo_file in new_photos:
+            HolidayFamilyPhoto.objects.create(application=application, photo=photo_file)
+        
+        # 返回更新后的应用数据
+        serializer = self.get_serializer(application)
+        return Response(
+            {
+                'message': 'Photos updated successfully',
+                'data': serializer.data
+            },
+            status=status.HTTP_200_OK
+        )

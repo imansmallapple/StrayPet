@@ -114,7 +114,7 @@ export default function HolidayFamilyPage() {
                 <div 
                   key={certUser.id} 
                   className="family-card"
-                  onClick={() => navigate(`/user/profile/${certUser.id}`)}
+                  onClick={() => navigate(`/holiday-family/certified/${certUser.id}`)}
                   style={{ cursor: 'pointer' }}
                 >
                   <div className="family-avatar">

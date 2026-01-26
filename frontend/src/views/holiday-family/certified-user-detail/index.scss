@@ -1,0 +1,285 @@
+// src/views/holiday-family/certified-user-detail/index.scss
+
+.certified-user-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  .user-header {
+    background: linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%);
+    padding: 40px;
+    border-bottom: 1px solid #e5e7eb;
+
+    .user-avatar-container {
+      position: relative;
+      display: inline-block;
+
+      .user-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 4px solid #10b981;
+        object-fit: cover;
+      }
+
+      .placeholder-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 80px;
+        color: white;
+      }
+
+      .verified-badge-large {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: #10b981;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: 3px solid white;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        font-size: 12px;
+      }
+    }
+
+    .user-name {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 5px;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .user-username {
+      font-size: 1.1rem;
+      color: #6b7280;
+      margin-bottom: 15px;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .user-status {
+      display: flex;
+      gap: 10px;
+
+      .badge {
+        font-size: 0.95rem;
+        padding: 8px 16px;
+        display: inline-flex;
+        align-items: center;
+      }
+    }
+  }
+
+  .user-details-section,
+  .address-section,
+  .home-environment-section,
+  .pet-experience-section,
+  .pet-preferences-section,
+  .additional-notes-section {
+    padding: 40px;
+    border-bottom: 1px solid #e5e7eb;
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 25px;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .details-grid {
+      gap: 30px;
+
+      .detail-item {
+        padding-bottom: 20px;
+
+        label {
+          display: block;
+          font-weight: 600;
+          color: #6b7280;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+          font-family: 'Poppins', sans-serif;
+        }
+
+        p {
+          font-size: 1.05rem;
+          color: #1f2937;
+          margin: 0;
+          font-family: 'Poppins', sans-serif;
+          line-height: 1.6;
+
+          &.long-text {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #10b981;
+          }
+
+          &.preference-check {
+            display: flex;
+            align-items: center;
+          }
+        }
+      }
+    }
+  }
+
+  .additional-notes-section {
+    .notes-content {
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #10b981;
+      font-style: italic;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+  }
+
+  .action-buttons {
+    padding: 40px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+
+    button {
+      min-width: 250px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-family: 'Poppins', sans-serif;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
+      }
+    }
+  }
+}
+
+.family-photos-section {
+  width: 100%;
+
+  label {
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .family-photos-grid {
+    gap: 15px;
+
+    .family-photo-item {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #f3f4f6;
+      aspect-ratio: 1;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-4px);
+
+        .photo-delete-btn {
+          opacity: 1;
+        }
+      }
+
+      .family-photo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .photo-delete-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+
+        button {
+          padding: 4px 8px;
+          font-size: 12px;
+        }
+      }
+
+      .photo-new-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: #10b981;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .certified-user-card {
+    .user-header {
+      padding: 30px 20px;
+      text-align: center;
+
+      .user-avatar-container {
+        margin-bottom: 20px;
+      }
+
+      .user-name {
+        font-size: 1.5rem;
+      }
+    }
+
+    .user-details-section,
+    .pet-preferences-section,
+    .additional-notes-section {
+      padding: 30px 20px;
+
+      h3 {
+        font-size: 1.25rem;
+      }
+
+      .details-grid {
+        gap: 20px;
+      }
+    }
+
+    .action-buttons {
+      padding: 30px 20px;
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+
+  .family-photos-section {
+    .family-photos-grid {
+      gap: 10px;
+    }
+  }
+}

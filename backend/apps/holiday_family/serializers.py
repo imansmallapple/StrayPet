@@ -3,10 +3,18 @@ from .models import HolidayFamilyApplication, HolidayFamilyPhoto
 
 
 class HolidayFamilyPhotoSerializer(serializers.ModelSerializer):
+    photo = serializers.SerializerMethodField()
+
     class Meta:
         model = HolidayFamilyPhoto
         fields = ['id', 'photo', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
+
+    def get_photo(self, obj):
+        """Return the absolute photo URL"""
+        if obj.photo:
+            return f"http://localhost:8000/media/{obj.photo}"
+        return None
 
 
 class HolidayFamilyApplicationSerializer(serializers.ModelSerializer):

@@ -107,4 +107,49 @@ export const holidayFamilyApi = {
   // 拒绝申请
   reject: (id: string, reason: string) =>
     http.post(`${BASE}/${id}/reject/`, { reason }),
+
+  // 获取特定用户的已批准的Holiday Family应用信息
+  getUserApplication: (userId: number) =>
+    http.get(`${BASE}/user-application/${userId}/`),
+
+  // 编辑Holiday Family应用
+  updateApplication: (id: string, data: Partial<HolidayFamilyApplication>) => {
+    const formData = new FormData()
+    
+    // 添加允许编辑的字段
+    if (data.phone) formData.append('phone', data.phone)
+    if (data.streetAddress) formData.append('street_address', data.streetAddress)
+    if (data.city) formData.append('city', data.city)
+    if (data.state) formData.append('state', data.state)
+    if (data.postalCode) formData.append('postal_code', data.postalCode)
+    if (data.motivation) formData.append('motivation', data.motivation)
+    if (data.introduction) formData.append('introduction', data.introduction)
+    
+    return http.patch<any>(`${BASE}/${id}/update_application/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    })
+  },
+
+  // 更新照片
+  updatePhotos: (id: string, newPhotos: File[] = [], deletePhotoIds: number[] = []) => {
+    const formData = new FormData()
+    
+    // 添加要删除的照片ID
+    deletePhotoIds.forEach(photoId => {
+      formData.append('delete_photo_ids', photoId.toString())
+    })
+    
+    // 添加新照片
+    newPhotos.forEach((file) => {
+      formData.append('family_photos', file)
+    })
+    
+    return http.post<any>(`${BASE}/${id}/update_photos/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    })
+  },
 }

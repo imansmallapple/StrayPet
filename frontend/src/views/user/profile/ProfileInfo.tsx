@@ -389,6 +389,16 @@ export default function ProfileInfo({ me, isOtherUserProfile = false, currentUse
                     <i className="bi bi-key me-1"></i>
                     Change Password
                   </Button>
+                  {userData?.is_holiday_family_certified && (
+                    <Button
+                      size="sm"
+                      variant="outline-success"
+                      onClick={() => navigate(`/holiday-family/certified/${userData.id}`)}
+                    >
+                      <i className="bi bi-card-text me-1"></i>
+                      Edit Holiday Family Profile
+                    </Button>
+                  )}
                   {userData?.is_staff && (
                     <Button
                       size="sm"
