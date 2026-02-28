@@ -22,18 +22,18 @@ export default function CreateEditArticle() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // FluentEditor 实例 refs
+  // FluentEditor instance refs
   const editorContainerRef = useRef<HTMLDivElement | null>(null)
   const fluentRef = useRef<any | null>(null)
 
-  // 检查是否登录
+  // Check if user is logged in
   useEffect(() => {
     if (!user) {
       navigate('/auth/login')
     }
   }, [user, navigate])
 
-  // 初始化 FluentEditor（只跑一次）
+  // Initialize FluentEditor (runs only once)
   useEffect(() => {
     if (!editorContainerRef.current) return
 
@@ -73,7 +73,7 @@ export default function CreateEditArticle() {
 
     fluentRef.current = instance
 
-    // 初始内容
+    // Set initial content
     if (formData.content) {
       if (instance.clipboard?.dangerouslyPasteHTML) {
         instance.clipboard.dangerouslyPasteHTML(formData.content)
@@ -82,7 +82,7 @@ export default function CreateEditArticle() {
       }
     }
 
-    // 内容变化 -> 同步到 form.content
+    // On content change -> sync to form.content
     const handler = () => {
       const root: HTMLElement | null = instance.root ?? null
       const html = root?.innerHTML ?? ''
@@ -178,7 +178,7 @@ export default function CreateEditArticle() {
                       Add hashtags in your content to automatically create and tag topics. Simply type <code>#</code> followed by your tag name.
                     </p>
                     <p className="mb-0 small">
-                      <strong>Examples:</strong> <code>#猫咪护理</code> <code>#PetTraining</code> <code>#领养指南</code>
+                      <strong>Examples:</strong> <code>#CatCare</code> <code>#PetTraining</code> <code>#AdoptionGuide</code>
                     </p>
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export default function CreateEditArticle() {
                   Use the rich text editor to format your content. 
                   You can add <strong>images</strong> 📷, <strong>emojis</strong> 😊, and <strong>rich formatting</strong>.
                   {' '}<strong>Tip: Use #hashtag in your content to automatically create and tag topics!</strong>
-                  {' '}For example: #猫咪护理 #宠物训练
+                  {' '}For example: #CatCare #PetTraining
                 </Form.Text>
               </Form.Group>
 
